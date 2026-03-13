@@ -35,24 +35,24 @@ export default function TravelForm({ onClose }) {
   const planes = [
     {
       id: 'basico',
-      nombre: 'Plan Básico',
+      nombre: 'Vivante Básico',
       precio: 16990,
       descripcion: 'Itinerario personalizado día a día',
       incluye: [
         'Itinerario completo en PDF',
-        'Links de vuelos y hoteles',
-        'Mapa con puntos de interés',
-        'Tips locales básicos'
+        'Links de vuelos y alojamientos',
+        'Puntos de interés',
+        'Tips locales básicos para viajeros'
       ]
     },
     {
       id: 'pro',
-      nombre: 'Plan Pro',
+      nombre: 'Vivante Pro',
       precio: 24990,
       descripcion: 'Experiencia premium con todos los detalles',
       incluye: [
-        'Todo lo del Plan Básico',
-        'Restaurantes recomendados por zona',
+        'Todo lo del Vivante Básico',
+        'Restaurantes recomendados por zona y RRSS',
         'Opciones de tours y actividades',
         'Tips de seguridad y transporte',
         'Presupuesto detallado por día'
