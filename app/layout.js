@@ -1,8 +1,6 @@
 import { Syne, Inter } from 'next/font/google'
-import Header from '@/components/Header'
 import './globals.css'
 
-// ── Fuentes del brandbook ──────────────────────
 const syne = Syne({
   subsets: ['latin'],
   weight: ['700', '800'],
@@ -17,7 +15,6 @@ const inter = Inter({
   display: 'swap',
 })
 
-// ── Metadata VIVANTE ──────────────────────────
 export const metadata = {
   title: 'VIVANTE — Viaja más. Planifica menos.',
   description:
@@ -37,17 +34,13 @@ export default function RootLayout({ children }) {
         style={{
           margin: 0,
           padding: 0,
-          // Crema Suave #FCF8F4 — fondo de la app
           backgroundColor: '#FCF8F4',
-          // Gris Carbón #212529 — texto base
           color: '#212529',
           fontFamily: 'var(--font-inter), sans-serif',
         }}
       >
-        <Header />
-        <main style={{ paddingTop: '68px' }}>
-          {children}
-        </main>
+        {/* Header eliminado — el navbar vive dentro de cada página */}
+        <main>{children}</main>
       </body>
     </html>
   )
