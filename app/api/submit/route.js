@@ -157,7 +157,7 @@ export async function POST(request) {
     </div>
   </div>
   <div class="footer">
-    <p>Viaja Más - Tu herramienta de itinerarios</p>
+    <p>Vivante - Tu herramienta de itinerarios</p>
   </div>
 </body>
 </html>`;
@@ -170,7 +170,7 @@ export async function POST(request) {
             'Authorization': `Bearer ${resendKey}`,
           },
           body: JSON.stringify({
-            from: 'Viaja Más <onboarding@resend.dev>',
+            from: 'Vivante <onboarding@resend.dev>',
             to: notificationEmail,
             subject: `🎉 Nueva solicitud: ${formData.nombre} - ${planTexto} (${planPrecio})`,
             html: notificationHtml,
