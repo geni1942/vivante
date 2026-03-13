@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { ArrowRight, Plane, Hotel, MapPin, Calendar, Star, Globe, Sparkles, ChevronDown, Heart, CheckCircle, Mountain, Users } from 'lucide-react';
 import TravelForm from '../components/TravelForm';
 
@@ -27,7 +28,8 @@ export default function Home() {
     { nombre: 'Santorini', pais: 'Grecia', imagen: 'https://images.unsplash.com/photo-1613395877344-13d4a8e0d49e?w=600&q=80', precio: 'Desde $1.200 USD', tag: '🔥 Popular' },
     { nombre: 'Bali', pais: 'Indonesia', imagen: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=600&q=80', precio: 'Desde $1.500 USD', tag: '✨ Trending' },
     { nombre: 'Machu Picchu', pais: 'Perú', imagen: 'https://images.unsplash.com/photo-1587595431973-160d0d94add1?w=600&q=80', precio: 'Desde $600 USD', tag: '🎒 Aventura' },
-    { nombre: 'Cartagena', pais: 'Colombia', imagen: '"/images/cartagena.jpg"', precio: 'Desde $500 USD', tag: '🏖️ Playa' },
+    // ✅ BUG FIX: comillas extras eliminadas de la URL de Cartagena
+    { nombre: 'Cartagena', pais: 'Colombia', imagen: '/images/cartagena.jpg', precio: 'Desde $500 USD', tag: '🏖️ Playa' },
     { nombre: 'Barcelona', pais: 'España', imagen: 'https://images.unsplash.com/photo-1583422409516-2895a77efded?w=600&q=80', precio: 'Desde $1.100 USD', tag: '🎨 Cultura' },
   ];
 
@@ -48,11 +50,16 @@ export default function Home() {
 
         {/* Nav */}
         <nav className="relative z-20 flex items-center justify-between p-4 sm:p-6 max-w-7xl mx-auto">
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-pink-500 rounded-xl flex items-center justify-center">
-              <Plane className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-xl sm:text-2xl font-bold text-white">Vivante</span>
+          {/* ✅ CAMBIO 1: reemplaza el ícono del avión cuadrado por el logo VIVANTE */}
+          <div className="flex items-center">
+            <Image
+              src="/images/vivante_logo.svg"
+              alt="VIVANTE"
+              width={130}
+              height={95}
+              priority
+              style={{ height: '46px', width: 'auto' }}
+            />
           </div>
           <button
             onClick={() => setShowForm(true)}
@@ -65,8 +72,9 @@ export default function Home() {
         {/* Hero content */}
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 flex flex-col justify-center h-[calc(100vh-100px)]">
           <div className="max-w-3xl">
+            {/* ✅ CAMBIO 2: "Vivante." → "Viaja más." */}
             <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold text-white mb-6 leading-tight">
-              Vivante.<br />
+              Viaja más.<br />
               <span className="bg-gradient-to-r from-orange-400 via-pink-400 to-purple-400 bg-clip-text text-transparent">
                 Planifica menos.
               </span>
@@ -373,14 +381,15 @@ export default function Home() {
       <footer className="bg-gray-900 text-gray-400 py-12 sm:py-16">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex flex-col md:flex-row justify-between items-center gap-8">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-pink-500 rounded-xl flex items-center justify-center">
-                <Plane className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <span className="text-xl font-bold text-white">Vivante</span>
-                <p className="text-sm text-gray-500">Planifica menos, vive más</p>
-              </div>
+            {/* ✅ CAMBIO 4: reemplaza el ícono del avión en el footer por el logo VIVANTE */}
+            <div className="flex items-center">
+              <Image
+                src="/images/vivante_logo.svg"
+                alt="VIVANTE"
+                width={110}
+                height={80}
+                style={{ height: '40px', width: 'auto' }}
+              />
             </div>
             <div className="flex gap-8 text-sm">
               <a href="#" className="hover:text-white transition-colors">Términos</a>
@@ -389,7 +398,7 @@ export default function Home() {
             </div>
           </div>
           <div className="border-t border-gray-800 mt-12 pt-8 text-center text-sm">
-            © {new Date().getFullYear()} Vivante. Hecho con ❤️ para viajeros como tú.
+            © {new Date().getFullYear()} VIVANTE. Hecho con ❤️ para viajeros como tú.
           </div>
         </div>
       </footer>
