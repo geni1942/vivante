@@ -27,7 +27,7 @@ export default function Home() {
     { nombre: 'Santorini', pais: 'Grecia', imagen: 'https://images.unsplash.com/photo-1613395877344-13d4a8e0d49e?w=600&q=80', precio: 'Desde $1.200 USD', tag: '🔥 Popular' },
     { nombre: 'Bali', pais: 'Indonesia', imagen: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=600&q=80', precio: 'Desde $1.500 USD', tag: '✨ Trending' },
     { nombre: 'Machu Picchu', pais: 'Perú', imagen: 'https://images.unsplash.com/photo-1587595431973-160d0d94add1?w=600&q=80', precio: 'Desde $600 USD', tag: '🎒 Aventura' },
-    { nombre: 'Cartagena', pais: 'Colombia', imagen: 'https://images.unsplash.com/photo-1583531172331-88b84b8a7c84?w=600&q=80', precio: 'Desde $500 USD', tag: '🏖️ Playa' },
+    { nombre: 'Cartagena de Indias', pais: 'Colombia', imagen: '"https://unsplash.com/es/fotos/casas-de-hormigon-marron-bajo-el-cielo-blanco-durante-el-dia-GcHar4P8V_Q"', precio: 'Desde $500 USD', tag: '🏖️ Playa' },
     { nombre: 'Barcelona', pais: 'España', imagen: 'https://images.unsplash.com/photo-1583422409516-2895a77efded?w=600&q=80', precio: 'Desde $1.100 USD', tag: '🎨 Cultura' },
   ];
 
