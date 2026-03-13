@@ -29,7 +29,7 @@ export default function Home() {
     { nombre: 'Bali', pais: 'Indonesia', imagen: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=600&q=80', precio: 'Desde $1.500 USD', tag: '✨ Trending' },
     { nombre: 'Machu Picchu', pais: 'Perú', imagen: 'https://images.unsplash.com/photo-1587595431973-160d0d94add1?w=600&q=80', precio: 'Desde $600 USD', tag: '🎒 Aventura' },
     // ✅ BUG FIX: comillas extras eliminadas de la URL de Cartagena
-    { nombre: 'Cartagena', pais: 'Colombia', imagen: 'https://images.unsplash.com/photo-1583997052103-b4a1cb974ce5?w=600&q=80', precio: 'Desde $500 USD', tag: '🏖️ Playa' },
+    { nombre: 'Cartagena', pais: 'Colombia', imagen: 'public/images/cartagena.jpg.jpg', precio: 'Desde $500 USD', tag: '🏖️ Playa' },
     { nombre: 'Barcelona', pais: 'España', imagen: 'https://images.unsplash.com/photo-1583422409516-2895a77efded?w=600&q=80', precio: 'Desde $1.100 USD', tag: '🎨 Cultura' },
   ];
 
