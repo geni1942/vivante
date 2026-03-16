@@ -8,12 +8,13 @@ import TravelForm from '../components/TravelForm';
 export default function Home() {
   const [showForm, setShowForm] = useState(false);
   const [currentDestino, setCurrentDestino] = useState(0);
+  const [showContact, setShowContact] = useState(false);
 
   const destinosHero = [
-    { nombre: 'Torres del Paine', pais: 'Chile', imagen: 'https://images.unsplash.com/photo-1531804055935-76f44d7c3621?w=1920&q=80' },
-    { nombre: 'Santorini', pais: 'Grecia', imagen: 'https://images.unsplash.com/photo-1613395877344-13d4a8e0d49e?w=1920&q=80' },
-    { nombre: 'Bali', pais: 'Indonesia', imagen: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=1920&q=80' },
-    { nombre: 'Tokio', pais: 'Japón', imagen: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=1920&q=80' },
+    { nombre: 'Torres del Paine', pais: 'Chile', imagen: '/images/inspiracion/torres-del-paine.jpg' },
+    { nombre: 'Santorini', pais: 'Grecia', imagen: '/images/inspiracion/santorini.jpg' },
+    { nombre: 'Bali', pais: 'Indonesia', imagen: '/images/inspiracion/bali.jpg' },
+    { nombre: 'Tokio', pais: 'Japón', imagen: '/images/inspiracion/tokio.jpg' },
   ];
 
   useEffect(() => {
@@ -24,12 +25,12 @@ export default function Home() {
   }, []);
 
   const destinos = [
-    { nombre: 'Torres del Paine', pais: 'Chile', imagen: 'https://images.unsplash.com/photo-1531804055935-76f44d7c3621?w=600&q=80', precio: 'Desde $400.000 CLP', tag: '🇨🇱 Local' },
-    { nombre: 'Santorini', pais: 'Grecia', imagen: 'https://images.unsplash.com/photo-1613395877344-13d4a8e0d49e?w=600&q=80', precio: 'Desde $1.200 USD', tag: '🔥 Popular' },
-    { nombre: 'Bali', pais: 'Indonesia', imagen: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=600&q=80', precio: 'Desde $1.500 USD', tag: '✨ Trending' },
-    { nombre: 'Machu Picchu', pais: 'Perú', imagen: 'https://images.unsplash.com/photo-1587595431973-160d0d94add1?w=600&q=80', precio: 'Desde $600 USD', tag: '🎒 Aventura' },
-    { nombre: 'Cartagena', pais: 'Colombia', imagen: 'public/images/cartagena.jpg.jpg', precio: 'Desde $500 USD', tag: '🏖️ Playa' },
-    { nombre: 'Barcelona', pais: 'España', imagen: 'https://images.unsplash.com/photo-1583422409516-2895a77efded?w=600&q=80', precio: 'Desde $1.100 USD', tag: '🎨 Cultura' },
+    { nombre: 'Torres del Paine', pais: 'Chile', imagen: '/images/inspiracion/torres-del-paine.jpg', precio: 'Desde $400.000 CLP', tag: '🇨🇱 Local' },
+    { nombre: 'Santorini', pais: 'Grecia', imagen: '/images/inspiracion/santorini.jpg', precio: 'Desde $1.200 USD', tag: '🔥 Popular' },
+    { nombre: 'Bali', pais: 'Indonesia', imagen: '/images/inspiracion/bali.jpg', precio: 'Desde $1.500 USD', tag: '✨ Trending' },
+    { nombre: 'Machu Picchu', pais: 'Perú', imagen: '/images/inspiracion/machu-picchu.jpg', precio: 'Desde $600 USD', tag: '🎒 Aventura' },
+    { nombre: 'Cartagena', pais: 'Colombia', imagen: '/images/inspiracion/cartagena.jpg', precio: 'Desde $500 USD', tag: '🏖️ Playa' },
+    { nombre: 'Barcelona', pais: 'España', imagen: '/images/inspiracion/barcelona.jpg', precio: 'Desde $1.100 USD', tag: '🎨 Cultura' },
   ];
 
   return (
@@ -49,7 +50,6 @@ export default function Home() {
 
         {/* Nav */}
         <nav className="relative z-20 flex items-center justify-between p-4 sm:p-6 max-w-7xl mx-auto">
-          {/* ✅ CAMBIO 1: reemplaza el ícono del avión cuadrado por el logo VIVANTE */}
           <div className="flex items-center">
             <Image
               src="/images/vivante_logo.svg"
@@ -71,7 +71,6 @@ export default function Home() {
         {/* Hero content */}
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 flex flex-col justify-center h-[calc(100vh-100px)]">
           <div className="max-w-3xl">
-            {/* ✅ CAMBIO 2: "Vivante." → "Viaja más." */}
             <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold text-white mb-6 leading-tight">
               Viaja más.<br />
               <span className="bg-gradient-to-r from-orange-400 via-pink-400 to-purple-400 bg-clip-text text-transparent">
@@ -79,8 +78,9 @@ export default function Home() {
               </span>
             </h1>
             
+            {/* ✅ CAMBIO 1: Nuevo texto del hero */}
             <p className="text-lg sm:text-xl text-white/80 mb-10 leading-relaxed max-w-xl">
-              Cuéntanos tu presupuesto, tus días y lo que te apasiona. Creamos tu viaje perfecto: vuelos, hotel, actividades y más — todo listo para reservar.
+              ¿40 horas planificando? ¡No gastes más tu tiempo! Cuéntanos tus preferencias de viaje y nosotros te diseñamos el itinerario para que tu experiencia sea inolvidable - todo listo para reservar
             </p>
             
             <button
@@ -333,7 +333,7 @@ export default function Home() {
                     <Star key={j} className="w-5 h-5 text-yellow-400 fill-yellow-400" />
                   ))}
                 </div>
-                <p className="text-gray-600 mb-8 text-lg leading-relaxed">"{t.texto}"</p>
+                <p className="text-gray-600 mb-8 text-lg leading-relaxed">&ldquo;{t.texto}&rdquo;</p>
                 <div className="flex items-center gap-4">
                   <img src={t.imagen} alt={t.nombre} className="w-14 h-14 rounded-full object-cover ring-4 ring-white" />
                   <div>
@@ -376,11 +376,10 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Footer */}
+      {/* ✅ CAMBIO 3, 4: Footer con íconos de redes sociales y cajita de contacto */}
       <footer className="bg-gray-900 text-gray-400 py-12 sm:py-16">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex flex-col md:flex-row justify-between items-center gap-8">
-            {/* ✅ CAMBIO 4: reemplaza el ícono del avión en el footer por el logo VIVANTE */}
             <div className="flex items-center">
               <Image
                 src="/images/vivante_logo.svg"
@@ -390,13 +389,74 @@ export default function Home() {
                 style={{ height: '40px', width: 'auto' }}
               />
             </div>
-            <div className="flex gap-8 text-sm">
+
+            {/* Links + Contacto con cajita */}
+            <div className="flex gap-8 text-sm items-center">
               <a href="#" className="hover:text-white transition-colors">Términos</a>
               <a href="#" className="hover:text-white transition-colors">Privacidad</a>
-              <a href="#" className="hover:text-white transition-colors">Contacto</a>
+              <div className="relative">
+                <button
+                  onClick={() => setShowContact(!showContact)}
+                  className="hover:text-white transition-colors"
+                >
+                  Contacto
+                </button>
+                {showContact && (
+                  <div className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 bg-white text-gray-800 rounded-xl p-4 shadow-xl min-w-[300px] text-sm z-50">
+                    <button
+                      onClick={() => setShowContact(false)}
+                      className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 text-xs"
+                    >
+                      ✕
+                    </button>
+                    <p className="font-semibold mb-1">¿Dudas o consultas?</p>
+                    <p className="text-gray-600">
+                      Escríbenos a{' '}
+                      <a
+                        href="mailto:vive.vivante.ch@gmail.com"
+                        className="text-orange-500 hover:underline font-medium"
+                      >
+                        vive.vivante.ch@gmail.com
+                      </a>
+                    </p>
+                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 rotate-45 w-3 h-3 bg-white shadow-sm"></div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-          <div className="border-t border-gray-800 mt-12 pt-8 text-center text-sm">
+
+          {/* ✅ CAMBIO 3: Íconos de Instagram y TikTok */}
+          <div className="flex justify-center gap-5 mt-8">
+            {/* Instagram */}
+            <a
+              href="https://www.instagram.com/vive.vivante"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-gray-500 hover:text-white transition-colors"
+              aria-label="Instagram"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect width="20" height="20" x="2" y="2" rx="5" ry="5"/>
+                <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
+                <line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/>
+              </svg>
+            </a>
+            {/* TikTok — URL pendiente, por ahora solo ícono */}
+            <a
+              href="#"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-gray-500 hover:text-white transition-colors"
+              aria-label="TikTok"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1v-3.5a6.37 6.37 0 0 0-.79-.05A6.34 6.34 0 0 0 3.15 15a6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.34-6.34V8.71a8.19 8.19 0 0 0 4.76 1.52v-3.4a4.85 4.85 0 0 1-1-.14z"/>
+              </svg>
+            </a>
+          </div>
+
+          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-sm">
             © {new Date().getFullYear()} VIVANTE. Hecho con ❤️ para viajeros como tú.
           </div>
         </div>
