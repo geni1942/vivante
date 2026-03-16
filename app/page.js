@@ -347,6 +347,92 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Planes y Precios */}
+      <section id="precios" className="py-16 sm:py-24 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center mb-12 sm:mb-16">
+            <span className="inline-block bg-purple-100 text-purple-600 px-4 py-1.5 rounded-full text-sm font-medium mb-4">
+              Planes y Precios
+            </span>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+              Elige tu experiencia
+            </h2>
+            <p className="text-gray-500 text-lg max-w-2xl mx-auto">
+              Un solo pago. Todo el itinerario listo para reservar. Sin suscripciones.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+            {/* Vivante Básico */}
+            <div className="bg-white rounded-3xl p-8 border-2 border-gray-200 hover:border-gray-300 transition-all relative flex flex-col">
+              <div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-1">Vivante Básico</h3>
+                <p className="text-gray-500 text-sm mb-6">Itinerario personalizado día a día</p>
+                <div className="mb-6">
+                  <span className="text-5xl font-bold text-gray-900">$17</span>
+                  <span className="text-gray-500 ml-2">USD</span>
+                </div>
+                <ul className="space-y-3 mb-8">
+                  {[
+                    'Itinerario completo en PDF',
+                    'Links de vuelos y alojamientos',
+                    'Puntos de interés',
+                    'Tips culturales, de conectividad y dinero',
+                    'Tips locales básicos para viajeros',
+                  ].map((item, i) => (
+                    <li key={i} className="flex items-start gap-3">
+                      <span className="text-green-500 mt-0.5 flex-shrink-0">✓</span>
+                      <span className="text-gray-600 text-sm">{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <button
+                onClick={() => setShowForm(true)}
+                className="w-full py-4 rounded-2xl border-2 border-gray-900 text-gray-900 font-semibold hover:bg-gray-900 hover:text-white transition-all mt-auto"
+              >
+                Comenzar con Básico
+              </button>
+            </div>
+
+            {/* Vivante Pro */}
+            <div className="bg-gray-900 rounded-3xl p-8 border-2 border-gray-900 transition-all relative flex flex-col">
+              <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-orange-500 to-pink-500 text-white text-xs font-bold px-5 py-2 rounded-full whitespace-nowrap">
+                ⭐ RECOMENDADO
+              </div>
+              <div>
+                <h3 className="text-2xl font-bold text-white mb-1">Vivante Pro</h3>
+                <p className="text-gray-400 text-sm mb-6">Experiencia premium con todos los detalles</p>
+                <div className="mb-6">
+                  <span className="text-5xl font-bold text-white">$25</span>
+                  <span className="text-gray-400 ml-2">USD</span>
+                </div>
+                <ul className="space-y-3 mb-8">
+                  {[
+                    'Todo lo del Vivante Básico',
+                    'Restaurantes recomendados por zona y RRSS',
+                    'Opciones de tours y actividades',
+                    'Tips de seguridad y transporte',
+                    'Presupuesto detallado por día',
+                  ].map((item, i) => (
+                    <li key={i} className="flex items-start gap-3">
+                      <span className="text-orange-400 mt-0.5 flex-shrink-0">✓</span>
+                      <span className="text-gray-300 text-sm">{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <button
+                onClick={() => setShowForm(true)}
+                className="w-full py-4 rounded-2xl bg-gradient-to-r from-orange-500 to-pink-500 text-white font-semibold hover:opacity-90 hover:scale-[1.02] transition-all mt-auto"
+              >
+                Comenzar con Pro →
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* CTA Final */}
       <section className="relative py-24 sm:py-32 overflow-hidden">
         <div
