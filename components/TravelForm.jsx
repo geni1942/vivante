@@ -36,7 +36,8 @@ export default function TravelForm({ onClose }) {
     {
       id: 'basico',
       nombre: 'Vivante Básico',
-      precio: 16990,
+      precio: 17,        // USD (mostrado al usuario)
+      precioClp: 16990,  // CLP (usado en MercadoPago Chile)
       descripcion: 'Itinerario personalizado día a día',
       incluye: [
         'Itinerario completo en PDF',
@@ -49,7 +50,8 @@ export default function TravelForm({ onClose }) {
     {
       id: 'pro',
       nombre: 'Vivante Pro',
-      precio: 24990,
+      precio: 25,        // USD (mostrado al usuario)
+      precioClp: 24990,  // CLP (usado en MercadoPago Chile)
       descripcion: 'Experiencia premium con todos los detalles',
       incluye: [
         'Todo lo del Vivante Básico',
@@ -252,7 +254,7 @@ export default function TravelForm({ onClose }) {
                         <span className="font-semibold text-gray-800">{plan.nombre}</span>
                       </div>
                       <span className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-pink-500">
-                        ${plan.precio.toLocaleString('es-CL')}
+                        ${plan.precio} USD
                       </span>
                     </div>
                     <p className="text-sm text-gray-500 mb-2">{plan.descripcion}</p>
@@ -273,7 +275,7 @@ export default function TravelForm({ onClose }) {
               <div className="bg-gradient-to-r from-orange-50 to-pink-50 rounded-xl p-4 mb-6 text-center">
                 <p className="text-sm text-gray-500 mb-1">Total a pagar</p>
                 <p className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-pink-500">
-                  ${planSeleccionado?.precio.toLocaleString('es-CL')} CLP
+                  ${planSeleccionado?.precio} USD
                 </p>
               </div>
             )}
@@ -294,7 +296,8 @@ export default function TravelForm({ onClose }) {
                       body: JSON.stringify({
                         planId: selectedPlan,
                         planNombre: planSeleccionado?.nombre,
-                        precio: planSeleccionado?.precio,
+                        precio: planSeleccionado?.precioClp, // CLP para MercadoPago Chile
+                        precioUsd: planSeleccionado?.precio,
                         email: formData.email,
                         nombre: formData.nombre,
                       }),
