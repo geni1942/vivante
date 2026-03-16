@@ -42,6 +42,7 @@ export default function TravelForm({ onClose }) {
         'Itinerario completo en PDF',
         'Links de vuelos y alojamientos',
         'Puntos de interés',
+        'Tips culturales, de conectividad y dinero',
         'Tips locales básicos para viajeros'
       ]
     },
@@ -188,16 +189,10 @@ export default function TravelForm({ onClose }) {
             <span className="text-4xl">🎉</span>
           </div>
           <h2 className="text-2xl font-bold text-gray-800 mb-4">¡Excelente, {formData.nombre}!</h2>
-          <p className="text-gray-600 mb-3">Ya estamos trabajando en tu viaje perfecto.</p>
           <p className="text-gray-600 mb-4">
-            Una vez que verifiquemos tu pago, recibirás en tu email un itinerario personalizado con todos los detalles de tu viaje.
+            Tu pago fue recibido. Recibirás tu itinerario personalizado en <strong>{formData.email}</strong> en breve.
           </p>
-          <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-6">
-            <p className="text-sm text-orange-700">
-              <strong>📧 Recuerda:</strong> Envía tu comprobante de transferencia a <strong>geniraggio@hotmail.com</strong> para procesar tu pedido.
-            </p>
-          </div>
-          <p className="text-orange-500 font-medium mb-8 italic">Tu aventura está a punto de comenzar.</p>
+          <p className="text-orange-500 font-medium mb-8 italic">Tu aventura está a punto de comenzar. ✈️</p>
           <button onClick={onClose} className="w-full py-3 bg-gradient-to-r from-orange-500 to-pink-500 text-white rounded-xl font-medium">¡Entendido!</button>
         </div>
       </div>
@@ -228,7 +223,7 @@ export default function TravelForm({ onClose }) {
                 <p><span className="font-medium">Destino:</span> {formData.destino || 'Por definir'}</p>
                 <p><span className="font-medium">Días:</span> {formData.dias}</p>
                 <p><span className="font-medium">Viajeros:</span> {formData.numViajeros}</p>
-                <p><span className="font-medium">Presupuesto:</span> ${formData.presupuesto.toLocaleString()} USD</p>
+                <p><span className="font-medium">Presupuesto:</span> {formData.presupuesto >= 15000 ? '$15.000+ USD' : `$${formData.presupuesto.toLocaleString()} USD`}</p>
               </div>
             </div>
 
@@ -273,71 +268,61 @@ export default function TravelForm({ onClose }) {
               </div>
             </div>
 
-            {/* Datos de transferencia */}
-            <div className="bg-white border-2 border-gray-200 rounded-xl p-4 mb-6">
-              <h3 className="font-semibold text-gray-800 mb-3">🏦 Datos para transferencia</h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Banco:</span>
-                  <span className="font-medium text-gray-800">Santander</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Tipo de cuenta:</span>
-                  <span className="font-medium text-gray-800">Vista</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Número de cuenta:</span>
-                  <span className="font-medium text-gray-800">0-070-17-96423-7</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">RUT:</span>
-                  <span className="font-medium text-gray-800">19.567.647-k</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Nombre:</span>
-                  <span className="font-medium text-gray-800">María Eugenia Raggio Corbella</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Email:</span>
-                  <span className="font-medium text-gray-800">geniraggio@hotmail.com</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Monto a transferir */}
+            {/* Monto a pagar */}
             {selectedPlan && (
               <div className="bg-gradient-to-r from-orange-50 to-pink-50 rounded-xl p-4 mb-6 text-center">
-                <p className="text-sm text-gray-500 mb-1">Monto a transferir</p>
+                <p className="text-sm text-gray-500 mb-1">Total a pagar</p>
                 <p className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-pink-500">
                   ${planSeleccionado?.precio.toLocaleString('es-CL')} CLP
                 </p>
               </div>
             )}
 
-            {/* Instrucciones */}
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
-              <p className="text-sm text-blue-700">
-                <strong>📩 Importante:</strong> Una vez realizada la transferencia, envía tu comprobante a <strong>geniraggio@hotmail.com</strong> para confirmar tu pedido.
-              </p>
-            </div>
-
             {error && <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm mb-4">{error}</div>}
 
             {/* Botones */}
             <div className="space-y-3">
               <button
-                onClick={confirmPayment}
+                onClick={async () => {
+                  if (!selectedPlan) return;
+                  setIsSubmitting(true);
+                  setError(null);
+                  try {
+                    const res = await fetch('/api/payment/create-preference', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        planId: selectedPlan,
+                        planNombre: planSeleccionado?.nombre,
+                        precio: planSeleccionado?.precio,
+                        email: formData.email,
+                        nombre: formData.nombre,
+                      }),
+                    });
+                    const data = await res.json();
+                    if (data.init_point) {
+                      localStorage.setItem('vivante_formData', JSON.stringify(formData));
+                      window.location.href = data.init_point;
+                    } else {
+                      throw new Error(data.error || 'No se pudo iniciar el pago');
+                    }
+                  } catch (e) {
+                    setError('Error al procesar el pago. Por favor intenta nuevamente.');
+                    setIsSubmitting(false);
+                  }
+                }}
                 disabled={isSubmitting || !selectedPlan}
-                className={`w-full py-4 rounded-xl font-medium flex items-center justify-center gap-2 transition-all ${
-                  !isSubmitting && selectedPlan 
-                    ? 'bg-gradient-to-r from-orange-500 to-pink-500 text-white hover:shadow-lg' 
+                className={`w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all ${
+                  !isSubmitting && selectedPlan
+                    ? 'text-white shadow-lg hover:opacity-90'
                     : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                 }`}
+                style={!isSubmitting && selectedPlan ? { backgroundColor: '#009EE3' } : {}}
               >
                 {isSubmitting ? (
-                  <><Loader2 className="w-5 h-5 animate-spin" /> Procesando...</>
+                  <><Loader2 className="w-5 h-5 animate-spin" /> Redirigiendo a Mercado Pago...</>
                 ) : (
-                  <><Check className="w-5 h-5" /> Confirmar solicitud</>
+                  <>💳 Pagar con Mercado Pago</>
                 )}
               </button>
               <button
@@ -506,9 +491,11 @@ export default function TravelForm({ onClose }) {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Presupuesto por persona (USD)</label>
                   <div className="bg-gradient-to-r from-orange-50 to-pink-50 p-4 rounded-xl">
-                    <div className="text-3xl font-bold text-center text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-pink-500 mb-3">${formData.presupuesto.toLocaleString()}</div>
-                    <input type="range" min="500" max="10000" step="100" value={formData.presupuesto} onChange={(e) => setFormData({ ...formData, presupuesto: parseInt(e.target.value) })} className="w-full" />
-                    <div className="flex justify-between text-xs text-gray-500 mt-1"><span>$500</span><span>$10,000+</span></div>
+                    <div className="text-3xl font-bold text-center text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-pink-500 mb-3">
+                      {formData.presupuesto >= 15000 ? '$15.000+ USD' : `$${formData.presupuesto.toLocaleString()}`}
+                    </div>
+                    <input type="range" min="500" max="15000" step="500" value={formData.presupuesto} onChange={(e) => setFormData({ ...formData, presupuesto: parseInt(e.target.value) })} className="w-full" />
+                    <div className="flex justify-between text-xs text-gray-500 mt-1"><span>$500</span><span>$15.000+</span></div>
                   </div>
                 </div>
                 <div>
