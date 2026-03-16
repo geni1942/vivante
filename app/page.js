@@ -11,10 +11,10 @@ export default function Home() {
   const [showContact, setShowContact] = useState(false);
 
   const destinosHero = [
-    { nombre: 'Torres del Paine', pais: 'Chile', imagen: '/images/Torres del paine, Chile.jpg' },
-    { nombre: 'Santorini', pais: 'Grecia', imagen: '/images/Santorini, Grecia.jpg' },
-    { nombre: 'Bali', pais: 'Indonesia', imagen: '/images/Bali, Indonesia.jpg' },
-    { nombre: 'Tokio', pais: 'Japón', imagen: '/images/Tokio, Japón.jpg' },
+    { nombre: 'Torres del Paine', pais: 'Chile', imagen: '/images/Torres%20del%20paine%2C%20Chile.jpg' },
+    { nombre: 'Santorini', pais: 'Grecia', imagen: '/images/Santorini%2C%20Grecia.jpg' },
+    { nombre: 'Bali', pais: 'Indonesia', imagen: '/images/Bali%2C%20Indonesia.jpg' },
+    { nombre: 'Tokio', pais: 'Japón', imagen: '/images/Tokio%2C%20Jap%C3%B3n.jpg' },
   ];
 
   useEffect(() => {
@@ -25,12 +25,12 @@ export default function Home() {
   }, []);
 
   const destinos = [
-    { nombre: 'Torres del Paine', pais: 'Chile', imagen: '/images/Torres del paine, Chile.jpg', precio: 'Desde $400.000 CLP', tag: '🇨🇱 Local' },
-    { nombre: 'Santorini', pais: 'Grecia', imagen: '/images/Santorini, Grecia.jpg', precio: 'Desde $1.200 USD', tag: '🔥 Popular' },
-    { nombre: 'Bali', pais: 'Indonesia', imagen: '/images/Bali, Indonesia.jpg', precio: 'Desde $1.500 USD', tag: '✨ Trending' },
-    { nombre: 'Machu Picchu', pais: 'Perú', imagen: '/images/Machu Picchu, Peru.jpg', precio: 'Desde $600 USD', tag: '🎒 Aventura' },
+    { nombre: 'Torres del Paine', pais: 'Chile', imagen: '/images/Torres%20del%20paine%2C%20Chile.jpg', precio: 'Desde $400.000 CLP', tag: '🇨🇱 Local' },
+    { nombre: 'Santorini', pais: 'Grecia', imagen: '/images/Santorini%2C%20Grecia.jpg', precio: 'Desde $1.200 USD', tag: '🔥 Popular' },
+    { nombre: 'Bali', pais: 'Indonesia', imagen: '/images/Bali%2C%20Indonesia.jpg', precio: 'Desde $1.500 USD', tag: '✨ Trending' },
+    { nombre: 'Machu Picchu', pais: 'Perú', imagen: '/images/Machu%20Picchu%2C%20Peru.jpg', precio: 'Desde $600 USD', tag: '🎒 Aventura' },
     { nombre: 'Cartagena', pais: 'Colombia', imagen: '/images/cartagena.jpg', precio: 'Desde $500 USD', tag: '🏖️ Playa' },
-    { nombre: 'Barcelona', pais: 'España', imagen: '/images/Barcelona, España.jpg', precio: 'Desde $1.100 USD', tag: '🎨 Cultura' },
+    { nombre: 'Barcelona', pais: 'España', imagen: '/images/Barcelona%2C%20Espa%C3%B1a.jpg', precio: 'Desde $1.100 USD', tag: '🎨 Cultura' },
   ];
 
   return (
@@ -43,7 +43,7 @@ export default function Home() {
             className={`absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ${
               currentDestino === index ? 'opacity-100' : 'opacity-0'
             }`}
-            style={{ backgroundImage: `url(${destino.imagen})` }}
+            style={{ backgroundImage: `url("${destino.imagen}")` }}
           />
         ))}
         <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/70"></div>
@@ -413,6 +413,7 @@ export default function Home() {
                     'Restaurantes recomendados por zona y RRSS',
                     'Opciones de tours y actividades',
                     'Tips de seguridad y transporte',
+                    'Tips culturales, de conectividad y dinero',
                     'Presupuesto detallado por día',
                   ].map((item, i) => (
                     <li key={i} className="flex items-start gap-3">
