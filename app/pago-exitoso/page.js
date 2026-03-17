@@ -467,7 +467,14 @@ function ItinerarioContent() {
                     return (
                       <tr key={i} style={{ background: i % 2 === 0 ? C.bg0 : '#fff', verticalAlign: 'top' }}>
                         <td style={{ padding: '12px 12px', fontWeight: 700, color: C.carbon, fontSize: 14 }}>{v.aerolinea}</td>
-                        <td style={{ padding: '12px 12px', color: '#555', fontSize: 13 }}>{v.ruta}</td>
+                        <td style={{ padding: '12px 12px', color: '#555', fontSize: 13 }}>
+                          <div>{v.ruta}</div>
+                          {v.escala && (
+                            <span style={{ display: 'inline-block', marginTop: 4, fontSize: 11, background: v.escala.toLowerCase().includes('directo') ? '#e8f5e9' : '#FFF0EB', color: v.escala.toLowerCase().includes('directo') ? '#27ae60' : C.coral, borderRadius: 4, padding: '2px 6px', fontWeight: 600 }}>
+                              {v.escala}
+                            </span>
+                          )}
+                        </td>
                         <td style={{ padding: '12px 12px', color: C.coral, fontWeight: 700, fontSize: 15, whiteSpace: 'nowrap' }}>{v.precio_estimado}</td>
                         <td style={{ padding: '12px 12px', color: '#666', fontSize: 13, whiteSpace: 'nowrap' }}>{v.duracion || '—'}</td>
                         <td style={{ padding: '12px 12px', color: C.violeta, fontStyle: 'italic', fontSize: 12, maxWidth: 180 }}>{v.tip || '—'}</td>
@@ -553,32 +560,44 @@ function ItinerarioContent() {
                   </tr>
                 </thead>
                 <tbody>
-                  {(itinerario?.restaurantes || []).map((r, i) => (
-                    <tr key={i} style={{ background: i % 2 === 0 ? C.bg0 : '#fff', verticalAlign: 'top' }}>
-                      <td style={{ padding: '10px 12px' }}>
-                        <p style={{ margin: '0 0 2px', fontWeight: 700, color: C.carbon, fontSize: 14 }}>{r.nombre}</p>
-                        {r.por_que && <p style={{ margin: 0, color: C.violeta, fontStyle: 'italic', fontSize: 12 }}>{r.por_que}</p>}
-                      </td>
-                      <td style={{ padding: '10px 12px', color: '#666', fontSize: 13 }}>{r.ubicacion || '—'}</td>
-                      <td style={{ padding: '10px 12px', color: '#555', fontSize: 13 }}>{r.tipo}</td>
-                      <td style={{ padding: '10px 12px', color: C.coral, fontWeight: 700, fontSize: 14, whiteSpace: 'nowrap' }}>{r.precio_promedio}</td>
-                      <td style={{ padding: '10px 12px', textAlign: 'center', fontSize: 18 }}>
-                        {r.requiere_reserva ? '✅' : '—'}
-                      </td>
-                      <td style={{ padding: '10px 12px' }}>
-                        {r.link_reserva
-                          ? <BtnLink href={r.link_reserva} small color={r.requiere_reserva ? C.fucsia : C.coral}>
-                              {r.requiere_reserva ? 'Reservar →' : 'Ver →'}
-                            </BtnLink>
-                          : r.instagram
-                          ? <BtnLink href={`https://instagram.com/${r.instagram.replace('@', '')}`} small color="#E1306C">
-                              {r.instagram}
-                            </BtnLink>
-                          : <span style={{ fontSize: 12, color: '#aaa' }}>Sin reserva</span>
-                        }
-                      </td>
-                    </tr>
-                  ))}
+                  {(() => {
+                    const data = itinerario?.restaurantes;
+                    // Soporta formato nuevo (objeto por ciudad) y formato viejo (array plano)
+                    const byCiudad = Array.isArray(data)
+                      ? { [destRaw || 'Destino']: data }
+                      : (data && typeof data === 'object' ? data : {});
+                    return Object.entries(byCiudad).flatMap(([ciudad, lista], ci) => [
+                      <tr key={`hdr-${ci}`} style={{ background: C.violeta }}>
+                        <td colSpan={6} style={{ padding: '8px 12px', color: '#fff', fontWeight: 700, fontSize: 13 }}>📍 {ciudad}</td>
+                      </tr>,
+                      ...(lista || []).map((r, i) => (
+                        <tr key={`${ci}-${i}`} style={{ background: i % 2 === 0 ? C.bg0 : '#fff', verticalAlign: 'top' }}>
+                          <td style={{ padding: '10px 12px' }}>
+                            <p style={{ margin: '0 0 2px', fontWeight: 700, color: C.carbon, fontSize: 14 }}>{r.nombre}</p>
+                            {r.por_que && <p style={{ margin: 0, color: C.violeta, fontStyle: 'italic', fontSize: 12 }}>{r.por_que}</p>}
+                          </td>
+                          <td style={{ padding: '10px 12px', color: '#666', fontSize: 13 }}>{r.ubicacion || '—'}</td>
+                          <td style={{ padding: '10px 12px', color: '#555', fontSize: 13 }}>{r.tipo}</td>
+                          <td style={{ padding: '10px 12px', color: C.coral, fontWeight: 700, fontSize: 14, whiteSpace: 'nowrap' }}>{r.precio_promedio}</td>
+                          <td style={{ padding: '10px 12px', textAlign: 'center', fontSize: 18 }}>
+                            {r.requiere_reserva ? '✅' : '—'}
+                          </td>
+                          <td style={{ padding: '10px 12px' }}>
+                            {r.link_reserva
+                              ? <BtnLink href={r.link_reserva} small color={r.requiere_reserva ? C.fucsia : C.coral}>
+                                  {r.requiere_reserva ? 'Reservar →' : 'Ver →'}
+                                </BtnLink>
+                              : r.instagram
+                              ? <BtnLink href={`https://instagram.com/${r.instagram.replace('@', '')}`} small color="#E1306C">
+                                  {r.instagram}
+                                </BtnLink>
+                              : <span style={{ fontSize: 12, color: '#aaa' }}>Sin reserva</span>
+                            }
+                          </td>
+                        </tr>
+                      ))
+                    ]);
+                  })()}
                 </tbody>
               </table>
             </div>
@@ -810,7 +829,6 @@ function ItinerarioContent() {
                   ['¿Cómo moverse?', itinerario.transporte_local.como_moverse],
                   ['Apps recomendadas', (itinerario.transporte_local.apps_recomendadas || []).join(', ')],
                   ['Tarjeta de transporte', itinerario.transporte_local.tarjeta_transporte],
-                  ['Aeropuerto → Centro', itinerario.transporte_local.costo_aeropuerto_centro],
                   ['¿Alquilar auto?', itinerario.transporte_local.conviene_auto],
                 ].filter(r => r[1]).map(([l, v], i) => (
                   <div key={i} style={{ marginBottom: 10, paddingBottom: 10, borderBottom: `1px solid ${C.bg1}` }}>
@@ -818,6 +836,44 @@ function ItinerarioContent() {
                     <p style={{ margin: 0, color: C.carbon, fontSize: 14 }}>{v}</p>
                   </div>
                 ))}
+                {/* Aeropuerto → Centro: tabla si viene como array, texto si es string legacy */}
+                {(() => {
+                  const t = itinerario.transporte_local;
+                  const opciones = Array.isArray(t.opciones_aeropuerto_centro) && t.opciones_aeropuerto_centro.length > 0
+                    ? t.opciones_aeropuerto_centro : null;
+                  const fallback = t.costo_aeropuerto_centro;
+                  if (!opciones && !fallback) return null;
+                  return (
+                    <div style={{ marginBottom: 10, paddingBottom: 10, borderBottom: `1px solid ${C.bg1}` }}>
+                      <p style={{ margin: '0 0 8px', fontWeight: 700, color: C.coral, fontSize: 13 }}>✈️ Aeropuerto → Centro</p>
+                      {opciones ? (
+                        <div style={{ overflowX: 'auto' }}>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                            <thead>
+                              <tr style={{ background: C.bg1 }}>
+                                {['Medio', 'Costo estimado', 'Duración', 'Tip'].map(h => (
+                                  <th key={h} style={{ padding: '7px 10px', textAlign: 'left', color: C.carbon, fontWeight: 700, fontSize: 12 }}>{h}</th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {opciones.map((op, oi) => (
+                                <tr key={oi} style={{ background: oi % 2 === 0 ? C.bg0 : '#fff' }}>
+                                  <td style={{ padding: '8px 10px', fontWeight: 600, color: C.carbon }}>{op.medio}</td>
+                                  <td style={{ padding: '8px 10px', color: C.coral, fontWeight: 700 }}>{op.costo}</td>
+                                  <td style={{ padding: '8px 10px', color: '#666' }}>{op.duracion || '—'}</td>
+                                  <td style={{ padding: '8px 10px', color: C.violeta, fontStyle: 'italic', fontSize: 12 }}>{op.tip || '—'}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <p style={{ margin: 0, color: C.carbon, fontSize: 14 }}>{fallback}</p>
+                      )}
+                    </div>
+                  );
+                })()}
               </Sec>
             )}
           </div>
