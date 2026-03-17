@@ -345,6 +345,17 @@ GENERA JSON puro (sin markdown, sin \`\`\`):
     "horarios_comida": "string",
     "museos": "string"
   },
+  "que_empacar": {
+    "clima_fechas": "string (temperatura min/max esperada en las fechas exactas del viaje, condiciones: lluvia/sol/nieve/humedad/viento — sé específico con rangos de temperatura en °C)",
+    "ropa": [
+      "string (ítem de ropa específico según clima y actividades: ej: 'Campera impermeable ligera para lluvia', 'Ropa cómoda para senderismo', 'Al menos 1 outfit formal si hay restaurantes con código de vestimenta')"
+    ],
+    "adaptador": "string (tipo de enchufe del destino: A, B, C, D, G, I, etc. — voltaje: 110V o 220V/230V — indica explícitamente si el viajero chileno necesita adaptador de enchufe y/o transformador de voltaje)",
+    "botiquin": [
+      "string (ítem esencial del botiquín para ESTE destino y actividades — sé específico: ej: 'Repelente DEET 30% contra mosquitos', 'Antihistamínico oral', 'Pastillas para el mareo en bus/bote si hay excursiones', 'Bloqueador solar SPF 50+ si hay playa o montaña')"
+    ],
+    "gadgets": "string (recomienda capacidad de power bank en mAh según duración de jornadas, si conviene llevar adaptador universal, y otros gadgets útiles para este viaje específico: ej cámara sumergible, bastones de trekking, etc.)"
+  },
   "salud_seguridad": {
     "vacunas": "string",
     "agua_potable": "string",
