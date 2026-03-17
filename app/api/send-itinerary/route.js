@@ -405,8 +405,9 @@ GENERA JSON puro (sin markdown, sin \`\`\`):
     });
 
     if (!groqRes.ok) {
-      console.error('Groq error:', await groqRes.text());
-      return NextResponse.json({ error: 'Error generando itinerario' }, { status: 500 });
+      const groqErrText = await groqRes.text();
+      console.error('Groq error status:', groqRes.status, 'body:', groqErrText);
+      return NextResponse.json({ error: 'Error generando itinerario', _groq_status: groqRes.status, _groq_error: groqErrText.substring(0, 500) }, { status: 500 });
     }
 
     const groqData = await groqRes.json();
