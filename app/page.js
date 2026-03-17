@@ -253,6 +253,111 @@ export default function Home() {
       </section>
 
       {/* Qué incluye */}
+
+      {/* Vista Previa del Itinerario */}
+      <section className="py-16 sm:py-24 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-6">
+
+          <div className="text-center mb-12">
+            <span className="inline-block bg-blue-100 text-blue-600 px-4 py-1.5 rounded-full text-sm font-medium mb-4">
+              Ejemplo real
+            </span>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+              As&iacute; se ve tu itinerario
+            </h2>
+            <p className="text-gray-500 text-lg max-w-2xl mx-auto">
+              Un ejemplo real generado para Tokio, Jap&oacute;n. El tuyo ser&aacute; igual de detallado y personalizado.
+            </p>
+          </div>
+
+          <div className="max-w-3xl mx-auto">
+            <div className="bg-white border-2 border-gray-100 rounded-3xl shadow-xl overflow-hidden">
+
+              {/* Cabecera oscura con resumen del viaje */}
+              <div className="bg-gradient-to-r from-gray-900 to-gray-800 p-6 text-white">
+                <div className="flex items-start gap-3 mb-4">
+                  <span className="text-3xl flex-shrink-0">&#127471;&#127477;</span>
+                  <div>
+                    <h3 className="text-xl font-bold">Tokio, Kioto &amp; Osaka &middot; 10 d&iacute;as</h3>
+                    <p className="text-gray-400 text-sm">Santiago &rarr; Tokio &middot; 2 viajeros &middot; Cultura &amp; Gastronom&iacute;a</p>
+                  </div>
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                  <span className="bg-white/10 border border-white/20 px-3 py-1 rounded-full text-xs">&#9992;&#65039; Vuelo desde $950 USD</span>
+                  <span className="bg-white/10 border border-white/20 px-3 py-1 rounded-full text-xs">&#127968; Hotel Shinjuku Granbell</span>
+                  <span className="bg-white/10 border border-white/20 px-3 py-1 rounded-full text-xs">&#128176; Presupuesto: $3.200 USD</span>
+                </div>
+              </div>
+
+              {/* Dia 1 completo */}
+              <div className="p-6 border-b border-gray-100">
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <span className="font-bold text-orange-600 text-sm">D1</span>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">D&iacute;a 1 &middot; Lunes</p>
+                    <h4 className="font-bold text-gray-900">Llegada a Tokio &middot; Barrio Shinjuku</h4>
+                  </div>
+                </div>
+                <div className="space-y-4 pl-14">
+                  <div className="flex items-start gap-3">
+                    <span className="text-gray-400 text-xs w-10 flex-shrink-0 mt-1 font-medium">14:00</span>
+                    <span className="text-base flex-shrink-0">&#127968;</span>
+                    <p className="text-gray-600 text-sm leading-relaxed">Check-in Hotel Shinjuku Granbell. Habitaci&oacute;n superior con vista panor&aacute;mica. A 3 min caminando de la estaci&oacute;n.</p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="text-gray-400 text-xs w-10 flex-shrink-0 mt-1 font-medium">17:00</span>
+                    <span className="text-base flex-shrink-0">&#127758;</span>
+                    <p className="text-gray-600 text-sm leading-relaxed">Exploraci&oacute;n de Shinjuku: callejones Golden Gai, Kabukicho y el mirador gratuito del Gobierno Metropolitano (piso 45).</p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="text-gray-400 text-xs w-10 flex-shrink-0 mt-1 font-medium">20:00</span>
+                    <span className="text-base flex-shrink-0">&#127836;</span>
+                    <p className="text-gray-600 text-sm leading-relaxed">Cena en Fuunji &mdash; ramen tsukemen, uno de los m&aacute;s valorados de Tokio. Reservar con anticipaci&oacute;n.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Dias 2+ bloqueados con blur */}
+              <div className="relative overflow-hidden">
+                <div className="p-6 select-none" style={{filter:'blur(3px)',opacity:0.25,pointerEvents:'none'}}>
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <span className="font-bold text-blue-600 text-sm">D2</span>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">D&iacute;a 2 &middot; Martes</p>
+                      <h4 className="font-bold text-gray-900">Asakusa, Senso-ji &amp; Akihabara</h4>
+                    </div>
+                  </div>
+                  <div className="space-y-3 pl-14">
+                    <div className="h-4 bg-gray-200 rounded-full w-3/4"></div>
+                    <div className="h-4 bg-gray-200 rounded-full w-1/2"></div>
+                    <div className="h-4 bg-gray-200 rounded-full w-5/6"></div>
+                  </div>
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-t from-gray-50 via-gray-50/80 to-transparent flex flex-col items-center justify-end pb-8 px-6 text-center">
+                  <p className="text-gray-700 font-semibold mb-1">+ 9 d&iacute;as m&aacute;s con todo el detalle</p>
+                  <p className="text-gray-500 text-sm mb-6">Restaurantes locales, tours, tips de transporte y presupuesto d&iacute;a a d&iacute;a</p>
+                  <button
+                    onClick={() => setShowForm(true)}
+                    className="bg-gradient-to-r from-orange-500 to-pink-500 text-white px-8 py-3 rounded-2xl font-bold hover:opacity-90 transition-all hover:scale-105 shadow-lg shadow-orange-200/50"
+                  >
+                    Crear mi itinerario &rarr;
+                  </button>
+                </div>
+              </div>
+
+            </div>
+            <p className="text-center text-gray-400 text-sm mt-6">
+              &#10003; Listo en minutos &middot; &#10003; 100% personalizado &middot; &#10003; Todo listo para reservar
+            </p>
+          </div>
+
+        </div>
+      </section>
+
       <section className="py-16 sm:py-24 bg-gray-900 text-white">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-12 sm:mb-16">
@@ -404,7 +509,7 @@ export default function Home() {
                 <h3 className="text-2xl font-bold text-white mb-1">Vivante Pro</h3>
                 <p className="text-gray-400 text-sm mb-6">Experiencia premium con todos los detalles</p>
                 <div className="mb-6">
-                  <span className="text-5xl font-bold text-white">$25</span>
+                  <span className="text-5xl font-bold text-white">$28</span>
                   <span className="text-gray-400 ml-2">USD</span>
                 </div>
                 <ul className="space-y-3 mb-8">
