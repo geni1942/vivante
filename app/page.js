@@ -10,6 +10,7 @@ export default function Home() {
   const [currentDestino, setCurrentDestino] = useState(0);
   const [showContact, setShowContact] = useState(false);
   const [initialDestino, setInitialDestino] = useState('');
+  const [openFaq, setOpenFaq] = useState(null);
 
   const destinosHero = [
     { nombre: 'Torres del Paine', pais: 'Chile', imagen: '/images/Torres%20del%20paine%2C%20Chile.jpg' },
@@ -540,6 +541,75 @@ export default function Home() {
         </div>
       </section>
 
+
+      {/* FAQ Section */}
+      <section className="py-16 sm:py-24 bg-white">
+        <div className="max-w-3xl mx-auto px-6">
+
+          <div className="text-center mb-10">
+            <span className="inline-block bg-orange-100 text-orange-600 px-4 py-1.5 rounded-full text-sm font-medium mb-4">
+              Preguntas frecuentes
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3">
+              &iquest;Ten&eacute;s alguna duda?
+            </h2>
+            <p className="text-gray-500">Las respuestas que m&aacute;s nos preguntan antes de comprar</p>
+          </div>
+
+          <div className="space-y-2">
+            {[
+              {
+                q: '\u00bfC\u00f3mo funciona VIVANTE?',
+                a: 'Complet\u00e1s el formulario en 2 minutos: destino, fechas, presupuesto, intereses y estilo de viaje. Eleg\u00eds tu plan (B\u00e1sico o Pro), pag\u00e1s con tarjeta v\u00eda MercadoPago, y en minutos recib\u00eds tu itinerario completo en tu email. Sin esperas, sin llamadas, sin agencias.'
+              },
+              {
+                q: '\u00bfEl itinerario es realmente personalizado para m\u00ed?',
+                a: 'S\u00ed, 100%. No es una plantilla gen\u00e9rica. En base a tus preferencias (destino, presupuesto, d\u00edas, intereses, tipo de alojamiento y ritmo de viaje) creamos un itinerario \u00fanico para ti.'
+              },
+              {
+                q: '\u00bfLos vuelos y hoteles est\u00e1n reservados, o son recomendaciones?',
+                a: 'Son recomendaciones con links directos para que t\u00fa reserves cuando quieras y al precio que encuentres. VIVANTE no intermedia ni cobra comisi\u00f3n por las reservas \u2014 todo queda entre t\u00fa y la aerol\u00ednea/hotel.'
+              },
+              {
+                q: '\u00bfFunciona para cualquier destino del mundo?',
+                a: 'S\u00ed. El formulario acepta cualquier destino. Si ya ten\u00e9s uno en mente, escrib\u00edlo. Si todav\u00eda no decidiste, te ayudamos a encontrar el m\u00e1s adecuado seg\u00fan tus intereses y presupuesto.'
+              },
+              {
+                q: '\u00bfCu\u00e1l es la diferencia entre el plan B\u00e1sico y el Pro?',
+                a: 'El B\u00e1sico incluye el itinerario completo d\u00eda a d\u00eda con vuelos, alojamientos, restaurantes, actividades y puntos de inter\u00e9s. El Pro agrega vida nocturna (bares recomendados por redes sociales), tips de seguridad, transporte local detallado, conectividad, frases del idioma local y gu\u00eda de qu\u00e9 empacar seg\u00fan el clima y las actividades.'
+              },
+              {
+                q: '\u00bfCu\u00e1nto tarda en llegar mi itinerario?',
+                a: 'En menos de 5 minutos despu\u00e9s de confirmar el pago. Si hay alguna demora, escrib\u00ednos a vive.vivante.ch@gmail.com y lo resolvemos de inmediato.'
+              },
+              {
+                q: '\u00bfPuedo pedir cambios si algo no me convence?',
+                a: 'S\u00ed. Si algo no te convence, escrib\u00ednos y lo revisamos. Queremos que tu itinerario sea perfecto antes de que hagas cualquier reserva.'
+              },
+              {
+                q: '\u00bfEs seguro el pago?',
+                a: 'S\u00ed. Los pagos se procesan a trav\u00e9s de MercadoPago, con cifrado de nivel bancario. VIVANTE no almacena datos de tu tarjeta.'
+              }
+            ].map((item, i) => (
+              <div key={i} className="border border-gray-200 rounded-2xl overflow-hidden">
+                <button
+                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                  className="w-full flex items-center justify-between p-5 text-left hover:bg-gray-50 transition-colors"
+                >
+                  <span className="font-semibold text-gray-900 pr-4 text-sm sm:text-base">{item.q}</span>
+                  <ChevronDown className={`w-5 h-5 text-gray-400 flex-shrink-0 transition-transform duration-200 ${openFaq === i ? 'rotate-180' : ''}`} />
+                </button>
+                {openFaq === i && (
+                  <div className="px-5 pb-5 pt-1 text-gray-600 text-sm leading-relaxed border-t border-gray-100">
+                    {item.a}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+        </div>
+      </section>
       {/* CTA Final */}
       <section className="relative py-24 sm:py-32 overflow-hidden">
         <div
