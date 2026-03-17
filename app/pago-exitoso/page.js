@@ -4,674 +4,703 @@ export const dynamic = 'force-dynamic';
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
-// ─── Colores VIVANTE Brandbook ────────────────────────────────────────────────
 const C = {
   coral:   '#FF6332',
   fucsia:  '#E83E8C',
   violeta: '#6F42C1',
   crema:   '#FCF8F4',
   carbon:  '#212529',
-  cremaCl: '#FFF8F5',
-  cremalg: '#FFF0EB',
+  bg0:     '#FFF8F5',
+  bg1:     '#FFF0EB',
 };
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+function buildFlightUrl(origenIata, destinoIata, fechaSalida, fechaRegreso) {
+  if (!origenIata || !destinoIata || !fechaSalida) return null;
+  const s = fechaSalida.replace(/-/g, '');
+  const r = fechaRegreso ? fechaRegreso.replace(/-/g, '') : '';
+  return r
+    ? `https://www.google.com/travel/flights#flt=${origenIata}.${destinoIata}.${s}*${destinoIata}.${origenIata}.${r};c:USD;e:1;sd:1;t:f`
+    : `https://www.google.com/travel/flights#flt=${origenIata}.${destinoIata}.${s};c:USD;e:1;t:f`;
+}
+
+function buildBookingUrl(destino, checkin, checkout, adults) {
+  const p = new URLSearchParams({ ss: destino || '', checkin: checkin || '', checkout: checkout || '', group_adults: adults || 2, no_rooms: 1, selected_currency: 'USD' });
+  return `https://www.booking.com/searchresults.html?${p}`;
+}
+
+function buildAirbnbUrl(destino, checkin, checkout, adults) {
+  return `https://www.airbnb.com/s/${encodeURIComponent(destino || '')}/homes?checkin=${checkin || ''}&checkout=${checkout || ''}&adults=${adults || 2}`;
+}
+
+function buildHostelworldUrl(destino, checkin, checkout) {
+  return `https://www.hostelworld.com/findabed.php/ChosenCity.${encodeURIComponent(destino || '')}/StartDate.${checkin || ''}/EndDate.${checkout || ''}`;
+}
+
+function alojamientoLink(op, destino, checkin, checkout, adults) {
+  if (op.link && op.link.startsWith('http')) return op.link;
+  const plat = (op.plataforma || '').toLowerCase();
+  if (plat.includes('airbnb')) return buildAirbnbUrl(destino, checkin, checkout, adults);
+  if (plat.includes('hostel')) return buildHostelworldUrl(destino, checkin, checkout);
+  return buildBookingUrl(destino, checkin, checkout, adults);
+}
+
+function formatDate(d) {
+  if (!d) return '';
+  try { return new Date(d + 'T12:00:00').toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' }); }
+  catch { return d; }
+}
+
+// ─── Photo con fallback ───────────────────────────────────────────────────────
+function Photo({ keyword, seed = 1, height = 220, style = {} }) {
+  const [hidden, setHidden] = useState(false);
+  if (!keyword || hidden) return null;
+  const kw = encodeURIComponent(keyword.replace(/\s+/g, ','));
+  return (
+    <img
+      src={`https://loremflickr.com/800/${height}/${kw}?lock=${seed}`}
+      alt={keyword}
+      loading="lazy"
+      onError={() => setHidden(true)}
+      style={{ width: '100%', height, objectFit: 'cover', borderRadius: 12, marginBottom: 12, display: 'block', ...style }}
+    />
+  );
+}
+
+// ─── Sección wrapper ─────────────────────────────────────────────────────────
+function Sec({ title, bg = C.coral, children, id }) {
+  return (
+    <div className="vivante-section" id={id} style={{ background: '#fff', borderRadius: 16, overflow: 'hidden', marginBottom: 20, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+      <div style={{ background: bg, padding: '14px 20px' }}>
+        <span style={{ color: '#fff', fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 17 }}>{title}</span>
+      </div>
+      <div style={{ padding: 20 }}>{children}</div>
+    </div>
+  );
+}
+
+// ─── Tag pill ─────────────────────────────────────────────────────────────────
+function Tag({ children, bg = C.fucsia }) {
+  return <span style={{ display: 'inline-block', background: bg, color: '#fff', padding: '2px 10px', borderRadius: 12, fontSize: 11, fontWeight: 700, marginBottom: 4 }}>{children}</span>;
+}
+
+// ─── Btn link ─────────────────────────────────────────────────────────────────
+function BtnLink({ href, children, color = C.coral, small }) {
+  if (!href) return null;
+  return (
+    <a href={href} target="_blank" rel="noopener noreferrer"
+      style={{ display: 'inline-block', background: color, color: '#fff', padding: small ? '4px 12px' : '8px 18px', borderRadius: 8, textDecoration: 'none', fontSize: small ? 12 : 13, fontWeight: 700, marginTop: 6 }}>
+      {children}
+    </a>
+  );
+}
+
+// ─── Divider ─────────────────────────────────────────────────────────────────
+function Div() { return <div style={{ borderBottom: `1px solid ${C.bg1}`, margin: '14px 0' }} />; }
+
+// ─── CONTENT ─────────────────────────────────────────────────────────────────
 function ItinerarioContent() {
   const searchParams = useSearchParams();
-  const [estado, setEstado] = useState('cargando'); // cargando | listo | error
+  const [estado, setEstado]         = useState('cargando');
   const [itinerario, setItinerario] = useState(null);
-  const [formData, setFormData] = useState(null);
-  const [planId, setPlanId] = useState('basico');
-  const [activeTab, setActiveTab] = useState('resumen');
+  const [formData, setFormData]     = useState(null);
+  const [planId, setPlanId]         = useState('basico');
+  const [activeTab, setActiveTab]   = useState('resumen');
+  const [contactOpen, setContactOpen] = useState(false);
 
   useEffect(() => {
-    const status = searchParams.get('status');
-    const savedPlan = searchParams.get('plan') || localStorage.getItem('vivante_planId') || 'basico';
-    setPlanId(savedPlan);
-
-    if (status === 'failure') {
-      window.location.href = '/pago-fallido';
-      return;
-    }
-
+    const plan = searchParams.get('plan') || localStorage.getItem('vivante_planId') || 'basico';
+    setPlanId(plan);
     let data = null;
-    try {
-      const raw = localStorage.getItem('vivante_formData');
-      if (raw) data = JSON.parse(raw);
-    } catch {}
-
-    if (!data) {
-      setEstado('error');
-      return;
-    }
-
+    try { data = JSON.parse(localStorage.getItem('vivante_formData') || 'null'); } catch {}
+    if (!data) { setEstado('error'); return; }
     setFormData(data);
-
     fetch('/api/send-itinerary', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ formData: data, planId: savedPlan }),
-    })
-      .then(r => r.json())
-      .then(result => {
-        if (result.itinerario) {
-          setItinerario(result.itinerario);
-          setEstado('listo');
-        } else {
-          setEstado('error');
-        }
-      })
-      .catch(() => setEstado('error'));
+      body: JSON.stringify({ formData: data, planId: plan }),
+    }).then(r => r.json()).then(res => {
+      if (res.itinerario) { setItinerario(res.itinerario); setEstado('listo'); }
+      else setEstado('error');
+    }).catch(() => setEstado('error'));
   }, [searchParams]);
 
-  // ─── CARGANDO ──────────────────────────────────────────────────────────────
-  if (estado === 'cargando') {
-    return (
-      <div style={{ minHeight: '100vh', background: C.crema, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
-        <div style={{ textAlign: 'center', maxWidth: '480px' }}>
-          <div style={{ width: 80, height: 80, borderRadius: '50%', background: C.coral, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', fontSize: 36, animation: 'spin 2s linear infinite' }}>
-            ✈️
-          </div>
-          <h1 style={{ fontFamily: 'Syne, sans-serif', fontSize: 28, fontWeight: 800, color: C.carbon, marginBottom: 12 }}>
-            Preparando tu aventura...
-          </h1>
-          <p style={{ color: '#666', fontSize: 16, lineHeight: 1.6, marginBottom: 8 }}>
-            Estamos armando tu itinerario personalizado.<br />
-            <strong>Esto tarda unos 30 segundos.</strong>
-          </p>
-          <p style={{ color: C.violeta, fontStyle: 'italic', fontSize: 14 }}>
-            Mientras tanto, puedes ir pensando qué ropa llevar 😄
-          </p>
-          <div style={{ marginTop: 32, display: 'flex', gap: 8, justifyContent: 'center' }}>
-            {[0, 1, 2].map(i => (
-              <div key={i} style={{ width: 10, height: 10, borderRadius: '50%', background: C.coral, opacity: 0.4, animation: `pulse 1.2s ${i * 0.4}s infinite` }} />
-            ))}
-          </div>
-        </div>
-        <style>{`
-          @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-          @keyframes pulse { 0%, 100% { opacity: 0.4; transform: scale(1); } 50% { opacity: 1; transform: scale(1.3); } }
-        `}</style>
-      </div>
-    );
-  }
+  // ─── CARGANDO ───────────────────────────────────────────────────────────────
+  if (estado === 'cargando') return (
+    <div style={{ minHeight: '100vh', background: C.crema, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+      <div style={{ fontSize: 60, marginBottom: 24, animation: 'spin 2s linear infinite' }}>✈️</div>
+      <h1 style={{ fontFamily: 'Syne, sans-serif', fontSize: 26, color: C.carbon, margin: '0 0 8px', textAlign: 'center' }}>Preparando tu aventura...</h1>
+      <p style={{ color: '#666', textAlign: 'center', lineHeight: 1.6 }}>Armando tu itinerario personalizado.<br /><strong>Tarda unos 30 segundos.</strong></p>
+      <p style={{ color: C.violeta, fontStyle: 'italic', fontSize: 14, marginTop: 8 }}>Mientras tanto, ¿ya pensaste qué ropa llevar? 😄</p>
+      <style>{`@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}`}</style>
+    </div>
+  );
 
-  // ─── ERROR ─────────────────────────────────────────────────────────────────
-  if (estado === 'error') {
-    return (
-      <div style={{ minHeight: '100vh', background: C.crema, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
-        <div style={{ textAlign: 'center', maxWidth: 480 }}>
-          <div style={{ fontSize: 64, marginBottom: 16 }}>😔</div>
-          <h1 style={{ fontFamily: 'Syne, sans-serif', fontSize: 24, color: C.carbon, marginBottom: 12 }}>
-            Hubo un problema técnico
-          </h1>
-          <p style={{ color: '#666', marginBottom: 24 }}>
-            Tu pago fue procesado correctamente. Recibirás tu itinerario por email a la brevedad.
-          </p>
-          <a href="mailto:vive.vivante.ch@gmail.com" style={{ background: C.coral, color: '#fff', padding: '12px 24px', borderRadius: 12, textDecoration: 'none', fontWeight: 600 }}>
-            Contactar soporte
-          </a>
-        </div>
+  // ─── ERROR ──────────────────────────────────────────────────────────────────
+  if (estado === 'error') return (
+    <div style={{ minHeight: '100vh', background: C.crema, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+      <div style={{ textAlign: 'center', maxWidth: 480 }}>
+        <div style={{ fontSize: 64, marginBottom: 16 }}>😔</div>
+        <h1 style={{ fontFamily: 'Syne, sans-serif', fontSize: 22, color: C.carbon, margin: '0 0 10px' }}>Problema técnico</h1>
+        <p style={{ color: '#666', marginBottom: 20 }}>Tu pago fue procesado. Recibirás el itinerario por email o escríbenos.</p>
+        <a href="mailto:vive.vivante.ch@gmail.com" style={{ background: C.coral, color: '#fff', padding: '12px 24px', borderRadius: 12, textDecoration: 'none', fontWeight: 700 }}>
+          ✉️ vive.vivante.ch@gmail.com
+        </a>
       </div>
-    );
-  }
+    </div>
+  );
 
-  // ─── ITINERARIO LISTO ─────────────────────────────────────────────────────
+  // ─── DATOS LISTOS ───────────────────────────────────────────────────────────
   const isPro = planId === 'pro';
-  const tabs = [
-    { id: 'resumen', label: '📊 Resumen' },
-    { id: 'dias', label: '📅 Día a día' },
-    { id: 'vuelos', label: '✈️ Vuelos' },
-    { id: 'alojamiento', label: '🏨 Alojamiento' },
-    { id: 'restaurantes', label: '🍽️ Comer' },
-    { id: 'tips', label: '🌍 Tips' },
-    ...(isPro ? [
-      { id: 'nocturno', label: '🍸 Noche' },
-      { id: 'transporte', label: '🚇 Transporte' },
-      { id: 'conectividad', label: '📱 Conectividad' },
-    ] : []),
-    { id: 'imperdible', label: '⭐ Imperdible' },
-  ];
+  const res   = itinerario?.resumen || {};
+  const flightUrl = buildFlightUrl(res.origen_iata, res.destino_iata, res.fecha_salida, res.fecha_regreso);
 
-  const sectionStyle = {
-    background: '#fff',
-    borderRadius: 16,
-    overflow: 'hidden',
-    marginBottom: 20,
-    boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+  const baseTabs = ['resumen', 'dias', 'vuelos', 'alojamiento', 'comer', 'experiencias', 'tips', 'imperdible'];
+  const proTabs  = ['resumen', 'dias', 'vuelos', 'alojamiento', 'comer', 'experiencias', 'tips', 'noche', 'transporte', 'conectividad', 'imperdible'];
+  const allTabs  = isPro ? proTabs : baseTabs;
+
+  const tabLabels = {
+    resumen:      '📊 Resumen',
+    dias:         '📅 Día a día',
+    vuelos:       '✈️ Vuelos',
+    alojamiento:  '🏨 Alojamiento',
+    comer:        '🍽️ Comer',
+    experiencias: '🎟️ Experiencias',
+    tips:         '💡 Tips',
+    noche:        '🍸 Noche',
+    transporte:   '🚇 Transporte',
+    conectividad: '📱 Conectividad',
+    imperdible:   '⭐ Imperdible',
   };
-  const sectionHeader = (title, bg = C.coral) => ({
-    background: bg,
-    padding: '14px 20px',
-    color: '#fff',
-    fontFamily: 'Syne, sans-serif',
-    fontWeight: 700,
-    fontSize: 18,
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-  });
-  const sectionBody = { padding: '20px' };
+
+  const show = (tab) => activeTab === tab;
 
   return (
     <div style={{ minHeight: '100vh', background: C.crema, fontFamily: 'Inter, sans-serif' }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@300;400;600&display=swap');
         * { box-sizing: border-box; }
-        @media print {
-          .no-print { display: none !important; }
-          .print-break { page-break-before: always; }
-          body { background: #FCF8F4 !important; }
-        }
-        .tab-btn { border: none; cursor: pointer; white-space: nowrap; transition: all 0.2s; }
-        .tab-btn:hover { opacity: 0.8; }
         a { color: ${C.violeta}; }
-        a:hover { text-decoration: underline; }
+        .tab-btn { border: none; background: none; cursor: pointer; white-space: nowrap; transition: all 0.2s; font-family: Inter, sans-serif; }
+        /* ── PRINT: mostrar TODAS las secciones ── */
+        @media print {
+          .vivante-section  { display: block !important; margin-bottom: 24px !important; page-break-inside: avoid; }
+          .no-print         { display: none !important; }
+          .print-break      { page-break-before: always; }
+          *                 { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          body              { background: #FCF8F4 !important; }
+        }
       `}</style>
 
       {/* HEADER */}
-      <div style={{ background: C.coral, padding: '24px 20px', textAlign: 'center' }}>
-        <p style={{ fontFamily: 'Syne, sans-serif', fontSize: 32, fontWeight: 800, color: '#fff', margin: 0, letterSpacing: -1 }}>VIVANTE</p>
-        <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: 12, margin: '4px 0 0', letterSpacing: 2 }}>VIAJA MÁS. PLANIFICA MENOS.</p>
+      <div style={{ background: C.coral, padding: '20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <img src="/images/vivante_logo.svg" alt="VIVANTE" style={{ height: 52, width: 'auto' }}
+          onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }} />
+        <span style={{ display: 'none', color: '#fff', fontFamily: 'Syne, sans-serif', fontSize: 28, fontWeight: 800, letterSpacing: -1 }}>VIVANTE</span>
       </div>
 
-      {/* HERO ITINERARIO */}
-      <div style={{ background: `linear-gradient(135deg, ${C.coral} 0%, ${C.fucsia} 100%)`, padding: '32px 20px', color: '#fff', textAlign: 'center' }}>
-        <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.15)', padding: '4px 16px', borderRadius: 20, fontSize: 12, fontWeight: 700, letterSpacing: 1, marginBottom: 12 }}>
-          {isPro ? '⭐ VIVANTE PRO' : '✅ VIVANTE BÁSICO'} · PAGO CONFIRMADO
-        </div>
-        <h1 style={{ fontFamily: 'Syne, sans-serif', fontSize: 28, fontWeight: 800, margin: '0 0 8px', lineHeight: 1.2 }}>
+      {/* HERO */}
+      <div style={{ background: `linear-gradient(135deg, ${C.coral}, ${C.fucsia})`, padding: '28px 20px', textAlign: 'center', color: '#fff' }} className="no-print">
+        <Tag bg="rgba(255,255,255,0.2)">{isPro ? '⭐ VIVANTE PRO' : '✅ VIVANTE BÁSICO'} · PAGO CONFIRMADO</Tag>
+        <h1 style={{ fontFamily: 'Syne, sans-serif', fontSize: 26, fontWeight: 800, margin: '10px 0 6px', lineHeight: 1.2 }}>
           {itinerario?.titulo || `Tu aventura a ${formData?.destino}`}
         </h1>
-        <p style={{ fontSize: 16, opacity: 0.9, margin: '0 0 20px', fontStyle: 'italic' }}>
-          {itinerario?.subtitulo || `Todo listo, ${formData?.nombre}. Solo falta hacer la maleta.`}
+        <p style={{ fontSize: 15, opacity: 0.9, margin: '0 0 6px', fontStyle: 'italic' }}>
+          {itinerario?.subtitulo || `Todo listo, ${formData?.nombre}. ¡Solo falta hacer la maleta!`}
         </p>
-        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }} className="no-print">
+        {res.fecha_optima_texto && (
+          <p style={{ fontSize: 14, background: 'rgba(255,255,255,0.15)', display: 'inline-block', padding: '4px 14px', borderRadius: 20, marginBottom: 16 }}>
+            📅 {res.fecha_optima_texto}
+          </p>
+        )}
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap', marginTop: 8 }}>
           <button
             onClick={() => window.print()}
-            style={{ background: '#fff', color: C.coral, border: 'none', padding: '12px 24px', borderRadius: 12, fontWeight: 700, cursor: 'pointer', fontSize: 15 }}
-          >
-            📄 Guardar como PDF
+            style={{ background: '#fff', color: C.coral, border: 'none', padding: '10px 20px', borderRadius: 10, fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>
+            📄 Descargar PDF completo
           </button>
-          <a
-            href="mailto:vive.vivante.ch@gmail.com"
-            style={{ background: 'rgba(255,255,255,0.15)', color: '#fff', padding: '12px 24px', borderRadius: 12, fontWeight: 600, textDecoration: 'none', fontSize: 15, border: '2px solid rgba(255,255,255,0.4)' }}
-          >
-            ✉️ Contactar soporte
-          </a>
+          <div style={{ position: 'relative' }}>
+            <button
+              onClick={() => setContactOpen(o => !o)}
+              style={{ background: 'rgba(255,255,255,0.15)', color: '#fff', border: '2px solid rgba(255,255,255,0.4)', padding: '10px 20px', borderRadius: 10, fontWeight: 600, cursor: 'pointer', fontSize: 14 }}>
+              ✉️ Contactar soporte
+            </button>
+            {contactOpen && (
+              <div style={{ position: 'absolute', top: '110%', left: '50%', transform: 'translateX(-50%)', background: '#fff', borderRadius: 12, padding: '14px 18px', boxShadow: '0 8px 32px rgba(0,0,0,0.18)', minWidth: 280, zIndex: 100, textAlign: 'left' }}>
+                <button onClick={() => setContactOpen(false)} style={{ position: 'absolute', top: 8, right: 10, background: 'none', border: 'none', cursor: 'pointer', color: '#aaa', fontSize: 16 }}>✕</button>
+                <p style={{ margin: '0 0 6px', fontWeight: 700, color: C.carbon, fontSize: 14 }}>¿Dudas o consultas?</p>
+                <p style={{ margin: 0, color: '#555', fontSize: 14 }}>
+                  Escríbenos a{' '}
+                  <a href="mailto:vive.vivante.ch@gmail.com" style={{ color: C.coral, fontWeight: 700 }}>
+                    vive.vivante.ch@gmail.com
+                  </a>
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
       {/* EMAIL NOTICE */}
-      <div style={{ background: C.violeta, padding: '12px 20px', textAlign: 'center' }} className="no-print">
-        <p style={{ color: '#fff', margin: 0, fontSize: 14 }}>
-          📧 Este itinerario también fue enviado a <strong>{formData?.email}</strong>
+      <div style={{ background: C.violeta, padding: '10px 20px', textAlign: 'center' }} className="no-print">
+        <p style={{ color: '#fff', margin: 0, fontSize: 13 }}>
+          📧 Itinerario enviado a <strong>{formData?.email}</strong>
+        </p>
+      </div>
+
+      {/* PRICE DISCLAIMER */}
+      <div style={{ background: '#FFF0EB', padding: '8px 20px', textAlign: 'center' }}>
+        <p style={{ margin: 0, fontSize: 12, color: '#888' }}>
+          💡 Precios estimativos {new Date().getFullYear()}. Los links de vuelos y alojamiento muestran precios en tiempo real.
         </p>
       </div>
 
       {/* TABS */}
-      <div className="no-print" style={{ background: '#fff', borderBottom: `3px solid ${C.cremalg}`, overflowX: 'auto', display: 'flex', padding: '0 12px' }}>
-        {tabs.map(tab => (
-          <button
-            key={tab.id}
-            className="tab-btn"
-            onClick={() => setActiveTab(tab.id)}
-            style={{
-              padding: '14px 16px',
-              fontSize: 13,
-              fontWeight: activeTab === tab.id ? 700 : 400,
-              color: activeTab === tab.id ? C.coral : '#666',
-              background: 'none',
-              borderBottom: activeTab === tab.id ? `3px solid ${C.coral}` : '3px solid transparent',
-              marginBottom: -3,
-            }}
-          >
-            {tab.label}
+      <div className="no-print" style={{ background: '#fff', borderBottom: `2px solid ${C.bg1}`, overflowX: 'auto', display: 'flex', padding: '0 8px' }}>
+        {allTabs.map(tab => (
+          <button key={tab} className="tab-btn" onClick={() => setActiveTab(tab)}
+            style={{ padding: '13px 14px', fontSize: 13, fontWeight: show(tab) ? 700 : 400, color: show(tab) ? C.coral : '#666', borderBottom: show(tab) ? `3px solid ${C.coral}` : '3px solid transparent', marginBottom: -2 }}>
+            {tabLabels[tab]}
           </button>
         ))}
       </div>
 
       {/* CONTENIDO */}
-      <div style={{ maxWidth: 760, margin: '0 auto', padding: '24px 16px' }}>
+      <div style={{ maxWidth: 760, margin: '0 auto', padding: '20px 14px' }}>
 
-        {/* ── RESUMEN ──────────────────────────────────────────────── */}
-        <div style={{ display: activeTab === 'resumen' ? 'block' : 'none' }} className="print-section">
-          <div style={sectionStyle}>
-            <div style={sectionHeader('📊 Resumen de tu Viaje')}>📊 Resumen de tu Viaje</div>
-            <div style={sectionBody}>
+        {/* ══ RESUMEN ══════════════════════════════════════════════════════════ */}
+        <div className="vivante-section" style={{ display: show('resumen') ? 'block' : 'none' }}>
+          <Sec title="📊 Resumen de tu Viaje">
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              {[
+                ['Destino', res.destino || formData?.destino],
+                ['Desde', formData?.origen],
+                ['Duración', `${formData?.dias} días · ${formData?.numViajeros} viajero${formData?.numViajeros > 1 ? 's' : ''}`],
+                ['Fechas sugeridas', res.fecha_optima_texto || `${formatDate(res.fecha_salida)} → ${formatDate(res.fecha_regreso)}`],
+                ['Distribución', res.distribucion],
+                ['Ritmo', res.ritmo],
+              ].filter(r => r[1]).map(([l, v], i) => (
+                <tr key={i} style={{ background: i % 2 === 0 ? C.bg1 : '#fff' }}>
+                  <td style={{ padding: '10px 14px', fontWeight: 600, color: C.carbon, width: '38%', fontSize: 14 }}>{l}</td>
+                  <td style={{ padding: '10px 14px', color: C.carbon, fontSize: 14 }}>{v}</td>
+                </tr>
+              ))}
+            </table>
+          </Sec>
+
+          {itinerario?.presupuesto_desglose && (
+            <Sec title="💰 Presupuesto Estimado">
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                {[
-                  ['Destino', itinerario?.resumen?.destino || formData?.destino],
-                  ['Origen', formData?.origen],
-                  ['Duración', `${formData?.dias} días`],
-                  ['Viajeros', formData?.numViajeros],
-                  ['Fecha óptima', itinerario?.resumen?.fecha_optima],
-                  ['Distribución', itinerario?.resumen?.distribucion],
-                  ['Ritmo', itinerario?.resumen?.ritmo],
-                ].filter(r => r[1]).map(([label, value], i) => (
-                  <tr key={i} style={{ background: i % 2 === 0 ? C.cremalg : '#fff' }}>
-                    <td style={{ padding: '10px 14px', fontWeight: 600, color: C.carbon, width: '35%' }}>{label}</td>
-                    <td style={{ padding: '10px 14px', color: C.carbon }}>{value}</td>
+                {Object.entries(itinerario.presupuesto_desglose).map(([k, v], i) => (
+                  <tr key={i} style={{ background: k === 'total' ? C.coral : i % 2 === 0 ? C.bg1 : '#fff' }}>
+                    <td style={{ padding: '10px 14px', fontWeight: k === 'total' ? 700 : 400, color: k === 'total' ? '#fff' : C.carbon, textTransform: 'capitalize', fontSize: 14 }}>
+                      {k.replace(/_/g, ' ')}
+                    </td>
+                    <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, color: k === 'total' ? '#fff' : C.coral, fontSize: 14 }}>{v}</td>
                   </tr>
                 ))}
               </table>
-            </div>
-          </div>
-
-          {itinerario?.presupuesto_desglose && (
-            <div style={sectionStyle}>
-              <div style={sectionHeader('💰 Presupuesto Estimado')}>💰 Presupuesto Estimado</div>
-              <div style={sectionBody}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  {Object.entries(itinerario.presupuesto_desglose).map(([key, val], i) => (
-                    <tr key={i} style={{ background: key === 'total' ? C.coral : i % 2 === 0 ? C.cremalg : '#fff' }}>
-                      <td style={{ padding: '10px 14px', fontWeight: key === 'total' ? 700 : 400, color: key === 'total' ? '#fff' : C.carbon, textTransform: 'capitalize' }}>
-                        {key.replace(/_/g, ' ')}
-                      </td>
-                      <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, color: key === 'total' ? '#fff' : C.coral }}>
-                        {val}
-                      </td>
-                    </tr>
-                  ))}
-                </table>
-              </div>
-            </div>
-          )}
-
-          {itinerario?.lo_imperdible?.length > 0 && (
-            <div style={sectionStyle}>
-              <div style={{ ...sectionHeader('⭐ Lo Imperdible', C.fucsia) }}>⭐ Lo Imperdible</div>
-              <div style={sectionBody}>
-                {itinerario.lo_imperdible.map((item, i) => (
-                  <div key={i} style={{ marginBottom: 16, paddingLeft: 16, borderLeft: `3px solid ${C.fucsia}` }}>
-                    <p style={{ margin: '0 0 4px', fontWeight: 700, color: C.carbon }}>{i + 1}. {item.nombre}</p>
-                    <p style={{ margin: 0, color: '#555', fontSize: 14 }}>{item.descripcion}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
+            </Sec>
           )}
         </div>
 
-        {/* ── DÍA A DÍA ────────────────────────────────────────────── */}
-        <div style={{ display: activeTab === 'dias' ? 'block' : 'none' }}>
-          {(itinerario?.dias || []).map(dia => (
-            <div key={dia.numero} style={{ ...sectionStyle, borderLeft: `5px solid ${C.coral}` }}>
-              <div style={{ background: C.coral, padding: '14px 20px' }}>
-                <span style={{ color: '#fff', fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 17 }}>
+        {/* ══ DÍA A DÍA ═══════════════════════════════════════════════════════ */}
+        <div className="vivante-section print-break" style={{ display: show('dias') ? 'block' : 'none' }}>
+          {(itinerario?.dias || []).map((dia, di) => (
+            <div key={di} style={{ background: '#fff', borderRadius: 16, marginBottom: 18, overflow: 'hidden', boxShadow: '0 2px 10px rgba(0,0,0,0.06)', borderLeft: `5px solid ${C.coral}` }}>
+              <div style={{ background: C.coral, padding: '13px 18px' }}>
+                <span style={{ color: '#fff', fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 16 }}>
                   Día {dia.numero}: {dia.titulo}
                 </span>
               </div>
-              <div style={sectionBody}>
-                <div style={{ marginBottom: 14, paddingBottom: 14, borderBottom: `1px solid ${C.cremalg}` }}>
-                  <p style={{ margin: '0 0 4px', fontWeight: 700, color: C.coral }}>🌅 Mañana {dia.manana?.horario ? `(${dia.manana.horario})` : ''}</p>
-                  <p style={{ margin: '0 0 6px', color: C.carbon }}>{dia.manana?.actividad}</p>
-                  {dia.manana?.costo && <span style={{ fontSize: 13, color: '#666' }}>💰 {dia.manana.costo}</span>}
-                  {dia.manana?.tip && <p style={{ margin: '6px 0 0', color: C.violeta, fontStyle: 'italic', fontSize: 14 }}>💡 {dia.manana.tip}</p>}
-                  {dia.manana?.plan_b && <p style={{ margin: '4px 0 0', color: '#888', fontSize: 13 }}>☔ Plan B: {dia.manana.plan_b}</p>}
+              <div style={{ padding: 18 }}>
+                <Photo keyword={dia.foto_busqueda} seed={di + 1} height={200} />
+                <div style={{ marginBottom: 12 }}>
+                  <p style={{ margin: '0 0 4px', fontWeight: 700, color: C.coral, fontSize: 14 }}>🌅 Mañana {dia.manana?.horario ? `(${dia.manana.horario})` : ''}</p>
+                  <p style={{ margin: '0 0 4px', color: C.carbon, fontSize: 14 }}>{dia.manana?.actividad}</p>
+                  {dia.manana?.costo && <span style={{ fontSize: 12, color: '#666' }}>💰 {dia.manana.costo}</span>}
+                  {dia.manana?.tip && <p style={{ margin: '5px 0 0', color: C.violeta, fontStyle: 'italic', fontSize: 13 }}>💡 {dia.manana.tip}</p>}
+                  {dia.manana?.plan_b && <p style={{ margin: '3px 0 0', color: '#aaa', fontSize: 12 }}>☔ Plan B: {dia.manana.plan_b}</p>}
                 </div>
-                <div style={{ marginBottom: 14, paddingBottom: 14, borderBottom: `1px solid ${C.cremalg}` }}>
-                  <p style={{ margin: '0 0 4px', fontWeight: 700, color: C.coral }}>🌞 Tarde {dia.tarde?.horario ? `(${dia.tarde.horario})` : ''}</p>
-                  {dia.tarde?.almuerzo && <p style={{ margin: '0 0 4px', color: C.carbon }}>🍽️ {dia.tarde.almuerzo}</p>}
-                  <p style={{ margin: 0, color: C.carbon }}>{dia.tarde?.actividad}</p>
+                <Div />
+                <div style={{ marginBottom: 12 }}>
+                  <p style={{ margin: '0 0 4px', fontWeight: 700, color: C.coral, fontSize: 14 }}>🌞 Tarde {dia.tarde?.horario ? `(${dia.tarde.horario})` : ''}</p>
+                  {dia.tarde?.almuerzo && <p style={{ margin: '0 0 4px', color: C.carbon, fontSize: 14 }}>🍴 {dia.tarde.almuerzo}</p>}
+                  <p style={{ margin: 0, color: C.carbon, fontSize: 14 }}>{dia.tarde?.actividad}</p>
                 </div>
-                <div style={{ marginBottom: 10 }}>
-                  <p style={{ margin: '0 0 4px', fontWeight: 700, color: C.coral }}>🌙 Noche {dia.noche?.horario ? `(${dia.noche.horario})` : ''}</p>
-                  {dia.noche?.cena && <p style={{ margin: '0 0 4px', color: C.carbon }}>🍷 {dia.noche.cena}</p>}
-                  {dia.noche?.actividad && <p style={{ margin: 0, color: C.carbon }}>{dia.noche.actividad}</p>}
+                <Div />
+                <div style={{ marginBottom: 8 }}>
+                  <p style={{ margin: '0 0 4px', fontWeight: 700, color: C.coral, fontSize: 14 }}>🌙 Noche</p>
+                  {dia.noche?.cena && <p style={{ margin: '0 0 4px', color: C.carbon, fontSize: 14 }}>🍷 {dia.noche.cena}</p>}
+                  {dia.noche?.actividad && <p style={{ margin: 0, color: C.carbon, fontSize: 14 }}>{dia.noche.actividad}</p>}
                 </div>
                 {dia.ruta_optimizada && (
-                  <div style={{ background: C.cremalg, borderRadius: 8, padding: '8px 12px', marginTop: 10 }}>
-                    <p style={{ margin: 0, fontSize: 13, color: '#555' }}>📍 <strong>Ruta:</strong> {dia.ruta_optimizada}</p>
+                  <div style={{ background: C.bg1, borderRadius: 8, padding: '8px 12px', marginTop: 10 }}>
+                    <p style={{ margin: 0, fontSize: 12, color: '#666' }}>📍 <strong>Ruta del día:</strong> {dia.ruta_optimizada}</p>
                   </div>
                 )}
-                <div style={{ marginTop: 12, textAlign: 'right' }}>
-                  <span style={{ background: C.violeta, color: '#fff', padding: '4px 12px', borderRadius: 20, fontSize: 13, fontWeight: 600 }}>
-                    {dia.gasto_dia}
-                  </span>
+                <div style={{ textAlign: 'right', marginTop: 10 }}>
+                  <Tag bg={C.violeta}>💰 {dia.gasto_dia}</Tag>
                 </div>
               </div>
             </div>
           ))}
         </div>
 
-        {/* ── VUELOS ───────────────────────────────────────────────── */}
-        <div style={{ display: activeTab === 'vuelos' ? 'block' : 'none' }}>
-          <div style={sectionStyle}>
-            <div style={sectionHeader('✈️ Vuelos Recomendados')}>✈️ Vuelos Recomendados</div>
-            <div style={sectionBody}>
-              {(itinerario?.vuelos || []).map((v, i) => (
-                <div key={i} style={{ marginBottom: 16, paddingBottom: 16, borderBottom: `1px solid ${C.cremalg}` }}>
-                  <p style={{ margin: '0 0 4px', fontWeight: 700, color: C.carbon }}>{v.aerolinea} — {v.ruta}</p>
-                  <p style={{ margin: '0 0 6px', color: C.coral, fontWeight: 700, fontSize: 18 }}>{v.precio_estimado}</p>
-                  {v.tip && <p style={{ margin: '0 0 6px', color: C.violeta, fontStyle: 'italic', fontSize: 13 }}>💡 {v.tip}</p>}
-                  {v.link && <a href={v.link} target="_blank" rel="noopener noreferrer" style={{ background: C.coral, color: '#fff', padding: '6px 16px', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>Buscar vuelo →</a>}
-                </div>
-              ))}
-            </div>
-          </div>
+        {/* ══ VUELOS ═══════════════════════════════════════════════════════════ */}
+        <div className="vivante-section print-break" style={{ display: show('vuelos') ? 'block' : 'none' }}>
+          <Sec title="✈️ Vuelos Recomendados">
+            {flightUrl && (
+              <div style={{ background: C.bg1, borderRadius: 10, padding: '12px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 14, color: C.carbon, flex: 1 }}>
+                  🔍 Búsqueda pre-filtrada: <strong>{formData?.origen}</strong> → <strong>{itinerario?.resumen?.destino || formData?.destino}</strong>
+                  {res.fecha_salida && ` · ${formatDate(res.fecha_salida)} → ${formatDate(res.fecha_regreso)}`}
+                </span>
+                <BtnLink href={flightUrl} color={C.coral}>Buscar vuelo en Google Flights →</BtnLink>
+              </div>
+            )}
+            {(itinerario?.vuelos || []).map((v, i) => (
+              <div key={i} style={{ marginBottom: 16, paddingBottom: 16, borderBottom: `1px solid ${C.bg1}` }}>
+                <p style={{ margin: '0 0 4px', fontWeight: 700, color: C.carbon }}>{v.aerolinea} — {v.ruta}</p>
+                <p style={{ margin: '0 0 2px', color: C.coral, fontWeight: 700, fontSize: 18 }}>{v.precio_estimado}</p>
+                {v.duracion && <p style={{ margin: '0 0 4px', color: '#666', fontSize: 13 }}>⏱ {v.duracion}</p>}
+                {v.tip && <p style={{ margin: '0 0 6px', color: C.violeta, fontStyle: 'italic', fontSize: 13 }}>💡 {v.tip}</p>}
+                {flightUrl && <BtnLink href={flightUrl} small>Ver vuelos →</BtnLink>}
+              </div>
+            ))}
+          </Sec>
         </div>
 
-        {/* ── ALOJAMIENTO ──────────────────────────────────────────── */}
-        <div style={{ display: activeTab === 'alojamiento' ? 'block' : 'none' }}>
-          <div style={sectionStyle}>
-            <div style={sectionHeader('🏨 Alojamiento')}>🏨 Alojamiento</div>
-            <div style={sectionBody}>
-              {(itinerario?.alojamiento || []).map((a, i) => (
-                <div key={i} style={{ marginBottom: 16, paddingBottom: 16, borderBottom: `1px solid ${C.cremalg}` }}>
-                  <span style={{ background: C.fucsia, color: '#fff', padding: '2px 10px', borderRadius: 12, fontSize: 11, fontWeight: 700 }}>{a.categoria}</span>
-                  <p style={{ margin: '8px 0 4px', fontWeight: 700, color: C.carbon, fontSize: 16 }}>{a.nombre}</p>
-                  <p style={{ margin: '0 0 4px', color: C.coral, fontWeight: 600 }}>{a.precio_noche} / noche</p>
-                  <p style={{ margin: '0 0 8px', color: C.violeta, fontStyle: 'italic', fontSize: 13 }}>{a.por_que}</p>
-                  {a.link && <a href={a.link} target="_blank" rel="noopener noreferrer" style={{ background: C.violeta, color: '#fff', padding: '6px 14px', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>Ver alojamiento →</a>}
+        {/* ══ ALOJAMIENTO ══════════════════════════════════════════════════════ */}
+        <div className="vivante-section print-break" style={{ display: show('alojamiento') ? 'block' : 'none' }}>
+          {(itinerario?.alojamiento || []).map((zona, zi) => (
+            <Sec key={zi} title={`🏨 Alojamiento en ${zona.destino || 'Destino'}${zona.noches ? ` (${zona.noches} noches)` : ''}`}>
+              {(zona.opciones || []).map((op, oi) => (
+                <div key={oi} style={{ marginBottom: 20, paddingBottom: 20, borderBottom: oi < (zona.opciones.length - 1) ? `1px solid ${C.bg1}` : 'none' }}>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 6, alignItems: 'center' }}>
+                    <Tag bg={op.categoria === 'Premium' ? C.fucsia : op.categoria === 'Confort' ? C.coral : '#888'}>{op.categoria}</Tag>
+                    <Tag bg={C.violeta}>{op.plataforma}</Tag>
+                    {op.puntuacion && <Tag bg="#27ae60">⭐ {op.puntuacion}</Tag>}
+                    {op.cancelacion?.toLowerCase().includes('gratuita') && <Tag bg="#2ecc71">✅ Cancelación gratuita</Tag>}
+                  </div>
+                  <p style={{ margin: '6px 0 4px', fontWeight: 700, color: C.carbon, fontSize: 16 }}>{op.nombre}</p>
+                  <p style={{ margin: '0 0 6px', color: C.coral, fontWeight: 700, fontSize: 17 }}>{op.precio_noche} / noche</p>
+                  {(op.highlights || []).length > 0 && (
+                    <p style={{ margin: '0 0 6px', color: '#555', fontSize: 13 }}>
+                      {op.highlights.join(' · ')}
+                    </p>
+                  )}
+                  <p style={{ margin: '0 0 8px', color: C.violeta, fontStyle: 'italic', fontSize: 13 }}>{op.por_que}</p>
+                  <BtnLink href={alojamientoLink(op, zona.destino, res.fecha_salida, res.fecha_regreso, formData?.numViajeros)} color={C.violeta}>
+                    Ver alojamiento →
+                  </BtnLink>
                 </div>
               ))}
-            </div>
-          </div>
+            </Sec>
+          ))}
         </div>
 
-        {/* ── RESTAURANTES ─────────────────────────────────────────── */}
-        <div style={{ display: activeTab === 'restaurantes' ? 'block' : 'none' }}>
-          <div style={sectionStyle}>
-            <div style={sectionHeader('🍽️ Restaurantes Recomendados')}>🍽️ Restaurantes Recomendados</div>
+        {/* ══ COMER ════════════════════════════════════════════════════════════ */}
+        <div className="vivante-section print-break" style={{ display: show('comer') ? 'block' : 'none' }}>
+          <Sec title="🍽️ Restaurantes Recomendados">
             <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 500 }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 480 }}>
                 <thead>
                   <tr style={{ background: C.coral }}>
-                    {['Restaurante', 'Tipo', 'Precio prom.', 'Reserva'].map(h => (
-                      <th key={h} style={{ padding: '10px 14px', color: '#fff', textAlign: 'left', fontSize: 13 }}>{h}</th>
+                    {['Restaurante', 'Tipo', 'Precio / pax', 'Info / Reserva'].map(h => (
+                      <th key={h} style={{ padding: '10px 12px', color: '#fff', textAlign: 'left', fontSize: 13 }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {(itinerario?.restaurantes || []).map((r, i) => (
-                    <tr key={i} style={{ background: i % 2 === 0 ? C.cremalg : '#fff' }}>
-                      <td style={{ padding: '10px 14px', fontWeight: 600, color: C.carbon }}>
-                        {r.nombre}
-                        {r.ubicacion && <span style={{ display: 'block', fontWeight: 400, fontSize: 12, color: '#888' }}>{r.ubicacion}</span>}
+                    <tr key={i} style={{ background: i % 2 === 0 ? C.bg0 : '#fff' }}>
+                      <td style={{ padding: '10px 12px' }}>
+                        <p style={{ margin: '0 0 2px', fontWeight: 700, color: C.carbon, fontSize: 14 }}>{r.nombre}</p>
+                        {r.ubicacion && <p style={{ margin: 0, color: '#888', fontSize: 12 }}>{r.ubicacion}</p>}
+                        {r.por_que && <p style={{ margin: '2px 0 0', color: C.violeta, fontStyle: 'italic', fontSize: 12 }}>{r.por_que}</p>}
                       </td>
-                      <td style={{ padding: '10px 14px', color: '#555', fontSize: 14 }}>{r.tipo}</td>
-                      <td style={{ padding: '10px 14px', color: C.coral, fontWeight: 600 }}>{r.precio_promedio}</td>
-                      <td style={{ padding: '10px 14px' }}>
-                        {r.link
-                          ? <a href={r.link} target="_blank" rel="noopener noreferrer" style={{ color: C.violeta, fontWeight: 600, fontSize: 13 }}>Reservar →</a>
-                          : <span style={{ color: r.requiere_reserva ? C.fucsia : '#aaa', fontSize: 13 }}>{r.requiere_reserva ? 'Reserva requerida' : 'Sin reserva'}</span>
-                        }
+                      <td style={{ padding: '10px 12px', color: '#555', fontSize: 13 }}>{r.tipo}</td>
+                      <td style={{ padding: '10px 12px', color: C.coral, fontWeight: 700, fontSize: 14, whiteSpace: 'nowrap' }}>{r.precio_promedio}</td>
+                      <td style={{ padding: '10px 12px' }}>
+                        {r.link_reserva
+                          ? <BtnLink href={r.link_reserva} small color={r.requiere_reserva ? C.fucsia : C.coral}>{r.requiere_reserva ? 'Reservar →' : 'Ver →'}</BtnLink>
+                          : <span style={{ fontSize: 12, color: '#aaa' }}>Sin reserva</span>}
+                        {r.instagram && (
+                          <BtnLink href={`https://instagram.com/${r.instagram.replace('@', '')}`} small color="#E1306C" style={{ marginLeft: 4 }}>
+                            {r.instagram}
+                          </BtnLink>
+                        )}
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          </div>
+          </Sec>
         </div>
 
-        {/* ── TIPS CULTURALES ──────────────────────────────────────── */}
-        <div style={{ display: activeTab === 'tips' ? 'block' : 'none' }}>
-          {itinerario?.tips_culturales?.length > 0 && (
-            <div style={sectionStyle}>
-              <div style={{ background: C.violeta, padding: '14px 20px' }}>
-                <span style={{ color: '#fff', fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 17 }}>🌍 Tips Culturales, Conectividad y Dinero</span>
+        {/* ══ EXPERIENCIAS ═════════════════════════════════════════════════════ */}
+        <div className="vivante-section print-break" style={{ display: show('experiencias') ? 'block' : 'none' }}>
+          <Sec title="🎟️ Experiencias y Tours">
+            {(itinerario?.experiencias || []).map((exp, ei) => (
+              <div key={ei} style={{ marginBottom: 24, paddingBottom: 24, borderBottom: ei < (itinerario.experiencias.length - 1) ? `1px solid ${C.bg1}` : 'none' }}>
+                <Photo keyword={exp.foto_busqueda} seed={ei + 100} height={200} />
+                <p style={{ margin: '0 0 4px', fontWeight: 700, color: C.carbon, fontSize: 16 }}>{exp.nombre}</p>
+                <p style={{ margin: '0 0 8px', color: '#555', fontSize: 14, lineHeight: 1.5 }}>{exp.por_que_vale}</p>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+                  {exp.duracion && <Tag bg="#888">⏱ {exp.duracion}</Tag>}
+                  {exp.precio && <Tag bg={C.coral}>💰 {exp.precio}</Tag>}
+                  {exp.anticipacion && <Tag bg={C.fucsia}>📅 {exp.anticipacion}</Tag>}
+                </div>
+                {exp.link && <BtnLink href={exp.link} color={C.coral}>Reservar experiencia →</BtnLink>}
               </div>
-              <div style={{ padding: '20px', background: '#F5F0FF' }}>
+            ))}
+            {(!itinerario?.experiencias || itinerario.experiencias.length === 0) && (
+              <p style={{ color: '#888', fontStyle: 'italic' }}>Las experiencias se incluyen en el itinerario día a día.</p>
+            )}
+          </Sec>
+        </div>
+
+        {/* ══ TIPS ═════════════════════════════════════════════════════════════ */}
+        <div className="vivante-section print-break" style={{ display: show('tips') ? 'block' : 'none' }}>
+          {/* Tips culturales: SOLO en Pro */}
+          {isPro && itinerario?.tips_culturales?.length > 0 && (
+            <Sec title="🌍 Tips Culturales, Conectividad y Dinero" bg={C.violeta}>
+              <div style={{ background: '#F5F0FF', borderRadius: 10, padding: 16 }}>
                 {itinerario.tips_culturales.map((tip, i) => (
-                  <div key={i} style={{ display: 'flex', gap: 12, marginBottom: 14, alignItems: 'flex-start' }}>
-                    <span style={{ background: C.violeta, color: '#fff', width: 24, height: 24, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{i + 1}</span>
-                    <p style={{ margin: 0, color: C.violeta, fontStyle: 'italic', fontSize: 15 }}>{tip}</p>
+                  <div key={i} style={{ display: 'flex', gap: 10, marginBottom: 12, alignItems: 'flex-start' }}>
+                    <span style={{ background: C.violeta, color: '#fff', width: 22, height: 22, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>{i + 1}</span>
+                    <p style={{ margin: 0, color: C.violeta, fontStyle: 'italic', fontSize: 14 }}>{tip}</p>
                   </div>
                 ))}
               </div>
-            </div>
+            </Sec>
           )}
+
           {itinerario?.dinero && (
-            <div style={sectionStyle}>
-              <div style={sectionHeader('💳 Dinero y Pagos')}>💳 Dinero y Pagos</div>
-              <div style={sectionBody}>
-                {[
-                  ['Moneda local', itinerario.dinero.moneda_local],
-                  ['Tipo de cambio', itinerario.dinero.tipo_cambio],
-                  ['¿Tarjeta o efectivo?', itinerario.dinero.tarjeta_o_efectivo],
-                  ['Dónde cambiar', itinerario.dinero.donde_cambiar],
-                  ...(itinerario.dinero.cajeros ? [['Cajeros', itinerario.dinero.cajeros]] : []),
-                  ['Propinas', itinerario.dinero.propinas],
-                ].filter(r => r[1]).map(([label, value], i) => (
-                  <div key={i} style={{ marginBottom: 12, paddingBottom: 12, borderBottom: `1px solid ${C.cremalg}` }}>
-                    <p style={{ margin: '0 0 2px', fontWeight: 600, color: C.carbon, fontSize: 14 }}>{label}</p>
-                    <p style={{ margin: 0, color: '#555', fontSize: 14 }}>{value}</p>
-                  </div>
-                ))}
-                {itinerario.dinero.tip_extra && (
-                  <div style={{ background: '#F5F0FF', borderRadius: 8, padding: '10px 14px' }}>
-                    <p style={{ margin: 0, color: C.violeta, fontStyle: 'italic' }}>💡 {itinerario.dinero.tip_extra}</p>
-                  </div>
-                )}
-              </div>
-            </div>
+            <Sec title="💳 Dinero y Pagos">
+              {[
+                ['Moneda local', itinerario.dinero.moneda_local],
+                ['Tipo de cambio', itinerario.dinero.tipo_cambio],
+                ['¿Tarjeta o efectivo?', itinerario.dinero.tarjeta_o_efectivo],
+                ['Dónde cambiar', itinerario.dinero.donde_cambiar],
+                ...(itinerario.dinero.cajeros ? [['Cajeros', itinerario.dinero.cajeros]] : []),
+                ['Propinas', itinerario.dinero.propinas],
+              ].filter(r => r[1]).map(([l, v], i) => (
+                <div key={i} style={{ marginBottom: 10, paddingBottom: 10, borderBottom: `1px solid ${C.bg1}` }}>
+                  <p style={{ margin: '0 0 2px', fontWeight: 700, color: C.coral, fontSize: 13 }}>{l}</p>
+                  <p style={{ margin: 0, color: C.carbon, fontSize: 14 }}>{v}</p>
+                </div>
+              ))}
+              {itinerario.dinero.tip_extra && (
+                <div style={{ background: '#F5F0FF', borderRadius: 8, padding: '8px 12px', marginTop: 8 }}>
+                  <p style={{ margin: 0, color: C.violeta, fontStyle: 'italic', fontSize: 13 }}>💡 {itinerario.dinero.tip_extra}</p>
+                </div>
+              )}
+            </Sec>
           )}
+
           {itinerario?.seguro?.length > 0 && (
-            <div style={sectionStyle}>
-              <div style={sectionHeader('🏥 Seguro de Viaje')}>🏥 Seguro de Viaje</div>
+            <Sec title="🏥 Seguro de Viaje">
               <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 400 }}>
                   <thead>
                     <tr style={{ background: C.coral }}>
-                      {['Seguro', 'Cobertura', 'Precio aprox.'].map(h => (
-                        <th key={h} style={{ padding: '10px 14px', color: '#fff', textAlign: 'left', fontSize: 13 }}>{h}</th>
+                      {['Seguro', 'Cobertura', 'Precio aprox.', ''].map(h => (
+                        <th key={h} style={{ padding: '9px 12px', color: '#fff', textAlign: 'left', fontSize: 12 }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {itinerario.seguro.map((s, i) => (
-                      <tr key={i} style={{ background: i % 2 === 0 ? C.cremalg : '#fff' }}>
-                        <td style={{ padding: '10px 14px' }}>
-                          <a href={s.link} target="_blank" rel="noopener noreferrer" style={{ color: C.violeta, fontWeight: 700 }}>{s.nombre}</a>
+                      <tr key={i} style={{ background: i % 2 === 0 ? C.bg0 : '#fff' }}>
+                        <td style={{ padding: '10px 12px', fontWeight: 700, color: C.carbon, fontSize: 14 }}>{s.nombre}</td>
+                        <td style={{ padding: '10px 12px', color: '#555', fontSize: 13 }}>{s.cobertura}</td>
+                        <td style={{ padding: '10px 12px', color: C.coral, fontWeight: 700 }}>{s.precio_estimado}</td>
+                        <td style={{ padding: '10px 12px' }}>
+                          <BtnLink href={s.link} color={C.fucsia} small>COTIZAR</BtnLink>
                         </td>
-                        <td style={{ padding: '10px 14px', color: '#555', fontSize: 13 }}>{s.cobertura}</td>
-                        <td style={{ padding: '10px 14px', color: C.coral, fontWeight: 600 }}>{s.precio_estimado}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-            </div>
+            </Sec>
           )}
+
           {itinerario?.checklist?.length > 0 && (
-            <div style={sectionStyle}>
-              <div style={sectionHeader('✅ Checklist Pre-Viaje')}>✅ Checklist Pre-Viaje</div>
-              <div style={sectionBody}>
+            <Sec title="✅ Checklist Pre-Viaje">
+              <div style={{ columns: 2, gap: 16 }}>
                 {itinerario.checklist.map((item, i) => (
-                  <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 10 }}>
-                    <span style={{ width: 20, height: 20, border: `2px solid ${C.coral}`, borderRadius: 4, flexShrink: 0, display: 'inline-block' }} />
-                    <span style={{ color: C.carbon, fontSize: 14 }}>{item}</span>
+                  <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: 8, breakInside: 'avoid' }}>
+                    <span style={{ width: 18, height: 18, border: `2px solid ${C.coral}`, borderRadius: 4, flexShrink: 0, display: 'inline-block', marginTop: 1 }} />
+                    <span style={{ color: C.carbon, fontSize: 13 }}>{item}</span>
                   </div>
                 ))}
               </div>
-            </div>
+            </Sec>
           )}
+
           {itinerario?.emergencias && (
-            <div style={sectionStyle}>
-              <div style={sectionHeader('🆘 Contactos de Emergencia', '#dc3545')}>🆘 Contactos de Emergencia</div>
-              <div style={sectionBody}>
-                {itinerario.emergencias.embajada && <p style={{ margin: '0 0 8px', color: C.carbon }}><strong>Embajada/Consulado:</strong> {itinerario.emergencias.embajada}</p>}
-                {itinerario.emergencias.emergencias_local && <p style={{ margin: '0 0 8px', color: C.carbon }}><strong>Emergencias:</strong> {itinerario.emergencias.emergencias_local}</p>}
-                {itinerario.emergencias.policia_turistica && <p style={{ margin: 0, color: C.carbon }}><strong>Policía turística:</strong> {itinerario.emergencias.policia_turistica}</p>}
-              </div>
-            </div>
+            <Sec title="🆘 Contactos de Emergencia" bg="#c0392b">
+              {[
+                ['Embajada chilena', itinerario.emergencias.embajada],
+                ['Emergencias', itinerario.emergencias.emergencias_local],
+                ['Policía turística', itinerario.emergencias.policia_turistica],
+              ].filter(r => r[1]).map(([l, v], i) => (
+                <p key={i} style={{ margin: '0 0 8px', color: C.carbon, fontSize: 14 }}><strong>{l}:</strong> {v}</p>
+              ))}
+            </Sec>
           )}
         </div>
 
-        {/* ── PRO: NOCHE ────────────────────────────────────────────── */}
+        {/* ══ PRO: NOCHE (solo bares) ══════════════════════════════════════════ */}
         {isPro && (
-          <div style={{ display: activeTab === 'nocturno' ? 'block' : 'none' }}>
-            {itinerario?.bares_vida_nocturna?.length > 0 && (
-              <div style={sectionStyle}>
-                <div style={sectionHeader('🍸 Bares y Vida Nocturna')}>🍸 Bares y Vida Nocturna</div>
-                <div style={sectionBody}>
-                  {itinerario.bares_vida_nocturna.map((b, i) => (
-                    <div key={i} style={{ marginBottom: 14, paddingBottom: 14, borderBottom: `1px solid ${C.cremalg}` }}>
-                      <p style={{ margin: '0 0 4px', fontWeight: 700, color: C.carbon }}>{b.nombre}</p>
-                      <p style={{ margin: '0 0 4px', color: '#555', fontSize: 14 }}>{b.tipo_ambiente} · {b.precio_trago} · {b.mejor_dia}</p>
-                      {b.tip && <p style={{ margin: 0, color: C.violeta, fontStyle: 'italic', fontSize: 13 }}>💡 {b.tip}</p>}
-                    </div>
-                  ))}
+          <div className="vivante-section print-break" style={{ display: show('noche') ? 'block' : 'none' }}>
+            <Sec title="🍸 Bares y Vida Nocturna">
+              {(itinerario?.bares_vida_nocturna || []).map((b, bi) => (
+                <div key={bi} style={{ marginBottom: 20, paddingBottom: 20, borderBottom: bi < (itinerario.bares_vida_nocturna.length - 1) ? `1px solid ${C.bg1}` : 'none' }}>
+                  <Photo keyword={b.foto_busqueda} seed={bi + 200} height={180} />
+                  <p style={{ margin: '0 0 4px', fontWeight: 700, color: C.carbon, fontSize: 15 }}>{b.nombre}</p>
+                  <p style={{ margin: '0 0 6px', color: '#555', fontSize: 13 }}>{b.tipo_ambiente}</p>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
+                    {b.precio_trago && <Tag bg={C.coral}>🍹 {b.precio_trago}</Tag>}
+                    {b.mejor_dia && <Tag bg={C.violeta}>📅 {b.mejor_dia}</Tag>}
+                  </div>
+                  {b.tip && <p style={{ margin: 0, color: C.violeta, fontStyle: 'italic', fontSize: 13 }}>💡 {b.tip}</p>}
                 </div>
-              </div>
-            )}
-            {itinerario?.tours_experiencias?.length > 0 && (
-              <div style={sectionStyle}>
-                <div style={sectionHeader('🎟️ Experiencias y Tours')}>🎟️ Experiencias y Tours</div>
-                <div style={sectionBody}>
-                  {itinerario.tours_experiencias.map((t, i) => (
-                    <div key={i} style={{ marginBottom: 16, paddingBottom: 16, borderBottom: `1px solid ${C.cremalg}` }}>
-                      <p style={{ margin: '0 0 4px', fontWeight: 700, color: C.carbon }}>{t.nombre}</p>
-                      <p style={{ margin: '0 0 4px', color: '#555', fontSize: 14 }}>{t.por_que_vale}</p>
-                      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center', marginTop: 8 }}>
-                        {t.duracion && <span style={{ background: C.cremalg, color: C.carbon, padding: '2px 10px', borderRadius: 12, fontSize: 12 }}>⏱ {t.duracion}</span>}
-                        {t.precio && <span style={{ background: C.cremalg, color: C.coral, fontWeight: 600, padding: '2px 10px', borderRadius: 12, fontSize: 12 }}>💰 {t.precio}</span>}
-                        {t.anticipacion && <span style={{ background: '#FFF0F8', color: C.fucsia, padding: '2px 10px', borderRadius: 12, fontSize: 12 }}>📅 {t.anticipacion}</span>}
-                      </div>
-                      {t.link && <a href={t.link} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: 8, background: C.coral, color: '#fff', padding: '6px 14px', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>Reservar experiencia →</a>}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+              ))}
+            </Sec>
           </div>
         )}
 
-        {/* ── PRO: TRANSPORTE ──────────────────────────────────────── */}
+        {/* ══ PRO: TRANSPORTE ══════════════════════════════════════════════════ */}
         {isPro && (
-          <div style={{ display: activeTab === 'transporte' ? 'block' : 'none' }}>
+          <div className="vivante-section print-break" style={{ display: show('transporte') ? 'block' : 'none' }}>
             {itinerario?.transporte_local && (
-              <div style={sectionStyle}>
-                <div style={sectionHeader('🚇 Transporte Local')}>🚇 Transporte Local</div>
-                <div style={sectionBody}>
-                  {[
-                    ['¿Cómo moverse?', itinerario.transporte_local.como_moverse],
-                    ['Apps recomendadas', (itinerario.transporte_local.apps_recomendadas || []).join(', ')],
-                    ['Tarjeta de transporte', itinerario.transporte_local.tarjeta_transporte],
-                    ['Aeropuerto → Centro', itinerario.transporte_local.costo_aeropuerto_centro],
-                    ['¿Alquilar auto?', itinerario.transporte_local.conviene_auto],
-                  ].filter(r => r[1]).map(([label, value], i) => (
-                    <div key={i} style={{ marginBottom: 12, paddingBottom: 12, borderBottom: `1px solid ${C.cremalg}` }}>
-                      <p style={{ margin: '0 0 2px', fontWeight: 700, color: C.coral, fontSize: 14 }}>{label}</p>
-                      <p style={{ margin: 0, color: C.carbon, fontSize: 14 }}>{value}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <Sec title="🚇 Transporte Local">
+                {[
+                  ['¿Cómo moverse?', itinerario.transporte_local.como_moverse],
+                  ['Apps recomendadas', (itinerario.transporte_local.apps_recomendadas || []).join(', ')],
+                  ['Tarjeta de transporte', itinerario.transporte_local.tarjeta_transporte],
+                  ['Aeropuerto → Centro', itinerario.transporte_local.costo_aeropuerto_centro],
+                  ['¿Alquilar auto?', itinerario.transporte_local.conviene_auto],
+                ].filter(r => r[1]).map(([l, v], i) => (
+                  <div key={i} style={{ marginBottom: 10, paddingBottom: 10, borderBottom: `1px solid ${C.bg1}` }}>
+                    <p style={{ margin: '0 0 2px', fontWeight: 700, color: C.coral, fontSize: 13 }}>{l}</p>
+                    <p style={{ margin: 0, color: C.carbon, fontSize: 14 }}>{v}</p>
+                  </div>
+                ))}
+              </Sec>
             )}
           </div>
         )}
 
-        {/* ── PRO: CONECTIVIDAD ────────────────────────────────────── */}
+        {/* ══ PRO: CONECTIVIDAD ════════════════════════════════════════════════ */}
         {isPro && (
-          <div style={{ display: activeTab === 'conectividad' ? 'block' : 'none' }}>
+          <div className="vivante-section print-break" style={{ display: show('conectividad') ? 'block' : 'none' }}>
             {itinerario?.conectividad && (
-              <div style={sectionStyle}>
-                <div style={sectionHeader('📱 Conectividad')}>📱 Conectividad</div>
-                <div style={sectionBody}>
-                  {[
-                    ['Roaming', itinerario.conectividad.roaming],
-                    ['eSIM recomendada', itinerario.conectividad.esim_recomendada],
-                    ['SIM local', itinerario.conectividad.sim_local],
-                    ['WiFi en destino', itinerario.conectividad.wifi_destino],
-                    ['Apps a descargar', (itinerario.conectividad.apps_descargar || []).join(', ')],
-                  ].filter(r => r[1]).map(([label, value], i) => (
-                    <div key={i} style={{ marginBottom: 12, paddingBottom: 12, borderBottom: `1px solid ${C.cremalg}` }}>
-                      <p style={{ margin: '0 0 2px', fontWeight: 700, color: C.coral, fontSize: 14 }}>{label}</p>
-                      <p style={{ margin: 0, color: C.carbon, fontSize: 14 }}>{value}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <Sec title="📱 Conectividad">
+                {[
+                  ['eSIM recomendada', itinerario.conectividad.esim_recomendada],
+                  ['SIM local', itinerario.conectividad.sim_local],
+                  ['Roaming', itinerario.conectividad.roaming],
+                  ['WiFi en destino', itinerario.conectividad.wifi_destino],
+                  ['Apps a descargar', (itinerario.conectividad.apps_descargar || []).join(', ')],
+                ].filter(r => r[1]).map(([l, v], i) => (
+                  <div key={i} style={{ marginBottom: 10, paddingBottom: 10, borderBottom: `1px solid ${C.bg1}` }}>
+                    <p style={{ margin: '0 0 2px', fontWeight: 700, color: C.coral, fontSize: 13 }}>{l}</p>
+                    <p style={{ margin: 0, color: C.carbon, fontSize: 14 }}>{v}</p>
+                  </div>
+                ))}
+              </Sec>
             )}
-            {itinerario?.salud_seguridad && (
-              <div style={sectionStyle}>
-                <div style={sectionHeader('🏥 Salud y Seguridad')}>🏥 Salud y Seguridad</div>
-                <div style={sectionBody}>
-                  {[
-                    ['Vacunas', itinerario.salud_seguridad.vacunas],
-                    ['Agua potable', itinerario.salud_seguridad.agua_potable],
-                    ['Nivel de seguridad', itinerario.salud_seguridad.nivel_seguridad],
-                    ['Zonas a evitar', itinerario.salud_seguridad.zonas_evitar],
-                    ['Estafas comunes', itinerario.salud_seguridad.estafas_comunes],
-                  ].filter(r => r[1]).map(([label, value], i) => (
-                    <div key={i} style={{ marginBottom: 12, paddingBottom: 12, borderBottom: `1px solid ${C.cremalg}` }}>
-                      <p style={{ margin: '0 0 2px', fontWeight: 700, color: C.coral, fontSize: 14 }}>{label}</p>
-                      <p style={{ margin: 0, color: C.carbon, fontSize: 14 }}>{value}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
+            {isPro && itinerario?.festivos_horarios && (
+              <Sec title="📅 Festivos y Horarios">
+                {Object.entries(itinerario.festivos_horarios).filter(([, v]) => v).map(([k, v], i) => (
+                  <div key={i} style={{ marginBottom: 10, paddingBottom: 10, borderBottom: `1px solid ${C.bg1}` }}>
+                    <p style={{ margin: '0 0 2px', fontWeight: 700, color: C.coral, fontSize: 13, textTransform: 'capitalize' }}>{k.replace(/_/g, ' ')}</p>
+                    <p style={{ margin: 0, color: C.carbon, fontSize: 14 }}>{v}</p>
+                  </div>
+                ))}
+              </Sec>
             )}
-            {itinerario?.idioma_cultura && (
-              <div style={sectionStyle}>
-                <div style={sectionHeader('🗣️ Idioma y Cultura', C.violeta)}>🗣️ Idioma y Cultura</div>
-                <div style={sectionBody}>
-                  <p style={{ marginBottom: 12, color: C.carbon }}><strong>Costumbres:</strong> {itinerario.idioma_cultura.costumbres}</p>
-                  <p style={{ marginBottom: 12, color: C.carbon }}><strong>Vestimenta:</strong> {itinerario.idioma_cultura.vestimenta}</p>
-                  {itinerario.idioma_cultura.frases_utiles?.length > 0 && (
-                    <>
-                      <p style={{ fontWeight: 700, color: C.carbon, marginBottom: 8 }}>Frases útiles:</p>
-                      {itinerario.idioma_cultura.frases_utiles.map((f, i) => (
-                        <div key={i} style={{ background: '#F5F0FF', borderRadius: 8, padding: '8px 12px', marginBottom: 8 }}>
-                          <span style={{ fontWeight: 700, color: C.violeta }}>{f.frase_local}</span>
-                          {f.pronunciacion && <span style={{ color: '#888', fontSize: 12 }}> ({f.pronunciacion})</span>}
-                          {f.significado && <span style={{ color: C.carbon, fontSize: 13 }}> — {f.significado}</span>}
-                        </div>
-                      ))}
-                    </>
-                  )}
-                </div>
-              </div>
+            {isPro && itinerario?.salud_seguridad && (
+              <Sec title="🏥 Salud y Seguridad">
+                {[
+                  ['Vacunas', itinerario.salud_seguridad.vacunas],
+                  ['Agua potable', itinerario.salud_seguridad.agua_potable],
+                  ['Nivel de seguridad', itinerario.salud_seguridad.nivel_seguridad],
+                  ['Zonas a evitar', itinerario.salud_seguridad.zonas_evitar],
+                  ['Estafas comunes', itinerario.salud_seguridad.estafas_comunes],
+                ].filter(r => r[1]).map(([l, v], i) => (
+                  <div key={i} style={{ marginBottom: 10, paddingBottom: 10, borderBottom: `1px solid ${C.bg1}` }}>
+                    <p style={{ margin: '0 0 2px', fontWeight: 700, color: C.coral, fontSize: 13 }}>{l}</p>
+                    <p style={{ margin: 0, color: C.carbon, fontSize: 14 }}>{v}</p>
+                  </div>
+                ))}
+              </Sec>
+            )}
+            {isPro && itinerario?.idioma_cultura && (
+              <Sec title="🗣️ Idioma y Cultura" bg={C.violeta}>
+                <p style={{ margin: '0 0 8px', color: C.carbon, fontSize: 14 }}><strong>Costumbres:</strong> {itinerario.idioma_cultura.costumbres}</p>
+                <p style={{ margin: '0 0 12px', color: C.carbon, fontSize: 14 }}><strong>Vestimenta:</strong> {itinerario.idioma_cultura.vestimenta}</p>
+                {itinerario.idioma_cultura.frases_utiles?.length > 0 && (
+                  <>
+                    <p style={{ fontWeight: 700, color: C.carbon, marginBottom: 8, fontSize: 14 }}>Frases útiles:</p>
+                    {itinerario.idioma_cultura.frases_utiles.map((f, i) => (
+                      <div key={i} style={{ background: '#F5F0FF', borderRadius: 8, padding: '8px 12px', marginBottom: 6 }}>
+                        <strong style={{ color: C.violeta }}>{f.frase_local}</strong>
+                        {f.pronunciacion && <span style={{ color: '#888', fontSize: 12 }}> ({f.pronunciacion})</span>}
+                        {f.significado && <span style={{ color: C.carbon, fontSize: 13 }}> → {f.significado}</span>}
+                      </div>
+                    ))}
+                  </>
+                )}
+              </Sec>
             )}
           </div>
         )}
 
-        {/* ── LO IMPERDIBLE ─────────────────────────────────────────── */}
-        <div style={{ display: activeTab === 'imperdible' ? 'block' : 'none' }}>
-          {itinerario?.lo_imperdible?.length > 0 && (
-            <div style={sectionStyle}>
-              <div style={{ background: C.fucsia, padding: '14px 20px' }}>
-                <span style={{ color: '#fff', fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 18 }}>⭐ Lo Imperdible</span>
+        {/* ══ IMPERDIBLE ═══════════════════════════════════════════════════════ */}
+        <div className="vivante-section print-break" style={{ display: show('imperdible') ? 'block' : 'none' }}>
+          <Sec title="⭐ Lo Imperdible" bg={C.fucsia}>
+            {(itinerario?.lo_imperdible || []).map((item, i) => (
+              <div key={i} style={{ marginBottom: 24, paddingBottom: 24, borderBottom: i < (itinerario.lo_imperdible.length - 1) ? `1px solid #FFD0E8` : 'none' }}>
+                <Photo keyword={item.foto_busqueda} seed={i + 300} height={210} />
+                <p style={{ margin: '0 0 6px', fontWeight: 700, color: C.carbon, fontSize: 16 }}>{i + 1}. {item.nombre}</p>
+                <p style={{ margin: 0, color: '#555', fontSize: 14, lineHeight: 1.6 }}>{item.descripcion}</p>
               </div>
-              <div style={sectionBody}>
-                {itinerario.lo_imperdible.map((item, i) => (
-                  <div key={i} style={{ marginBottom: 20, paddingLeft: 16, borderLeft: `4px solid ${C.fucsia}` }}>
-                    <p style={{ margin: '0 0 6px', fontWeight: 700, color: C.carbon, fontSize: 16 }}>{i + 1}. {item.nombre}</p>
-                    <p style={{ margin: 0, color: '#555', fontSize: 14, lineHeight: 1.6 }}>{item.descripcion}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+            ))}
+          </Sec>
+
           {isPro && itinerario?.extras?.length > 0 && (
-            <div style={sectionStyle}>
-              <div style={sectionHeader('🎯 Más Cosas Para Hacer')}>🎯 Más Cosas Para Hacer</div>
-              <div style={sectionBody}>
-                {itinerario.extras.map((extra, i) => (
-                  <div key={i} style={{ marginBottom: 16 }}>
-                    <p style={{ margin: '0 0 6px', fontWeight: 700, color: C.coral }}>{extra.categoria}</p>
-                    {(extra.actividades || []).map((act, j) => (
-                      <p key={j} style={{ margin: '0 0 4px', color: C.carbon, paddingLeft: 12, borderLeft: `2px solid ${C.cremalg}`, fontSize: 14 }}>• {act}</p>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            </div>
+            <Sec title="🎯 Más Cosas Para Hacer">
+              {itinerario.extras.map((ex, i) => (
+                <div key={i} style={{ marginBottom: 14 }}>
+                  <p style={{ margin: '0 0 6px', fontWeight: 700, color: C.coral }}>{ex.categoria}</p>
+                  {(ex.actividades || []).map((a, j) => (
+                    <p key={j} style={{ margin: '0 0 4px', color: C.carbon, fontSize: 14, paddingLeft: 12, borderLeft: `2px solid ${C.bg1}` }}>• {a}</p>
+                  ))}
+                </div>
+              ))}
+            </Sec>
           )}
         </div>
 
       </div>
 
       {/* FOOTER */}
-      <div style={{ background: C.coral, padding: '32px 20px', textAlign: 'center', marginTop: 16 }}>
-        <p style={{ color: '#fff', fontFamily: 'Syne, sans-serif', fontSize: 24, fontWeight: 800, margin: '0 0 8px' }}>VIVANTE</p>
-        <p style={{ color: 'rgba(255,255,255,0.85)', margin: '0 0 16px', fontSize: 14 }}>
+      <div style={{ background: C.coral, padding: '32px 20px', textAlign: 'center', marginTop: 12 }}>
+        <img src="/images/vivante_logo.svg" alt="VIVANTE" style={{ height: 44, width: 'auto', marginBottom: 10 }}
+          onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }} />
+        <span style={{ display: 'none', color: '#fff', fontFamily: 'Syne, sans-serif', fontSize: 22, fontWeight: 800, display: 'block', marginBottom: 8 }}>VIVANTE</span>
+        <p style={{ color: 'rgba(255,255,255,0.9)', margin: '0 0 12px', fontSize: 15 }}>
           ¡Que tengas el viaje de tu vida, {formData?.nombre}! ✈️
         </p>
         <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, margin: 0 }}>
-          <a href="https://vivante.vercel.app" style={{ color: 'rgba(255,255,255,0.85)', textDecoration: 'none' }}>vivante.vercel.app</a>
+          <a href="https://www.vivante.com" style={{ color: 'rgba(255,255,255,0.85)', textDecoration: 'none' }}>www.vivante.com</a>
           {' · '}
           <a href="https://instagram.com/vive.vivante" style={{ color: 'rgba(255,255,255,0.85)', textDecoration: 'none' }}>@vive.vivante</a>
           {' · viaja más. planifica menos.'}
@@ -685,7 +714,7 @@ export default function PagoExitoso() {
   return (
     <Suspense fallback={
       <div style={{ minHeight: '100vh', background: '#FCF8F4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <p style={{ color: '#FF6332', fontFamily: 'Syne, sans-serif', fontSize: 20 }}>Cargando tu itinerario... ✈️</p>
+        <p style={{ color: '#FF6332', fontFamily: 'Syne, sans-serif', fontSize: 18 }}>Cargando tu itinerario... ✈️</p>
       </div>
     }>
       <ItinerarioContent />
