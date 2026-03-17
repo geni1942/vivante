@@ -48,11 +48,101 @@ function buildHostelworldUrl(destino, checkin, checkout) {
 }
 
 function alojamientoLink(op, destino, checkin, checkout, adults) {
-  if (op.link && op.link.startsWith('http')) return op.link;
+  // Siempre ignoramos el link del AI (suelen ser genéricos o inválidos).
+  // Construimos un link de búsqueda con el NOMBRE del hotel para que match sea específico.
   const plat = (op.plataforma || '').toLowerCase();
-  if (plat.includes('airbnb')) return buildAirbnbUrl(destino, checkin, checkout, adults);
+  const nombre = (op.nombre || '').trim();
+
   if (plat.includes('hostel')) return buildHostelworldUrl(destino, checkin, checkout);
-  return buildBookingUrl(destino, checkin, checkout, adults);
+
+  if (plat.includes('airbnb')) {
+    // Airbnb: buscamos por ciudad + nombre en el query
+    const base = `https://www.airbnb.com/s/${encodeURIComponent(destino || '')}/homes`;
+    const p = new URLSearchParams({ checkin: checkin || '', checkout: checkout || '', adults: adults || 2, query: nombre });
+    return `${base}?${p}`;
+  }
+
+  // Booking.com: buscar "Hotel Name, Ciudad" → encuentra el alojamiento específico
+  const searchTerm = nombre ? `${nombre}, ${destino}` : destino;
+  const p = new URLSearchParams({
+    ss: searchTerm,
+    checkin: checkin || '',
+    checkout: checkout || '',
+    group_adults: adults || 2,
+    no_rooms: 1,
+    selected_currency: 'USD',
+  });
+  return `https://www.booking.com/searchresults.html?${p}`;
+}
+
+// ─── Airline deep-links ───────────────────────────────────────────────────────
+function buildAirlineUrl(aerolinea, origenIata, destinoIata, fechaSalida, fechaRegreso, numViajeros) {
+  if (!origenIata || !destinoIata || !fechaSalida) return null;
+  const s = fechaSalida.replace(/-/g, '');
+  const r = fechaRegreso ? fechaRegreso.replace(/-/g, '') : '';
+  const n = numViajeros || 1;
+  const a = (aerolinea || '').toLowerCase();
+
+  if (a.includes('latam')) {
+    let url = `https://www.latam.com/es_cl/apps/personas/booking?fecha1_outbound=${s}&from=${origenIata}&to=${destinoIata}&nro_adu=${n}&cabina=Y&openDatePicker=false`;
+    if (r) url += `&fecha1_inbound=${r}`;
+    return url;
+  }
+  if (a.includes('jetsmart')) {
+    return `https://book.jetsmart.com/S7/pasajeros?o1=${origenIata}&d1=${destinoIata}&dp1=${fechaSalida}&r=${fechaRegreso}&pc=0&ac=${n}&cc=0&bc=0&mon=true&culture=es-CL`;
+  }
+  if (a.includes('sky') && !a.includes('scanner')) {
+    return `https://www.skyairline.com/es-cl/vuelos?from=${origenIata}&to=${destinoIata}&departure=${s}&adults=${n}`;
+  }
+  if (a.includes('avianca')) {
+    return `https://booking.avianca.com/search?origin=${origenIata}&destination=${destinoIata}&departDate=${fechaSalida}&returnDate=${fechaRegreso}&adults=${n}`;
+  }
+  if (a.includes('copa')) {
+    return `https://www.copaair.com/es-gs/comprar/buscar-vuelos/?origin=${origenIata}&destination=${destinoIata}&departure=${fechaSalida}&return=${fechaRegreso}&adult=${n}&cabin=Y`;
+  }
+  if (a.includes('aerolineas') || a.includes('aerolíneas') || a.includes('argentinas')) {
+    return `https://www.aerolineas.com.ar/es-ar/vuelos?origin=${origenIata}&destination=${destinoIata}&departure=${fechaSalida}&return=${fechaRegreso}&adults=${n}`;
+  }
+  if (a.includes('american')) {
+    return `https://www.aa.com/booking/search?locale=es_CL&requestType=MASM&searchType=R&classOfService=COACH&numberOfAdults=${n}&origin=${origenIata}&destination=${destinoIata}&departDate=${s.slice(0,4)+'-'+s.slice(4,6)+'-'+s.slice(6,8)}&returnDate=${r.slice(0,4)+'-'+r.slice(4,6)+'-'+r.slice(6,8)}`;
+  }
+  if (a.includes('united')) {
+    return `https://www.united.com/en/us/flight-search/book-a-flight/results/rev?f=${origenIata}&t=${destinoIata}&d=${fechaSalida}&r=${fechaRegreso}&sc=7&px=${n}&taxng=1&newHP=True&clm=7&st=bestmatches`;
+  }
+  if (a.includes('delta')) {
+    return `https://www.delta.com/us/en/book-a-trip/overview?originCity=${origenIata}&destinationCity=${destinoIata}&departureDate=${fechaSalida}&returnDate=${fechaRegreso}&paxCount=${n}&cabinType=COACH&tripType=ROUND_TRIP`;
+  }
+  if (a.includes('iberia')) {
+    return `https://www.iberia.com/es/vuelos/?from=${origenIata}&to=${destinoIata}&departureDate=${fechaSalida}&returnDate=${fechaRegreso}&adults=${n}`;
+  }
+  if (a.includes('air france') || a.includes('airfrance')) {
+    return `https://wwws.airfrance.es/cgi-bin/CF/PSS/h2h.cgi?_LANG=es&PROG=ONLINE_SEARCH&origin=${origenIata}&destination=${destinoIata}&outDate=${fechaSalida}&retDate=${fechaRegreso}&adult=${n}`;
+  }
+  if (a.includes('klm')) {
+    return `https://www.klm.com/search/pp/es/flights/${origenIata}/${destinoIata}/${fechaSalida}/${fechaRegreso}?travelers=A${n}`;
+  }
+  if (a.includes('lufthansa')) {
+    return `https://www.lufthansa.com/es/es/vuelos?origin=${origenIata}&destination=${destinoIata}&outboundDate=${fechaSalida}&returnDate=${fechaRegreso}&adults=${n}`;
+  }
+  if (a.includes('turkish') || a.includes('thy')) {
+    return `https://www.turkishairlines.com/en-int/flights/find-flights/?fromPort=${origenIata}&toPort=${destinoIata}&departureDate=${fechaSalida}&returnDate=${fechaRegreso}&passengerCount=${n}`;
+  }
+  if (a.includes('qatar')) {
+    return `https://www.qatarairways.com/en/book.html?from=${origenIata}&to=${destinoIata}&tripType=R&selectDate=${fechaSalida}&returnDate=${fechaRegreso}&adults=${n}`;
+  }
+  if (a.includes('emirates')) {
+    return `https://www.emirates.com/es/spanish/book/flights/#/flight-search/trips/return/${origenIata}/${destinoIata}/${fechaSalida}/${fechaRegreso}/adults-${n}`;
+  }
+  if (a.includes('british') || a.includes(' ba ') || a.includes('ba,')) {
+    return `https://www.britishairways.com/travel/book/public/en_gb/?wdf_departure=${origenIata}&wdf_arrival=${destinoIata}&wdf_outbound_date=${fechaSalida}&wdf_return_date=${fechaRegreso}&wdf_adults=${n}`;
+  }
+  if (a.includes('ethiopian')) {
+    return `https://www.ethiopianairlines.com/es/book/flights?origin=${origenIata}&destination=${destinoIata}&departureDate=${fechaSalida}&returnDate=${fechaRegreso}&adults=${n}`;
+  }
+  // Fallback universal: Skyscanner (funciona para CUALQUIER aerolínea)
+  const origin = origenIata.toLowerCase();
+  const dest   = destinoIata.toLowerCase();
+  return `https://www.skyscanner.com/transport/flights/${origin}/${dest}/${s}/${r}/?adults=${n}&currency=USD`;
 }
 
 function formatDate(d) {
@@ -336,7 +426,6 @@ function ItinerarioContent() {
                 </span>
               </div>
               <div style={{ padding: 18 }}>
-                <Photo keyword={dia.foto_busqueda} seed={di + 1} height={200} />
                 <div style={{ marginBottom: 12 }}>
                   <p style={{ margin: '0 0 4px', fontWeight: 700, color: C.coral, fontSize: 14 }}>🌅 Mañana {dia.manana?.horario ? `(${dia.manana.horario})` : ''}</p>
                   <p style={{ margin: '0 0 4px', color: C.carbon, fontSize: 14 }}>{dia.manana?.actividad}</p>
@@ -372,34 +461,49 @@ function ItinerarioContent() {
         {/* ══ VUELOS ═══════════════════════════════════════════════════════════ */}
         <div className="vivante-section print-break" style={{ display: show('vuelos') ? 'block' : 'none' }}>
           <Sec title="✈️ Vuelos Recomendados">
-            {(flightUrl || latamUrl) && (
-              <div style={{ background: C.bg1, borderRadius: 10, padding: '14px 16px', marginBottom: 16 }}>
-                <p style={{ margin: '0 0 10px', fontSize: 14, color: C.carbon }}>
-                  🔍 Búsqueda pre-filtrada: <strong>{formData?.origen}</strong> → <strong>{itinerario?.resumen?.destino || formData?.destino}</strong>
-                  {res.fecha_salida && <span style={{ color: '#666' }}> · {formatDate(res.fecha_salida)} → {formatDate(res.fecha_regreso)}</span>}
-                </p>
-                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                  {latamUrl && (
-                    <BtnLink href={latamUrl} color="#DA291C">✈️ Buscar en LATAM →</BtnLink>
-                  )}
-                  {flightUrl && (
-                    <BtnLink href={flightUrl} color="#1a73e8">🔍 Buscar en Google Flights →</BtnLink>
-                  )}
-                </div>
-              </div>
-            )}
-            {(itinerario?.vuelos || []).map((v, i) => (
-              <div key={i} style={{ marginBottom: 16, paddingBottom: 16, borderBottom: `1px solid ${C.bg1}` }}>
-                <p style={{ margin: '0 0 4px', fontWeight: 700, color: C.carbon }}>{v.aerolinea} — {v.ruta}</p>
-                <p style={{ margin: '0 0 2px', color: C.coral, fontWeight: 700, fontSize: 18 }}>{v.precio_estimado}</p>
-                {v.duracion && <p style={{ margin: '0 0 4px', color: '#666', fontSize: 13 }}>⏱ {v.duracion}</p>}
-                {v.tip && <p style={{ margin: '0 0 8px', color: C.violeta, fontStyle: 'italic', fontSize: 13 }}>💡 {v.tip}</p>}
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  {latamUrl && <BtnLink href={latamUrl} small color="#DA291C">Buscar en LATAM →</BtnLink>}
-                  {flightUrl && <BtnLink href={flightUrl} small color="#1a73e8">Google Flights →</BtnLink>}
-                </div>
-              </div>
-            ))}
+            {/* Ruta y fechas */}
+            <div style={{ background: C.bg1, borderRadius: 10, padding: '12px 16px', marginBottom: 16, fontSize: 14, color: C.carbon }}>
+              ✈️ Ruta: <strong>{formData?.origen}</strong> → <strong>{res.destino || formData?.destino}</strong>
+              {res.fecha_salida && (
+                <span style={{ color: '#666' }}>
+                  {' '}· <strong>{formatDate(res.fecha_salida)}</strong> → <strong>{formatDate(res.fecha_regreso)}</strong>
+                  {' '}· {formData?.numViajeros || 1} {formData?.numViajeros === 1 ? 'pasajero' : 'pasajeros'}
+                </span>
+              )}
+            </div>
+
+            {/* Tabla de aerolíneas */}
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 500 }}>
+                <thead>
+                  <tr style={{ background: C.coral }}>
+                    {['Aerolínea', 'Ruta', 'Precio estimado', 'Duración', 'Tip insider', ''].map(h => (
+                      <th key={h} style={{ padding: '10px 12px', color: '#fff', textAlign: 'left', fontSize: 13, fontWeight: 700 }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {(itinerario?.vuelos || []).map((v, i) => {
+                    const airlineUrl = buildAirlineUrl(v.aerolinea, res.origen_iata, res.destino_iata, res.fecha_salida, res.fecha_regreso, formData?.numViajeros);
+                    return (
+                      <tr key={i} style={{ background: i % 2 === 0 ? C.bg0 : '#fff', verticalAlign: 'top' }}>
+                        <td style={{ padding: '12px 12px', fontWeight: 700, color: C.carbon, fontSize: 14 }}>{v.aerolinea}</td>
+                        <td style={{ padding: '12px 12px', color: '#555', fontSize: 13 }}>{v.ruta}</td>
+                        <td style={{ padding: '12px 12px', color: C.coral, fontWeight: 700, fontSize: 15, whiteSpace: 'nowrap' }}>{v.precio_estimado}</td>
+                        <td style={{ padding: '12px 12px', color: '#666', fontSize: 13, whiteSpace: 'nowrap' }}>{v.duracion || '—'}</td>
+                        <td style={{ padding: '12px 12px', color: C.violeta, fontStyle: 'italic', fontSize: 12, maxWidth: 180 }}>{v.tip || '—'}</td>
+                        <td style={{ padding: '12px 12px' }}>
+                          <BtnLink href={airlineUrl} small color={C.coral}>Buscar vuelo →</BtnLink>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <p style={{ margin: '12px 0 0', fontSize: 11, color: '#aaa' }}>
+              * Precios estimativos. Los botones abren el buscador de cada aerolínea con origen, destino y fechas pre-cargados.
+            </p>
           </Sec>
         </div>
 
@@ -510,29 +614,34 @@ function ItinerarioContent() {
                 <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 580 }}>
                   <thead>
                     <tr style={{ background: C.coral }}>
-                      {['Experiencia', 'Por qué vale', 'Duración', 'Precio', 'Reservar con anticipación', ''].map(h => (
+                      {['Experiencia', 'Por qué vale', 'Duración', 'Precio', 'Anticipación', 'Reservar'].map(h => (
                         <th key={h} style={{ padding: '10px 12px', color: '#fff', textAlign: 'left', fontSize: 13 }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {(itinerario.experiencias || []).map((exp, ei) => (
+                    {(itinerario.experiencias || []).map((exp, ei) => {
+                      const q = encodeURIComponent((exp.nombre || '') + ' ' + destRaw);
+                      const gygUrl = `https://www.getyourguide.com/s/?q=${q}&searchSource=2`;
+                      const viatorUrl = `https://www.viator.com/search?q=${q}`;
+                      return (
                       <tr key={ei} style={{ background: ei % 2 === 0 ? C.bg0 : '#fff', verticalAlign: 'top' }}>
                         <td style={{ padding: '10px 12px' }}>
                           <p style={{ margin: 0, fontWeight: 700, color: C.carbon, fontSize: 14 }}>{exp.nombre}</p>
                         </td>
-                        <td style={{ padding: '10px 12px', color: '#555', fontSize: 13, maxWidth: 180 }}>{exp.por_que_vale}</td>
+                        <td style={{ padding: '10px 12px', color: '#555', fontSize: 13, maxWidth: 160 }}>{exp.por_que_vale}</td>
                         <td style={{ padding: '10px 12px', color: '#666', fontSize: 13, whiteSpace: 'nowrap' }}>{exp.duracion || '—'}</td>
                         <td style={{ padding: '10px 12px', color: C.coral, fontWeight: 700, fontSize: 14, whiteSpace: 'nowrap' }}>{exp.precio || '—'}</td>
-                        <td style={{ padding: '10px 12px', color: '#666', fontSize: 13 }}>{exp.anticipacion || '—'}</td>
+                        <td style={{ padding: '10px 12px', color: '#666', fontSize: 12 }}>{exp.anticipacion || '—'}</td>
                         <td style={{ padding: '10px 12px' }}>
-                          {exp.link
-                            ? <BtnLink href={exp.link} small color={C.coral}>Reservar →</BtnLink>
-                            : <span style={{ fontSize: 12, color: '#aaa' }}>—</span>
-                          }
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                            <BtnLink href={gygUrl} small color="#FF6600">GetYourGuide →</BtnLink>
+                            <BtnLink href={viatorUrl} small color="#333">Viator →</BtnLink>
+                          </div>
                         </td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -646,7 +755,6 @@ function ItinerarioContent() {
             <Sec title="🍸 Bares y Vida Nocturna">
               {(itinerario?.bares_vida_nocturna || []).map((b, bi) => (
                 <div key={bi} style={{ marginBottom: 20, paddingBottom: 20, borderBottom: bi < (itinerario.bares_vida_nocturna.length - 1) ? `1px solid ${C.bg1}` : 'none' }}>
-                  <Photo keyword={b.foto_busqueda} seed={bi + 200} height={180} />
                   <p style={{ margin: '0 0 4px', fontWeight: 700, color: C.carbon, fontSize: 15 }}>{b.nombre}</p>
                   <p style={{ margin: '0 0 6px', color: '#555', fontSize: 13 }}>{b.tipo_ambiente}</p>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
@@ -807,7 +915,6 @@ function ItinerarioContent() {
           <Sec title="⭐ Lo Imperdible" bg={C.fucsia}>
             {(itinerario?.lo_imperdible || []).map((item, i) => (
               <div key={i} style={{ marginBottom: 24, paddingBottom: 24, borderBottom: i < (itinerario.lo_imperdible.length - 1) ? `1px solid #FFD0E8` : 'none' }}>
-                <Photo keyword={item.foto_busqueda} seed={i + 300} height={210} />
                 <p style={{ margin: '0 0 6px', fontWeight: 700, color: C.carbon, fontSize: 16 }}>{i + 1}. {item.nombre}</p>
                 <p style={{ margin: 0, color: '#555', fontSize: 14, lineHeight: 1.6 }}>{item.descripcion}</p>
               </div>
