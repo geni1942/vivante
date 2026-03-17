@@ -82,7 +82,7 @@ Para origen_iata y destino_iata: código IATA de 3 letras del aeropuerto princip
 
     const restaurantesSchema = `
 "restaurantes": {
-  "NOMBRE_CIUDAD_1": [
+  "NOMBRE_REAL_CIUDAD_1": [
     {
       "nombre": "string (nombre real del restaurante)",
       "ubicacion": "string (barrio/zona específica)",
@@ -92,11 +92,17 @@ Para origen_iata y destino_iata: código IATA de 3 letras del aeropuerto princip
       "por_que": "string en voz VIVANTE de por qué vale la pena",
       "link_reserva": "usa siempre Google Maps search: https://www.google.com/maps/search/NOMBRE+CIUDAD",
       "instagram": "string @handle o null"
-    }
+    },
+    { "nombre": "segundo restaurante", "ubicacion": "string", "tipo": "string", "precio_promedio": "string", "requiere_reserva": boolean, "por_que": "string", "link_reserva": "https://www.google.com/maps/search/NOMBRE+CIUDAD", "instagram": "string o null" },
+    { "nombre": "tercer restaurante", "ubicacion": "string", "tipo": "string", "precio_promedio": "string", "requiere_reserva": boolean, "por_que": "string", "link_reserva": "https://www.google.com/maps/search/NOMBRE+CIUDAD", "instagram": "string o null" }
   ],
-  "NOMBRE_CIUDAD_2": [ ... mismos campos, 3 restaurantes ... ]
+  "NOMBRE_REAL_CIUDAD_2": [
+    { "nombre": "restaurante 1", "ubicacion": "string", "tipo": "string", "precio_promedio": "string", "requiere_reserva": boolean, "por_que": "string", "link_reserva": "https://www.google.com/maps/search/NOMBRE+CIUDAD", "instagram": "string o null" },
+    { "nombre": "restaurante 2", "ubicacion": "string", "tipo": "string", "precio_promedio": "string", "requiere_reserva": boolean, "por_que": "string", "link_reserva": "https://www.google.com/maps/search/NOMBRE+CIUDAD", "instagram": "string o null" },
+    { "nombre": "restaurante 3", "ubicacion": "string", "tipo": "string", "precio_promedio": "string", "requiere_reserva": boolean, "por_que": "string", "link_reserva": "https://www.google.com/maps/search/NOMBRE+CIUDAD", "instagram": "string o null" }
+  ]
 }
-IMPORTANTE: Usa el nombre REAL de cada ciudad visitada como clave del objeto. Incluye EXACTAMENTE 3 restaurantes por ciudad. Varía barrios, tipos de cocina y rangos de precio.`;
+IMPORTANTE: Reemplaza NOMBRE_REAL_CIUDAD_1 y NOMBRE_REAL_CIUDAD_2 con los nombres reales de las ciudades visitadas. Incluye EXACTAMENTE 3 restaurantes por ciudad. Si hay más ciudades, agrega más claves al objeto. Varía barrios, tipos de cocina y rangos de precio.`;
 
     const experienciasSchema = `
 "experiencias": [
@@ -393,7 +399,7 @@ GENERA JSON puro (sin markdown, sin \`\`\`):
         model: 'llama-3.3-70b-versatile',
         messages: [{ role: 'user', content: isPro ? promptPro : promptBasico }],
         temperature: 0.7,
-        max_tokens: isPro ? 8000 : 7000,
+        max_tokens: isPro ? 12000 : 8000,
       }),
     });
 
