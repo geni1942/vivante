@@ -407,7 +407,52 @@ GENERA JSON puro (sin markdown, sin \`\`\`):
     if (!groqRes.ok) {
       const groqErrText = await groqRes.text();
       console.error('Groq error status:', groqRes.status, 'body:', groqErrText);
-      return NextResponse.json({ error: 'Error generando itinerario', _groq_status: groqRes.status, _groq_error: groqErrText.substring(0, 500) }, { status: 500 });
+      // Si es rate limit (429), intentar con modelo más rápido como fallback
+      if (groqRes.status === 429) {
+        console.log('Rate limit 429 en modelo principal, intentando fallback con llama-3.1-8b-instant...');
+        const groqFallback = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${groqApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'llama-3.1-8b-instant',
+            messages: [{ role: 'user', content: isPro ? promptPro : promptBasico }],
+            temperature: 0.7,
+            max_tokens: isPro ? 8000 : 6000,
+          }),
+        });
+        if (groqFallback.ok) {
+          const groqData2 = await groqFallback.json();
+          const rawContent2 = groqData2.choices[0]?.message?.content || '';
+          if (rawContent2) {
+            // usar rawContent2 como rawContent para el parseado
+            try {
+              const cleaned2 = rawContent2.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+              const start2 = cleaned2.indexOf('{');
+              const str2 = start2 >= 0 ? cleaned2.substring(start2) : cleaned2;
+              let parsed2 = null;
+              try { parsed2 = JSON.parse(str2); } catch {}
+              if (!parsed2) {
+                let pos2 = str2.lastIndexOf('}');
+                while (pos2 > 0 && !parsed2) {
+                  try { parsed2 = JSON.parse(str2.substring(0, pos2 + 1)); }
+                  catch { pos2 = str2.lastIndexOf('}', pos2 - 1); }
+                }
+              }
+              if (parsed2) {
+                console.log('Fallback OK. Secciones:', Object.keys(parsed2).join(', '));
+                return NextResponse.json({ itinerario: parsed2, planId, _model: 'fallback' });
+              }
+            } catch (fe) { console.error('Fallback parse error:', fe.message); }
+          }
+        } else {
+          const fallbackErr = await groqFallback.text();
+          console.error('Fallback también falló:', groqFallback.status, fallbackErr);
+        }
+      }
+      return NextResponse.json({ error: 'Error generando itinerario' }, { status: 500 });
     }
 
     const groqData = await groqRes.json();
