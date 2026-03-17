@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 
+export const maxDuration = 60;
+export const dynamic = 'force-dynamic';
+
 export async function POST(request) {
   try {
     const body = await request.json();
@@ -112,16 +115,19 @@ IMPORTANTE: Reemplaza NOMBRE_REAL_CIUDAD_1 y NOMBRE_REAL_CIUDAD_2 con los nombre
     "duracion": "string (ej: 3 horas)",
     "precio": "string (ej: $25-40 USD por persona)",
     "anticipacion": "string (ej: Reservar con 1 semana de anticipación)",
+    "plataformas_disponibles": ["GetYourGuide", "Viator"],
     "link": "URL REAL de la actividad en Civitatis, GetYourGuide o Viator. Si no tienes la URL exacta, usa búsqueda: GetYourGuide: https://www.getyourguide.com/s/?q=ACTIVIDAD+CIUDAD&searchSource=2, Civitatis: https://www.civitatis.com/es/CIUDAD/?q=ACTIVIDAD, Viator: https://www.viator.com/search?q=ACTIVIDAD+CIUDAD"
   }
-]`;
+]
+IMPORTANTE sobre plataformas_disponibles: incluye SOLO las plataformas donde esta actividad específica está realmente disponible. Usa ["GetYourGuide"] si solo está en GYG, ["Viator"] si solo está en Viator, ["GetYourGuide","Viator"] si está en ambas. Usa [] si es una actividad muy local/independiente no comercializada en estas plataformas. Basa esto en tu conocimiento real de qué tours se venden en cada plataforma.`;
 
     // ─── PROMPT BÁSICO ─────────────────────────────────────────────────────────
     const promptBasico = `Eres el planificador de VIVANTE. Crea un itinerario COMPLETO con el tono VIVANTE: cercano, directo, como un amigo experto. Precios realistas para ${currentYear}.
 ${clienteCtx}
 
 REGLAS IMPORTANTES:
-- VUELOS: incluye mínimo 3 aerolíneas distintas. La PRIMERA opción debe ser vuelo DIRECTO (si existe la ruta), las siguientes con 1 o 2 escalas.
+- VUELOS: Usa tu conocimiento real de rutas aéreas. Incluye mínimo 3 aerolíneas distintas. SOLO pon escala="Directo" si existe un vuelo directo real en esa ruta específica. Si NO hay vuelo directo, nunca lo inventes — pon la mejor conexión con ciudad real de escala (ej: "1 escala en Lima"). En el campo "ruta" especifica siempre las ciudades de escala reales (ej: "SCL → BOG → NRT").
+- ALOJAMIENTO: Recomienda SOLO hoteles/alojamientos con nombre REAL y verificable. Prioriza cadenas conocidas (Hilton, Marriott, NH, Ibis, Radisson, Hyatt, etc.) o boutiques con alta presencia online. NUNCA inventes nombres de hoteles.
 - RESTAURANTES: incluye exactamente 3 restaurantes por cada ciudad/destino visitado, agrupados por ciudad.
 
 GENERA JSON puro (sin markdown, sin \`\`\`):
@@ -227,7 +233,8 @@ GENERA JSON puro (sin markdown, sin \`\`\`):
 ${clienteCtx}
 
 REGLAS IMPORTANTES:
-- VUELOS: incluye mínimo 3 aerolíneas distintas. La PRIMERA opción debe ser vuelo DIRECTO (si existe la ruta), las siguientes con 1 o 2 escalas.
+- VUELOS: Usa tu conocimiento real de rutas aéreas. Incluye mínimo 3 aerolíneas distintas. SOLO pon escala="Directo" si existe un vuelo directo real en esa ruta específica. Si NO hay vuelo directo, nunca lo inventes — pon la mejor conexión con ciudad real de escala (ej: "1 escala en Lima"). En el campo "ruta" especifica siempre las ciudades de escala reales (ej: "SCL → BOG → NRT").
+- ALOJAMIENTO: Recomienda SOLO hoteles/alojamientos con nombre REAL y verificable. Prioriza cadenas conocidas (Hilton, Marriott, NH, Ibis, Radisson, Hyatt, etc.) o boutiques con alta presencia online. NUNCA inventes nombres de hoteles.
 - RESTAURANTES: incluye exactamente 3 restaurantes por cada ciudad/destino visitado, agrupados por ciudad.
 - TRANSPORTE aeropuerto→centro: lista TODAS las opciones disponibles (Uber, Taxi, Metro, Bus express, Tren, etc.) con costo estimado y duración en el array opciones_aeropuerto_centro.
 
