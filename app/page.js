@@ -9,14 +9,12 @@ export default function Home() {
   const [showForm, setShowForm] = useState(false);
   const [currentDestino, setCurrentDestino] = useState(0);
   const [showContact, setShowContact] = useState(false);
-  const [initialDestino, setInitialDestino] = useState('');
-  const [openFaq, setOpenFaq] = useState(null);
 
   const destinosHero = [
-    { nombre: 'Torres del Paine', pais: 'Chile', imagen: '/images/Torres%20del%20paine%2C%20Chile.jpg' },
-    { nombre: 'Santorini', pais: 'Grecia', imagen: '/images/Santorini%2C%20Grecia.jpg' },
-    { nombre: 'Bali', pais: 'Indonesia', imagen: '/images/Bali%2C%20Indonesia.jpg' },
-    { nombre: 'Tokio', pais: 'Japón', imagen: '/images/Tokio%2C%20Jap%C3%B3n.jpg' },
+    { nombre: 'Torres del Paine', pais: 'Chile', imagen: '/images/Torres del paine, Chile.jpg' },
+    { nombre: 'Santorini', pais: 'Grecia', imagen: '/images/Santorini, Grecia.jpg' },
+    { nombre: 'Bali', pais: 'Indonesia', imagen: '/images/Bali, Indonesia.jpg' },
+    { nombre: 'Tokio', pais: 'Japón', imagen: '/images/Tokio, Japón.jpg' },
   ];
 
   useEffect(() => {
@@ -27,12 +25,12 @@ export default function Home() {
   }, []);
 
   const destinos = [
-    { nombre: 'Torres del Paine', pais: 'Chile', imagen: '/images/Torres%20del%20paine%2C%20Chile.jpg', precio: 'Desde $400.000 CLP', tag: '🇨🇱 Local' },
-    { nombre: 'Santorini', pais: 'Grecia', imagen: '/images/Santorini%2C%20Grecia.jpg', precio: 'Desde $1.200 USD', tag: '🔥 Popular' },
-    { nombre: 'Bali', pais: 'Indonesia', imagen: '/images/Bali%2C%20Indonesia.jpg', precio: 'Desde $1.500 USD', tag: '✨ Trending' },
-    { nombre: 'Machu Picchu', pais: 'Perú', imagen: '/images/Machu%20Picchu%2C%20Peru.jpg', precio: 'Desde $600 USD', tag: '🎒 Aventura' },
+    { nombre: 'Torres del Paine', pais: 'Chile', imagen: '/images/Torres del paine, Chile.jpg', precio: 'Desde $400.000 CLP', tag: '🇨🇱 Local' },
+    { nombre: 'Santorini', pais: 'Grecia', imagen: '/images/Santorini, Grecia.jpg', precio: 'Desde $1.200 USD', tag: '🔥 Popular' },
+    { nombre: 'Bali', pais: 'Indonesia', imagen: '/images/Bali, Indonesia.jpg', precio: 'Desde $1.500 USD', tag: '✨ Trending' },
+    { nombre: 'Machu Picchu', pais: 'Perú', imagen: '/images/Machu Picchu, Peru.jpg', precio: 'Desde $600 USD', tag: '🎒 Aventura' },
     { nombre: 'Cartagena', pais: 'Colombia', imagen: '/images/cartagena.jpg', precio: 'Desde $500 USD', tag: '🏖️ Playa' },
-    { nombre: 'Barcelona', pais: 'España', imagen: '/images/Barcelona%2C%20Espa%C3%B1a.jpg', precio: 'Desde $1.100 USD', tag: '🎨 Cultura' },
+    { nombre: 'Barcelona', pais: 'España', imagen: '/images/Barcelona, España.jpg', precio: 'Desde $1.100 USD', tag: '🎨 Cultura' },
   ];
 
   return (
@@ -45,7 +43,7 @@ export default function Home() {
             className={`absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ${
               currentDestino === index ? 'opacity-100' : 'opacity-0'
             }`}
-            style={{ backgroundImage: `url("${destino.imagen}")` }}
+            style={{ backgroundImage: `url(${destino.imagen})` }}
           />
         ))}
         <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/70"></div>
@@ -215,7 +213,7 @@ export default function Home() {
               <div
                 key={i}
                 className="group relative rounded-3xl overflow-hidden cursor-pointer aspect-[4/5] sm:aspect-[3/4]"
-                onClick={() => { setInitialDestino(destino.nombre + ', ' + destino.pais); setShowForm(true); }}
+                onClick={() => setShowForm(true)}
               >
                 <img
                   src={destino.imagen}
@@ -255,111 +253,6 @@ export default function Home() {
       </section>
 
       {/* Qué incluye */}
-
-      {/* Vista Previa del Itinerario */}
-      <section className="py-16 sm:py-24 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-6">
-
-          <div className="text-center mb-12">
-            <span className="inline-block bg-blue-100 text-blue-600 px-4 py-1.5 rounded-full text-sm font-medium mb-4">
-              Ejemplo real
-            </span>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-              As&iacute; se ve tu itinerario
-            </h2>
-            <p className="text-gray-500 text-lg max-w-2xl mx-auto">
-              Un ejemplo real generado para Tokio, Jap&oacute;n. El tuyo ser&aacute; igual de detallado y personalizado.
-            </p>
-          </div>
-
-          <div className="max-w-3xl mx-auto">
-            <div className="bg-white border-2 border-gray-100 rounded-3xl shadow-xl overflow-hidden">
-
-              {/* Cabecera oscura con resumen del viaje */}
-              <div className="bg-gradient-to-r from-gray-900 to-gray-800 p-6 text-white">
-                <div className="flex items-start gap-3 mb-4">
-                  <span className="text-3xl flex-shrink-0">&#127471;&#127477;</span>
-                  <div>
-                    <h3 className="text-xl font-bold">Tokio, Kioto &amp; Osaka &middot; 10 d&iacute;as</h3>
-                    <p className="text-gray-400 text-sm">Santiago &rarr; Tokio &middot; 2 viajeros &middot; Cultura &amp; Gastronom&iacute;a</p>
-                  </div>
-                </div>
-                <div className="flex gap-2 flex-wrap">
-                  <span className="bg-white/10 border border-white/20 px-3 py-1 rounded-full text-xs">&#9992;&#65039; Vuelo desde $950 USD</span>
-                  <span className="bg-white/10 border border-white/20 px-3 py-1 rounded-full text-xs">&#127968; Hotel Shinjuku Granbell</span>
-                  <span className="bg-white/10 border border-white/20 px-3 py-1 rounded-full text-xs">&#128176; Presupuesto: $3.200 USD</span>
-                </div>
-              </div>
-
-              {/* Dia 1 completo */}
-              <div className="p-6 border-b border-gray-100">
-                <div className="flex items-center gap-3 mb-5">
-                  <div className="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <span className="font-bold text-orange-600 text-sm">D1</span>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">D&iacute;a 1 &middot; Lunes</p>
-                    <h4 className="font-bold text-gray-900">Llegada a Tokio &middot; Barrio Shinjuku</h4>
-                  </div>
-                </div>
-                <div className="space-y-4 pl-14">
-                  <div className="flex items-start gap-3">
-                    <span className="text-gray-400 text-xs w-10 flex-shrink-0 mt-1 font-medium">14:00</span>
-                    <span className="text-base flex-shrink-0">&#127968;</span>
-                    <p className="text-gray-600 text-sm leading-relaxed">Check-in Hotel Shinjuku Granbell. Habitaci&oacute;n superior con vista panor&aacute;mica. A 3 min caminando de la estaci&oacute;n.</p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <span className="text-gray-400 text-xs w-10 flex-shrink-0 mt-1 font-medium">17:00</span>
-                    <span className="text-base flex-shrink-0">&#127758;</span>
-                    <p className="text-gray-600 text-sm leading-relaxed">Exploraci&oacute;n de Shinjuku: callejones Golden Gai, Kabukicho y el mirador gratuito del Gobierno Metropolitano (piso 45).</p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <span className="text-gray-400 text-xs w-10 flex-shrink-0 mt-1 font-medium">20:00</span>
-                    <span className="text-base flex-shrink-0">&#127836;</span>
-                    <p className="text-gray-600 text-sm leading-relaxed">Cena en Fuunji &mdash; ramen tsukemen, uno de los m&aacute;s valorados de Tokio. Reservar con anticipaci&oacute;n.</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Dias 2+ bloqueados con blur */}
-              <div className="relative overflow-hidden">
-                <div className="p-6 select-none" style={{filter:'blur(3px)',opacity:0.25,pointerEvents:'none'}}>
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <span className="font-bold text-blue-600 text-sm">D2</span>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">D&iacute;a 2 &middot; Martes</p>
-                      <h4 className="font-bold text-gray-900">Asakusa, Senso-ji &amp; Akihabara</h4>
-                    </div>
-                  </div>
-                  <div className="space-y-3 pl-14">
-                    <div className="h-4 bg-gray-200 rounded-full w-3/4"></div>
-                    <div className="h-4 bg-gray-200 rounded-full w-1/2"></div>
-                    <div className="h-4 bg-gray-200 rounded-full w-5/6"></div>
-                  </div>
-                </div>
-                <div className="absolute inset-0 bg-gradient-to-t from-gray-50 via-gray-50/80 to-transparent flex flex-col items-center justify-end pb-8 px-6 text-center">
-                  <p className="text-gray-700 font-semibold mb-1">+ 9 d&iacute;as m&aacute;s con todo el detalle</p>
-                  <p className="text-gray-500 text-sm mb-6">Restaurantes locales, tours, tips de transporte y presupuesto d&iacute;a a d&iacute;a</p>
-                  <button
-                    onClick={() => setShowForm(true)}
-                    className="bg-gradient-to-r from-orange-500 to-pink-500 text-white px-8 py-3 rounded-2xl font-bold hover:opacity-90 transition-all hover:scale-105 shadow-lg shadow-orange-200/50"
-                  >
-                    Crear mi itinerario &rarr;
-                  </button>
-                </div>
-              </div>
-
-            </div>
-            <p className="text-center text-gray-400 text-sm mt-6">
-              &#10003; Listo en minutos &middot; &#10003; 100% personalizado &middot; &#10003; Todo listo para reservar
-            </p>
-          </div>
-
-        </div>
-      </section>
-
       <section className="py-16 sm:py-24 bg-gray-900 text-white">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-12 sm:mb-16">
@@ -476,7 +369,7 @@ export default function Home() {
                 <h3 className="text-2xl font-bold text-gray-900 mb-1">Vivante Básico</h3>
                 <p className="text-gray-500 text-sm mb-6">Itinerario personalizado día a día</p>
                 <div className="mb-6">
-                  <span className="text-5xl font-bold text-gray-900">$17</span>
+                  <span className="text-5xl font-bold text-gray-900">$10</span>
                   <span className="text-gray-500 ml-2">USD</span>
                 </div>
                 <ul className="space-y-3 mb-8">
@@ -511,7 +404,7 @@ export default function Home() {
                 <h3 className="text-2xl font-bold text-white mb-1">Vivante Pro</h3>
                 <p className="text-gray-400 text-sm mb-6">Experiencia premium con todos los detalles</p>
                 <div className="mb-6">
-                  <span className="text-5xl font-bold text-white">$28</span>
+                  <span className="text-5xl font-bold text-white">$17</span>
                   <span className="text-gray-400 ml-2">USD</span>
                 </div>
                 <ul className="space-y-3 mb-8">
@@ -520,7 +413,6 @@ export default function Home() {
                     'Restaurantes recomendados por zona y RRSS',
                     'Opciones de tours y actividades',
                     'Tips de seguridad y transporte',
-                    'Tips culturales, de conectividad y dinero',
                     'Presupuesto detallado por día',
                   ].map((item, i) => (
                     <li key={i} className="flex items-start gap-3">
@@ -541,75 +433,6 @@ export default function Home() {
         </div>
       </section>
 
-
-      {/* FAQ Section */}
-      <section className="py-16 sm:py-24 bg-white">
-        <div className="max-w-3xl mx-auto px-6">
-
-          <div className="text-center mb-10">
-            <span className="inline-block bg-orange-100 text-orange-600 px-4 py-1.5 rounded-full text-sm font-medium mb-4">
-              Preguntas frecuentes
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3">
-              &iquest;Ten&eacute;s alguna duda?
-            </h2>
-            <p className="text-gray-500">Las respuestas que m&aacute;s nos preguntan antes de comprar</p>
-          </div>
-
-          <div className="space-y-2">
-            {[
-              {
-                q: '\u00bfC\u00f3mo funciona VIVANTE?',
-                a: 'Complet\u00e1s el formulario en 2 minutos: destino, fechas, presupuesto, intereses y estilo de viaje. Eleg\u00eds tu plan (B\u00e1sico o Pro), pag\u00e1s con tarjeta v\u00eda MercadoPago, y en minutos recib\u00eds tu itinerario completo en tu email. Sin esperas, sin llamadas, sin agencias.'
-              },
-              {
-                q: '\u00bfEl itinerario es realmente personalizado para m\u00ed?',
-                a: 'S\u00ed, 100%. No es una plantilla gen\u00e9rica. En base a tus preferencias (destino, presupuesto, d\u00edas, intereses, tipo de alojamiento y ritmo de viaje) creamos un itinerario \u00fanico para ti.'
-              },
-              {
-                q: '\u00bfLos vuelos y hoteles est\u00e1n reservados, o son recomendaciones?',
-                a: 'Son recomendaciones con links directos para que t\u00fa reserves cuando quieras y al precio que encuentres. VIVANTE no intermedia ni cobra comisi\u00f3n por las reservas \u2014 todo queda entre t\u00fa y la aerol\u00ednea/hotel.'
-              },
-              {
-                q: '\u00bfFunciona para cualquier destino del mundo?',
-                a: 'S\u00ed. El formulario acepta cualquier destino. Si ya ten\u00e9s uno en mente, escrib\u00edlo. Si todav\u00eda no decidiste, te ayudamos a encontrar el m\u00e1s adecuado seg\u00fan tus intereses y presupuesto.'
-              },
-              {
-                q: '\u00bfCu\u00e1l es la diferencia entre el plan B\u00e1sico y el Pro?',
-                a: 'El B\u00e1sico incluye el itinerario completo d\u00eda a d\u00eda con vuelos, alojamientos, restaurantes, actividades y puntos de inter\u00e9s. El Pro agrega vida nocturna (bares recomendados por redes sociales), tips de seguridad, transporte local detallado, conectividad, frases del idioma local y gu\u00eda de qu\u00e9 empacar seg\u00fan el clima y las actividades.'
-              },
-              {
-                q: '\u00bfCu\u00e1nto tarda en llegar mi itinerario?',
-                a: 'En menos de 5 minutos despu\u00e9s de confirmar el pago. Si hay alguna demora, escrib\u00ednos a vive.vivante.ch@gmail.com y lo resolvemos de inmediato.'
-              },
-              {
-                q: '\u00bfPuedo pedir cambios si algo no me convence?',
-                a: 'S\u00ed. Si algo no te convence, escrib\u00ednos y lo revisamos. Queremos que tu itinerario sea perfecto antes de que hagas cualquier reserva.'
-              },
-              {
-                q: '\u00bfEs seguro el pago?',
-                a: 'S\u00ed. Los pagos se procesan a trav\u00e9s de MercadoPago, con cifrado de nivel bancario. VIVANTE no almacena datos de tu tarjeta.'
-              }
-            ].map((item, i) => (
-              <div key={i} className="border border-gray-200 rounded-2xl overflow-hidden">
-                <button
-                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                  className="w-full flex items-center justify-between p-5 text-left hover:bg-gray-50 transition-colors"
-                >
-                  <span className="font-semibold text-gray-900 pr-4 text-sm sm:text-base">{item.q}</span>
-                  <ChevronDown className={`w-5 h-5 text-gray-400 flex-shrink-0 transition-transform duration-200 ${openFaq === i ? 'rotate-180' : ''}`} />
-                </button>
-                {openFaq === i && (
-                  <div className="px-5 pb-5 pt-1 text-gray-600 text-sm leading-relaxed border-t border-gray-100">
-                    {item.a}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-
-        </div>
-      </section>
       {/* CTA Final */}
       <section className="relative py-24 sm:py-32 overflow-hidden">
         <div
@@ -707,7 +530,7 @@ export default function Home() {
             </a>
             {/* TikTok */}
             <a
-              href="https://www.tiktok.com/@vive.vivante"
+              href="http://www.tiktok.com/@vivevivante"
               target="_blank"
               rel="noopener noreferrer"
               className="text-gray-500 hover:text-white transition-colors"
@@ -726,7 +549,7 @@ export default function Home() {
       </footer>
 
       {/* Modal del formulario */}
-      {showForm && <TravelForm onClose={() => setShowForm(false)} initialDestino={initialDestino} />}
+      {showForm && <TravelForm onClose={() => setShowForm(false)} />}
     </main>
   );
 }
