@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { ChevronRight, ChevronLeft, Plane, MapPin, Users, Sparkles, Loader2, RefreshCw, Check, CreditCard } from 'lucide-react';
 
-export default function TravelForm({ onClose, initialDestino = '' }) {
+export default function TravelForm({ onClose }) {
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingOptions, setIsLoadingOptions] = useState(false);
@@ -18,8 +18,8 @@ export default function TravelForm({ onClose, initialDestino = '' }) {
   const [selectedPlan, setSelectedPlan] = useState(null);
   
   const [formData, setFormData] = useState({
-    tieneDestino: initialDestino ? true : null,
-    destino: initialDestino || '',
+    tieneDestino: null,
+    destino: '',
     origen: '',
     presupuesto: 2000,
     dias: 7,
@@ -36,8 +36,8 @@ export default function TravelForm({ onClose, initialDestino = '' }) {
     {
       id: 'basico',
       nombre: 'Vivante Básico',
-      precio: 17,        // USD (mostrado al usuario)
-      precioClp: 16990,  // CLP (usado en MercadoPago Chile)
+      precio: 10,        // USD (mostrado al usuario)
+      precioClp: 9990,   // CLP (usado en MercadoPago Chile)
       descripcion: 'Itinerario personalizado día a día',
       incluye: [
         'Itinerario completo en PDF',
@@ -50,15 +50,14 @@ export default function TravelForm({ onClose, initialDestino = '' }) {
     {
       id: 'pro',
       nombre: 'Vivante Pro',
-      precio: 28,        // USD (mostrado al usuario)
-      precioClp: 27990,  // CLP (usado en MercadoPago Chile)
+      precio: 17,        // USD (mostrado al usuario)
+      precioClp: 16990,  // CLP (usado en MercadoPago Chile)
       descripcion: 'Experiencia premium con todos los detalles',
       incluye: [
         'Todo lo del Vivante Básico',
         'Restaurantes recomendados por zona y RRSS',
         'Opciones de tours y actividades',
         'Tips de seguridad y transporte',
-        'Tips culturales, de conectividad y dinero',
         'Presupuesto detallado por día'
       ],
       popular: true
@@ -306,7 +305,6 @@ export default function TravelForm({ onClose, initialDestino = '' }) {
                     const data = await res.json();
                     if (data.init_point) {
                       localStorage.setItem('vivante_formData', JSON.stringify(formData));
-                      localStorage.setItem('vivante_planId', selectedPlan);
                       window.location.href = data.init_point;
                     } else {
                       throw new Error(data.error || 'No se pudo iniciar el pago');
@@ -340,7 +338,6 @@ export default function TravelForm({ onClose, initialDestino = '' }) {
               >
                 ← Volver
               </button>
-              <p className="text-center text-xs text-gray-400 mt-3">Si no est&aacute;s satisfecho con tu itinerario, <a href="mailto:vive.vivante.ch@gmail.com" className="underline hover:text-gray-600">cont&aacute;ctanos</a>.</p>
             </div>
           </div>
         </div>
