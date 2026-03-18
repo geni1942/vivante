@@ -9,6 +9,7 @@ export default function Home() {
   const [showForm, setShowForm] = useState(false);
   const [currentDestino, setCurrentDestino] = useState(0);
   const [showContact, setShowContact] = useState(false);
+  const [initialDestino, setInitialDestino] = useState('');
 
   const destinosHero = [
     { nombre: 'Torres del Paine', pais: 'Chile', imagen: '/images/Torres del paine, Chile.jpg' },
@@ -213,7 +214,7 @@ export default function Home() {
               <div
                 key={i}
                 className="group relative rounded-3xl overflow-hidden cursor-pointer aspect-[4/5] sm:aspect-[3/4]"
-                onClick={() => setShowForm(true)}
+                onClick={() => { setInitialDestino(`${destino.nombre}, ${destino.pais}`); setShowForm(true); }}
               >
                 <img
                   src={destino.imagen}
@@ -549,7 +550,7 @@ export default function Home() {
       </footer>
 
       {/* Modal del formulario */}
-      {showForm && <TravelForm onClose={() => setShowForm(false)} />}
+      {showForm && <TravelForm onClose={() => { setShowForm(false); setInitialDestino(''); }} initialDestino={initialDestino} />}
     </main>
   );
 }
