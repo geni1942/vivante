@@ -129,6 +129,7 @@ REGLAS IMPORTANTES:
 - VUELOS: Usa tu conocimiento real de rutas aéreas. Incluye mínimo 3 aerolíneas distintas. SOLO pon escala="Directo" si existe un vuelo directo real en esa ruta específica. Si NO hay vuelo directo, nunca lo inventes — pon la mejor conexión con ciudad real de escala (ej: "1 escala en Lima"). En el campo "ruta" especifica siempre las ciudades de escala reales (ej: "SCL → BOG → NRT").
 - ALOJAMIENTO: Recomienda SOLO hoteles/alojamientos con nombre REAL y verificable. Prioriza cadenas conocidas (Hilton, Marriott, NH, Ibis, Radisson, Hyatt, etc.) o boutiques con alta presencia online. NUNCA inventes nombres de hoteles.
 - RESTAURANTES: incluye exactamente 3 restaurantes por cada ciudad/destino visitado, agrupados por ciudad.
+- INTERESES: Las actividades de cada dia (manana, tarde, noche > actividad) DEBEN reflejar los intereses del viajero incluidos en los datos del cliente. Adapta CADA dia segun sus gustos: aventura/deporte -> excursiones activas, surf, senderismo, escalada, kayak; gastronomia -> mercados locales, degustaciones, clases de cocina, bares de autor; cultura -> museos, barrios historicos, arte urbano, espectaculos; naturaleza -> parques nacionales, wildlife, ecoturismo; playa/relax -> playas, snorkel, spas, atardeceres. NO propongas actividades genericas que contradigan sus intereses.
 
 GENERA JSON puro (sin markdown, sin \`\`\`):
 {
@@ -236,6 +237,7 @@ REGLAS IMPORTANTES:
 - VUELOS: Usa tu conocimiento real de rutas aéreas. Incluye mínimo 3 aerolíneas distintas. SOLO pon escala="Directo" si existe un vuelo directo real en esa ruta específica. Si NO hay vuelo directo, nunca lo inventes — pon la mejor conexión con ciudad real de escala (ej: "1 escala en Lima"). En el campo "ruta" especifica siempre las ciudades de escala reales (ej: "SCL → BOG → NRT").
 - ALOJAMIENTO: Recomienda SOLO hoteles/alojamientos con nombre REAL y verificable. Prioriza cadenas conocidas (Hilton, Marriott, NH, Ibis, Radisson, Hyatt, etc.) o boutiques con alta presencia online. NUNCA inventes nombres de hoteles.
 - RESTAURANTES: incluye exactamente 3 restaurantes por cada ciudad/destino visitado, agrupados por ciudad.
+- INTERESES: Las actividades de cada dia (manana, tarde, noche > actividad) DEBEN reflejar los intereses del viajero incluidos en los datos del cliente. Adapta CADA dia segun sus gustos: aventura/deporte -> excursiones activas, surf, senderismo, escalada, kayak; gastronomia -> mercados locales, degustaciones, clases de cocina, bares de autor; cultura -> museos, barrios historicos, arte urbano, espectaculos; naturaleza -> parques nacionales, wildlife, ecoturismo; playa/relax -> playas, snorkel, spas, atardeceres. NO propongas actividades genericas que contradigan sus intereses.
 - TRANSPORTE aeropuerto→centro: lista TODAS las opciones disponibles (Uber, Taxi, Metro, Bus express, Tren, etc.) con costo estimado y duración en el array opciones_aeropuerto_centro.
 
 GENERA JSON puro (sin markdown, sin \`\`\`):
