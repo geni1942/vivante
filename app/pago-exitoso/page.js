@@ -64,66 +64,81 @@ function buildAirlineUrl(aerolinea, origenIata, destinoIata, fechaSalida, fechaR
   const n = numViajeros || 1;
   const a = (aerolinea || '').toLowerCase();
 
+  // Kayak pre-filled (con o sin filtro de aerolínea)
+  const kayak = (code) => {
+    const base = `https://www.kayak.com/flights/${origenIata}-${destinoIata}/${fechaSalida}${fechaRegreso ? '/'+fechaRegreso : ''}/${n}adults`;
+    return code ? `${base}?fs=airlines=${code}` : base;
+  };
+
+  // ── Aerolíneas latinoamericanas (deep-link directo, funciona bien) ──────────
   if (a.includes('latam')) {
     let url = `https://www.latam.com/es_cl/apps/personas/booking?fecha1_outbound=${s}&from=${origenIata}&to=${destinoIata}&nro_adu=${n}&cabina=Y&openDatePicker=false`;
     if (r) url += `&fecha1_inbound=${r}`;
     return url;
   }
   if (a.includes('jetsmart')) {
-    return `https://book.jetsmart.com/S7/pasajeros?o1=${origenIata}&d1=${destinoIata}&dp1=${fechaSalida}&r=${fechaRegreso}&pc=0&ac=${n}&cc=0&bc=0&mon=true&culture=es-CL`;
+    return `https://book.jetsmart.com/S7/pasajeros?o1=${origenIata}&d1=${destinoIata}&dp1=${fechaSalida}&r=${fechaRegreso || ''}&pc=0&ac=${n}&cc=0&bc=0&mon=true&culture=es-CL`;
   }
   if (a.includes('sky') && !a.includes('scanner')) {
     return `https://www.skyairline.com/es-cl/vuelos?from=${origenIata}&to=${destinoIata}&departure=${s}&adults=${n}`;
   }
   if (a.includes('avianca')) {
-    return `https://booking.avianca.com/search?origin=${origenIata}&destination=${destinoIata}&departDate=${fechaSalida}&returnDate=${fechaRegreso}&adults=${n}`;
+    return `https://www.avianca.com/es-cl/vuelos/?origin=${origenIata}&destination=${destinoIata}&departureDate=${fechaSalida}&returnDate=${fechaRegreso || ''}&adults=${n}`;
   }
   if (a.includes('copa')) {
-    return `https://www.copaair.com/es-gs/comprar/buscar-vuelos/?origin=${origenIata}&destination=${destinoIata}&departure=${fechaSalida}&return=${fechaRegreso}&adult=${n}&cabin=Y`;
+    return `https://www.copaair.com/es-gs/comprar/buscar-vuelos/?origin=${origenIata}&destination=${destinoIata}&departure=${fechaSalida}&return=${fechaRegreso || ''}&adult=${n}&cabin=Y`;
   }
   if (a.includes('aerolineas') || a.includes('aerolíneas') || a.includes('argentinas')) {
-    return `https://www.aerolineas.com.ar/es-ar/vuelos?origin=${origenIata}&destination=${destinoIata}&departure=${fechaSalida}&return=${fechaRegreso}&adults=${n}`;
+    return `https://www.aerolineas.com.ar/es-ar/vuelos?origin=${origenIata}&destination=${destinoIata}&departure=${fechaSalida}&return=${fechaRegreso || ''}&adults=${n}`;
   }
-  if (a.includes('american')) {
-    return `https://www.aa.com/booking/search?locale=es_CL&requestType=MASM&searchType=R&classOfService=COACH&numberOfAdults=${n}&origin=${origenIata}&destination=${destinoIata}&departDate=${s.slice(0,4)+'-'+s.slice(4,6)+'-'+s.slice(6,8)}&returnDate=${r.slice(0,4)+'-'+r.slice(4,6)+'-'+r.slice(6,8)}`;
-  }
-  if (a.includes('united')) {
-    return `https://www.united.com/en/us/flight-search/book-a-flight/results/rev?f=${origenIata}&t=${destinoIata}&d=${fechaSalida}&r=${fechaRegreso}&sc=7&px=${n}&taxng=1&newHP=True&clm=7&st=bestmatches`;
-  }
-  if (a.includes('delta')) {
-    return `https://www.delta.com/us/en/book-a-trip/overview?originCity=${origenIata}&destinationCity=${destinoIata}&departureDate=${fechaSalida}&returnDate=${fechaRegreso}&paxCount=${n}&cabinType=COACH&tripType=ROUND_TRIP`;
-  }
+  if (a.includes('aeromexico') || a.includes('aeroméxico')) return kayak('AM');
+  if (a.includes('gol'))   return kayak('G3');
+  if (a.includes('azul'))  return kayak('AD');
+  if (a.includes('tam'))   return kayak('LA'); // TAM → LATAM
+
+  // ── Europeas / americanas: Iberia y Turkish con deep-link propio ──────────
   if (a.includes('iberia')) {
-    return `https://www.iberia.com/es/vuelos/?from=${origenIata}&to=${destinoIata}&departureDate=${fechaSalida}&returnDate=${fechaRegreso}&adults=${n}`;
-  }
-  if (a.includes('air france') || a.includes('airfrance')) {
-    return `https://wwws.airfrance.es/cgi-bin/CF/PSS/h2h.cgi?_LANG=es&PROG=ONLINE_SEARCH&origin=${origenIata}&destination=${destinoIata}&outDate=${fechaSalida}&retDate=${fechaRegreso}&adult=${n}`;
-  }
-  if (a.includes('klm')) {
-    return `https://www.klm.com/search/pp/es/flights/${origenIata}/${destinoIata}/${fechaSalida}/${fechaRegreso}?travelers=A${n}`;
-  }
-  if (a.includes('lufthansa')) {
-    return `https://www.lufthansa.com/es/es/vuelos?origin=${origenIata}&destination=${destinoIata}&outboundDate=${fechaSalida}&returnDate=${fechaRegreso}&adults=${n}`;
+    return `https://www.iberia.com/es/vuelos/?from=${origenIata}&to=${destinoIata}&departureDate=${fechaSalida}&returnDate=${fechaRegreso || ''}&adults=${n}`;
   }
   if (a.includes('turkish') || a.includes('thy')) {
-    return `https://www.turkishairlines.com/en-int/flights/find-flights/?fromPort=${origenIata}&toPort=${destinoIata}&departureDate=${fechaSalida}&returnDate=${fechaRegreso}&passengerCount=${n}`;
+    return `https://www.turkishairlines.com/en-int/flights/find-flights/?fromPort=${origenIata}&toPort=${destinoIata}&departureDate=${fechaSalida}&returnDate=${fechaRegreso || ''}&passengerCount=${n}`;
   }
-  if (a.includes('qatar')) {
-    return `https://www.qatarairways.com/en/book.html?from=${origenIata}&to=${destinoIata}&tripType=R&selectDate=${fechaSalida}&returnDate=${fechaRegreso}&adults=${n}`;
-  }
-  if (a.includes('emirates')) {
-    return `https://www.emirates.com/es/spanish/book/flights/#/flight-search/trips/return/${origenIata}/${destinoIata}/${fechaSalida}/${fechaRegreso}/adults-${n}`;
-  }
-  if (a.includes('british') || a.includes(' ba ') || a.includes('ba,')) {
-    return `https://www.britishairways.com/travel/book/public/en_gb/?wdf_departure=${origenIata}&wdf_arrival=${destinoIata}&wdf_outbound_date=${fechaSalida}&wdf_return_date=${fechaRegreso}&wdf_adults=${n}`;
-  }
-  if (a.includes('ethiopian')) {
-    return `https://www.ethiopianairlines.com/es/book/flights?origin=${origenIata}&destination=${destinoIata}&departureDate=${fechaSalida}&returnDate=${fechaRegreso}&adults=${n}`;
-  }
-  // Fallback universal: Skyscanner (funciona para CUALQUIER aerolínea)
-  const origin = origenIata.toLowerCase();
-  const dest   = destinoIata.toLowerCase();
-  return `https://www.skyscanner.com/transport/flights/${origin}/${dest}/${s}/${r}/?adults=${n}&currency=USD`;
+
+  // ── Resto: Kayak con filtro de aerolínea (siempre funciona, muestra esa aerolínea) ──
+  if (a.includes('american'))                                        return kayak('AA');
+  if (a.includes('united'))                                          return kayak('UA');
+  if (a.includes('delta'))                                           return kayak('DL');
+  if (a.includes('air france') || a.includes('airfrance'))          return kayak('AF');
+  if (a.includes('klm'))                                             return kayak('KL');
+  if (a.includes('lufthansa'))                                       return kayak('LH');
+  if (a.includes('qatar'))                                           return kayak('QR');
+  if (a.includes('emirates'))                                        return kayak('EK');
+  if (a.includes('british') || (a.includes('ba') && a.length < 6))  return kayak('BA');
+  if (a.includes('ethiopian'))                                       return kayak('ET');
+  if (a.includes('japan airlines') || a.includes('jal'))            return kayak('JL');
+  if (a.includes('all nippon') || /\bana\b/.test(a))                return kayak('NH');
+  if (a.includes('singapore'))                                       return kayak('SQ');
+  if (a.includes('cathay'))                                          return kayak('CX');
+  if (a.includes('korean air'))                                      return kayak('KE');
+  if (a.includes('asiana'))                                          return kayak('OZ');
+  if (a.includes('thai'))                                            return kayak('TG');
+  if (a.includes('malaysia'))                                        return kayak('MH');
+  if (a.includes('air canada'))                                      return kayak('AC');
+  if (a.includes('air new zealand'))                                 return kayak('NZ');
+  if (a.includes('tap') || a.includes('portugal'))                   return kayak('TP');
+  if (a.includes('swiss'))                                           return kayak('LX');
+  if (a.includes('austrian'))                                        return kayak('OS');
+  if (a.includes('norwegian'))                                       return kayak('DY');
+  if (a.includes('easyjet'))                                         return kayak('U2');
+  if (a.includes('ryanair'))                                         return kayak('FR');
+  if (a.includes('finnair'))                                         return kayak('AY');
+  if (a.includes('ita airways') || a.includes('ita air'))            return kayak('AZ');
+  if (a.includes('westjet'))                                         return kayak('WS');
+  if (a.includes('eva air') || a.includes('eva'))                    return kayak('BR');
+  if (a.includes('china airlines'))                                  return kayak('CI');
+
+  // Fallback universal: Kayak sin filtro (siempre funciona, pre-llena origen/destino/fechas)
+  return kayak(null);
 }
 
 function formatDate(d) {
@@ -245,7 +260,7 @@ function ItinerarioContent() {
   const destTag = destRaw.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '');
 
   const baseTabs = ['resumen', 'dias', 'vuelos', 'alojamiento', 'comer', 'experiencias', 'tips', 'imperdible'];
-  const proTabs  = ['resumen', 'dias', 'vuelos', 'alojamiento', 'comer', 'experiencias', 'tips', 'noche', 'transporte', 'conectividad', 'imperdible'];
+  const proTabs  = ['resumen', 'dias', 'vuelos', 'alojamiento', 'comer', 'experiencias', 'tips', 'noche', 'transporte', 'conectividad', 'empacar', 'imperdible'];
   const allTabs  = isPro ? proTabs : baseTabs;
 
   const tabLabels = {
@@ -259,6 +274,7 @@ function ItinerarioContent() {
     noche:        '🍸 Noche',
     transporte:   '🚇 Transporte',
     conectividad: '📱 Conectividad',
+    empacar:      '🎒 Qué Empacar',
     imperdible:   '⭐ Imperdible',
   };
 
@@ -619,10 +635,14 @@ function ItinerarioContent() {
                   </thead>
                   <tbody>
                     {(itinerario.experiencias || []).map((exp, ei) => {
-                      const q = encodeURIComponent((exp.nombre || '') + ' ' + destRaw);
-                      // Usar link específico del AI si existe, sino búsqueda genérica
-                      const gygUrl = exp.link_gyg || `https://www.getyourguide.com/s/?q=${q}&partner_id=UCJJVUD`;
-                      const viatorUrl = exp.link_viator || `https://www.viator.com/search?q=${q}`;
+                      const rawQ = ((exp.nombre || '') + ' ' + destRaw).trim();
+                      const q = encodeURIComponent(rawQ);
+                      const qPlus = rawQ.replace(/\s+/g, '+');
+                      // GYG: usar link del AI solo si parece una URL real (no null/vacío/inventado)
+                      const gygLink = exp.link_gyg && exp.link_gyg.startsWith('https://www.getyourguide.com/') ? exp.link_gyg : null;
+                      const gygUrl = gygLink || `https://www.getyourguide.com/s/?q=${q}&partner_id=UCJJVUD`;
+                      // Viator: siempre usar búsqueda (los links del AI son poco confiables)
+                      const viatorUrl = `https://www.viator.com/search?q=${qPlus}`;
                       // plataformas_disponibles: undefined → mostrar ambas (backward compat); [] → ninguna; ["X"] → solo X
                       const plats = exp.plataformas_disponibles;
                       const showGyg    = !plats || plats.includes('GetYourGuide');
@@ -754,22 +774,47 @@ function ItinerarioContent() {
           )}
         </div>
 
-        {/* ══ PRO: NOCHE (solo bares) ══════════════════════════════════════════ */}
+        {/* ══ PRO: NOCHE (bares por ciudad) ══════════════════════════════════ */}
         {isPro && (
           <div className="vivante-section print-break" style={{ display: show('noche') ? 'block' : 'none' }}>
-            <Sec title="🍸 Bares y Vida Nocturna">
-              {(itinerario?.bares_vida_nocturna || []).map((b, bi) => (
-                <div key={bi} style={{ marginBottom: 20, paddingBottom: 20, borderBottom: bi < (itinerario.bares_vida_nocturna.length - 1) ? `1px solid ${C.bg1}` : 'none' }}>
-                  <p style={{ margin: '0 0 4px', fontWeight: 700, color: C.carbon, fontSize: 15 }}>{b.nombre}</p>
-                  <p style={{ margin: '0 0 6px', color: '#555', fontSize: 13 }}>{b.tipo_ambiente}</p>
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
-                    {b.precio_trago && <Tag bg={C.coral}>🍹 {b.precio_trago}</Tag>}
-                    {b.mejor_dia && <Tag bg={C.violeta}>📅 {b.mejor_dia}</Tag>}
-                  </div>
-                  {b.tip && <p style={{ margin: 0, color: C.violeta, fontStyle: 'italic', fontSize: 13 }}>💡 {b.tip}</p>}
-                </div>
-              ))}
-            </Sec>
+            {(() => {
+              const bares = itinerario?.bares_vida_nocturna;
+              // Nuevo formato: objeto por ciudad { "Barcelona": [{b1},{b2}] }
+              if (bares && typeof bares === 'object' && !Array.isArray(bares) && Object.keys(bares).length > 0) {
+                return Object.entries(bares).map(([ciudad, lista], ci) => (
+                  <Sec key={ci} title={`🍸 Bares y Vida Nocturna — ${ciudad}`}>
+                    {(lista || []).map((b, bi) => (
+                      <div key={bi} style={{ marginBottom: 20, paddingBottom: 20, borderBottom: bi < lista.length - 1 ? `1px solid ${C.bg1}` : 'none' }}>
+                        <p style={{ margin: '0 0 4px', fontWeight: 700, color: C.carbon, fontSize: 15 }}>{b.nombre}</p>
+                        <p style={{ margin: '0 0 6px', color: '#555', fontSize: 13 }}>{b.tipo_ambiente}</p>
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
+                          {b.precio_trago && <Tag bg={C.coral}>🍹 {b.precio_trago}</Tag>}
+                          {b.mejor_dia && <Tag bg={C.violeta}>📅 {b.mejor_dia}</Tag>}
+                        </div>
+                        {b.tip && <p style={{ margin: 0, color: C.violeta, fontStyle: 'italic', fontSize: 13 }}>💡 {b.tip}</p>}
+                      </div>
+                    ))}
+                  </Sec>
+                ));
+              }
+              // Backward compat: formato antiguo (array plano)
+              const lista = Array.isArray(bares) ? bares : [];
+              return (
+                <Sec title="🍸 Bares y Vida Nocturna">
+                  {lista.map((b, bi) => (
+                    <div key={bi} style={{ marginBottom: 20, paddingBottom: 20, borderBottom: bi < lista.length - 1 ? `1px solid ${C.bg1}` : 'none' }}>
+                      <p style={{ margin: '0 0 4px', fontWeight: 700, color: C.carbon, fontSize: 15 }}>{b.nombre}</p>
+                      <p style={{ margin: '0 0 6px', color: '#555', fontSize: 13 }}>{b.tipo_ambiente}</p>
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
+                        {b.precio_trago && <Tag bg={C.coral}>🍹 {b.precio_trago}</Tag>}
+                        {b.mejor_dia && <Tag bg={C.violeta}>📅 {b.mejor_dia}</Tag>}
+                      </div>
+                      {b.tip && <p style={{ margin: 0, color: C.violeta, fontStyle: 'italic', fontSize: 13 }}>💡 {b.tip}</p>}
+                    </div>
+                  ))}
+                </Sec>
+              );
+            })()}
 
             {/* ── Social media discovery ── */}
             <Sec title="📱 Descubre más en redes sociales" bg={C.fucsia}>
@@ -786,32 +831,30 @@ function ItinerarioContent() {
                     </tr>
                   </thead>
                   <tbody>
-                    {[
-                      {
-                        plat: '🎵 TikTok',
-                        label: `${destRaw} restaurantes locales`,
-                        url: `https://www.tiktok.com/search?q=${encodeURIComponent(destRaw + ' restaurantes locales')}`,
-                        color: '#010101',
-                      },
-                      {
-                        plat: '🎵 TikTok',
-                        label: `${destRaw} hidden gems`,
-                        url: `https://www.tiktok.com/search?q=${encodeURIComponent(destRaw + ' hidden gems')}`,
-                        color: '#010101',
-                      },
-                      {
-                        plat: '📸 Instagram',
-                        label: `#${destTag}food`,
-                        url: `https://www.instagram.com/explore/tags/${destTag}food/`,
-                        color: '#E1306C',
-                      },
-                      {
-                        plat: '📸 Instagram',
-                        label: `#${destTag}travel`,
-                        url: `https://www.instagram.com/explore/tags/${destTag}travel/`,
-                        color: '#E1306C',
-                      },
-                    ].map((row, i) => (
+                    {(() => {
+                      const ikMap = {
+                        playa:      { tiktok: 'playas',              ig: 'beach' },
+                        cultura:    { tiktok: 'museos y cultura',    ig: 'culture' },
+                        aventura:   { tiktok: 'aventura actividades',ig: 'adventure' },
+                        gastronomia:{ tiktok: 'restaurantes locales',ig: 'food' },
+                        relax:      { tiktok: 'spa relax',           ig: 'wellness' },
+                        naturaleza: { tiktok: 'naturaleza hiking',   ig: 'nature' },
+                        nocturna:   { tiktok: 'vida nocturna bares', ig: 'nightlife' },
+                        deporte:    { tiktok: 'deportes outdoor',    ig: 'sports' },
+                        shopping:   { tiktok: 'shopping mercados',   ig: 'shopping' },
+                      };
+                      const ints = formData?.intereses || [];
+                      const kw1 = ints[0] ? (ikMap[ints[0]]?.tiktok || ints[0]) : 'restaurantes locales';
+                      const kw2 = ints[1] ? (ikMap[ints[1]]?.tiktok || ints[1]) : 'hidden gems';
+                      const ig1 = ints[0] ? (ikMap[ints[0]]?.ig    || ints[0]) : 'food';
+                      const ig2 = ints[1] ? (ikMap[ints[1]]?.ig    || ints[1]) : 'travel';
+                      return [
+                        { plat: '🎵 TikTok', label: `${destRaw} ${kw1}`, url: `https://www.tiktok.com/search?q=${encodeURIComponent(destRaw + ' ' + kw1)}`, color: '#010101' },
+                        { plat: '🎵 TikTok', label: `${destRaw} ${kw2}`, url: `https://www.tiktok.com/search?q=${encodeURIComponent(destRaw + ' ' + kw2)}`, color: '#010101' },
+                        { plat: '📸 Instagram', label: `#${destTag}${ig1}`, url: `https://www.instagram.com/explore/tags/${destTag}${ig1}/`, color: '#E1306C' },
+                        { plat: '📸 Instagram', label: `#${destTag}${ig2}`, url: `https://www.instagram.com/explore/tags/${destTag}${ig2}/`, color: '#E1306C' },
+                      ];
+                    })().map((row, i) => (
                       <tr key={i} style={{ background: i % 2 === 0 ? C.bg0 : '#fff' }}>
                         <td style={{ padding: '11px 12px', fontWeight: 700, color: C.carbon, fontSize: 14 }}>{row.plat}</td>
                         <td style={{ padding: '11px 12px', color: '#555', fontSize: 13 }}>{row.label}</td>
@@ -960,6 +1003,47 @@ function ItinerarioContent() {
                     ))}
                   </>
                 )}
+              </Sec>
+            )}
+          </div>
+        )}
+
+        {/* ══ PRO: QUÉ EMPACAR ═════════════════════════════════════════════════ */}
+        {isPro && (
+          <div className="vivante-section print-break" style={{ display: show('empacar') ? 'block' : 'none' }}>
+            {itinerario?.que_empacar ? (
+              <>
+                <Sec title="🌤️ Clima Esperado en tus Fechas" bg={C.violeta}>
+                  <p style={{ color: C.carbon, fontSize: 15, lineHeight: 1.7, margin: 0 }}>{itinerario.que_empacar.clima_esperado}</p>
+                </Sec>
+                <Sec title="👕 Ropa a Empacar">
+                  <div style={{ columns: 1 }}>
+                    {(itinerario.que_empacar.ropa || []).map((item, i) => (
+                      <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 10, paddingBottom: 10, borderBottom: `1px solid ${C.bg1}` }}>
+                        <span style={{ width: 18, height: 18, border: `2px solid ${C.coral}`, borderRadius: 4, flexShrink: 0, marginTop: 2, display: 'inline-block' }} />
+                        <span style={{ color: C.carbon, fontSize: 14 }}>{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </Sec>
+                <Sec title="🔌 Adaptador de Enchufe">
+                  <p style={{ color: C.carbon, fontSize: 14, lineHeight: 1.7, margin: 0 }}>{itinerario.que_empacar.adaptador_enchufe}</p>
+                </Sec>
+                <Sec title="🩺 Botiquín Básico" bg={C.fucsia}>
+                  {(itinerario.que_empacar.botiquin || []).map((item, i) => (
+                    <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 8, paddingBottom: 8, borderBottom: `1px solid #FFD0E8` }}>
+                      <span style={{ fontSize: 16 }}>💊</span>
+                      <span style={{ color: C.carbon, fontSize: 14 }}>{item}</span>
+                    </div>
+                  ))}
+                </Sec>
+                <Sec title="🔋 Power Bank">
+                  <p style={{ color: C.carbon, fontSize: 14, lineHeight: 1.7, margin: 0 }}>{itinerario.que_empacar.power_bank}</p>
+                </Sec>
+              </>
+            ) : (
+              <Sec title="🎒 Qué Empacar">
+                <p style={{ color: '#888', fontStyle: 'italic' }}>Esta sección estará disponible en tu próximo itinerario.</p>
               </Sec>
             )}
           </div>
