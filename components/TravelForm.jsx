@@ -3,6 +3,128 @@
 import { useState } from 'react';
 import { ChevronRight, ChevronLeft, Plane, MapPin, Users, Sparkles, Loader2, RefreshCw, Check, CreditCard } from 'lucide-react';
 
+// ─── Lista de ciudades y destinos para autocompletar ──────────────────────────
+const PLACES = [
+  // ── Chile (origen habitual) ──
+  'Santiago, Chile','Valparaíso, Chile','Viña del Mar, Chile','Concepción, Chile',
+  'La Serena, Chile','Coquimbo, Chile','Antofagasta, Chile','Iquique, Chile',
+  'Arica, Chile','Calama, Chile','Temuco, Chile','Puerto Montt, Chile',
+  'Puerto Varas, Chile','Punta Arenas, Chile','Puerto Natales, Chile',
+  'San Pedro de Atacama, Chile','Rancagua, Chile','Talca, Chile',
+  'Chillán, Chile','Osorno, Chile','Valdivia, Chile','Copiapó, Chile',
+  // ── Argentina ──
+  'Buenos Aires, Argentina','Mendoza, Argentina','Bariloche, Argentina',
+  'Córdoba, Argentina','Salta, Argentina','Mar del Plata, Argentina',
+  'Ushuaia, Argentina','Iguazú, Argentina','Tucumán, Argentina','Rosario, Argentina',
+  // ── Perú ──
+  'Lima, Perú','Cusco, Perú','Machu Picchu, Perú','Arequipa, Perú',
+  'Trujillo, Perú','Iquitos, Perú','Paracas, Perú',
+  // ── Colombia ──
+  'Bogotá, Colombia','Medellín, Colombia','Cartagena, Colombia',
+  'Cali, Colombia','Santa Marta, Colombia','Barranquilla, Colombia','Manizales, Colombia',
+  // ── Ecuador ──
+  'Quito, Ecuador','Guayaquil, Ecuador','Cuenca, Ecuador','Islas Galápagos, Ecuador',
+  // ── Bolivia ──
+  'La Paz, Bolivia','Salar de Uyuni, Bolivia','Santa Cruz, Bolivia',
+  'Sucre, Bolivia','Potosí, Bolivia',
+  // ── Brasil ──
+  'Río de Janeiro, Brasil','São Paulo, Brasil','Salvador, Brasil',
+  'Fortaleza, Brasil','Florianópolis, Brasil','Foz do Iguaçu, Brasil',
+  'Natal, Brasil','Recife, Brasil','Manaos, Brasil',
+  // ── Uruguay ──
+  'Montevideo, Uruguay','Punta del Este, Uruguay',
+  // ── Paraguay ──
+  'Asunción, Paraguay',
+  // ── Venezuela ──
+  'Caracas, Venezuela',
+  // ── México ──
+  'Ciudad de México, México','Cancún, México','Playa del Carmen, México',
+  'Tulum, México','Los Cabos, México','Puerto Vallarta, México',
+  'Oaxaca, México','Guadalajara, México','Monterrey, México',
+  'Mérida, México','Chichén Itzá, México','San Miguel de Allende, México',
+  // ── Centroamérica y Caribe ──
+  'San José, Costa Rica','Manuel Antonio, Costa Rica','Arenal, Costa Rica',
+  'Ciudad de Panamá, Panamá','Bocas del Toro, Panamá',
+  'Antigua, Guatemala','Tikal, Guatemala',
+  'La Habana, Cuba',
+  'Punta Cana, República Dominicana','Santo Domingo, República Dominicana',
+  'San Juan, Puerto Rico',
+  // ── España ──
+  'Madrid, España','Barcelona, España','Sevilla, España','Valencia, España',
+  'Bilbao, España','Granada, España','Málaga, España','Ibiza, España',
+  'San Sebastián, España','Toledo, España','Palma de Mallorca, España',
+  'Tenerife, España','Gran Canaria, España',
+  // ── Portugal ──
+  'Lisboa, Portugal','Oporto, Portugal','Algarve, Portugal',
+  'Sintra, Portugal','Coimbra, Portugal','Madeira, Portugal','Azores, Portugal',
+  // ── Italia ──
+  'Roma, Italia','Florencia, Italia','Venecia, Italia','Milán, Italia',
+  'Nápoles, Italia','Cinque Terre, Italia','Sicilia, Italia',
+  'Amalfi, Italia','Pisa, Italia','Verona, Italia','Turín, Italia',
+  // ── Francia ──
+  'París, Francia','Niza, Francia','Lyon, Francia','Burdeos, Francia',
+  'Estrasburgo, Francia','Versalles, Francia','Marsella, Francia','Bretaña, Francia',
+  // ── Alemania ──
+  'Berlín, Alemania','Múnich, Alemania','Hamburgo, Alemania',
+  'Frankfurt, Alemania','Dresde, Alemania','Colonia, Alemania','Heidelberg, Alemania',
+  // ── Reino Unido ──
+  'Londres, Reino Unido','Edimburgo, Escocia','Liverpool, Reino Unido',
+  'Manchester, Reino Unido','Oxford, Reino Unido','Cambridge, Reino Unido',
+  'Bath, Reino Unido','Dublín, Irlanda','Galway, Irlanda',
+  // ── Países Bajos y Bélgica ──
+  'Ámsterdam, Países Bajos','Rotterdam, Países Bajos',
+  'Bruselas, Bélgica','Brujas, Bélgica','Gante, Bélgica',
+  // ── Suiza y Austria ──
+  'Zurich, Suiza','Ginebra, Suiza','Berna, Suiza',
+  'Interlaken, Suiza','Lucerna, Suiza','Zermatt, Suiza',
+  'Viena, Austria','Salzburgo, Austria','Innsbruck, Austria',
+  // ── Europa del Este y Norte ──
+  'Atenas, Grecia','Santorini, Grecia','Mykonos, Grecia','Creta, Grecia','Rodos, Grecia',
+  'Estambul, Turquía','Capadocia, Turquía','Antalya, Turquía','Éfeso, Turquía',
+  'Dubrovnik, Croacia','Zagreb, Croacia','Split, Croacia','Lagos de Plitvice, Croacia',
+  'Praga, República Checa','Budapest, Hungría',
+  'Varsovia, Polonia','Cracovia, Polonia',
+  'Oslo, Noruega','Bergen, Noruega','Fiordos de Noruega',
+  'Reikiavik, Islandia',
+  'Estocolmo, Suecia','Copenhague, Dinamarca','Helsinki, Finlandia',
+  'Tallin, Estonia','Riga, Letonia',
+  // ── Asia ──
+  'Tokio, Japón','Kioto, Japón','Osaka, Japón','Hiroshima, Japón',
+  'Nara, Japón','Sapporo, Japón','Hakone, Japón',
+  'Seúl, Corea del Sur','Busan, Corea del Sur','Jeju, Corea del Sur',
+  'Pekín, China','Shanghái, China','Guangzhou, China','Chengdu, China','Xi\'an, China',
+  'Bali, Indonesia','Yakarta, Indonesia','Lombok, Indonesia','Yogyakarta, Indonesia',
+  'Bangkok, Tailandia','Chiang Mai, Tailandia','Phuket, Tailandia','Koh Samui, Tailandia',
+  'Hanói, Vietnam','Ho Chi Minh, Vietnam','Hoi An, Vietnam','Ha Long Bay, Vietnam',
+  'Nueva Delhi, India','Mumbai, India','Jaipur, India','Goa, India','Varanasi, India','Kerala, India',
+  'Singapur',
+  'Kuala Lumpur, Malasia','Penang, Malasia','Langkawi, Malasia',
+  'Manila, Filipinas','Boracay, Filipinas','Palawan, Filipinas','Siargao, Filipinas',
+  'Angkor Wat, Camboya','Siem Reap, Camboya',
+  'Katmandú, Nepal','Pokhara, Nepal',
+  'Dubái, Emiratos Árabes','Abu Dhabi, Emiratos Árabes',
+  'Tel Aviv, Israel','Jerusalén, Israel',
+  // ── África ──
+  'Marrakech, Marruecos','Fez, Marruecos','Casablanca, Marruecos','Chefchaouen, Marruecos','Agadir, Marruecos',
+  'El Cairo, Egipto','Luxor, Egipto','Sharm el-Sheik, Egipto','Aswan, Egipto',
+  'Ciudad del Cabo, Sudáfrica','Johannesburgo, Sudáfrica','Safari Kruger, Sudáfrica','Garden Route, Sudáfrica',
+  'Nairobi, Kenia','Masái Mara, Kenia',
+  'Zanzíbar, Tanzania','Serengeti, Tanzania','Kilimanjaro, Tanzania',
+  // ── Oceanía ──
+  'Sídney, Australia','Melbourne, Australia','Brisbane, Australia',
+  'Cairns, Australia','Perth, Australia','Gold Coast, Australia','Uluru, Australia',
+  'Auckland, Nueva Zelanda','Wellington, Nueva Zelanda',
+  'Queenstown, Nueva Zelanda','Rotorua, Nueva Zelanda',
+  // ── EE.UU. y Canadá ──
+  'Nueva York, EE.UU.','Los Ángeles, EE.UU.','Miami, EE.UU.','Las Vegas, EE.UU.',
+  'San Francisco, EE.UU.','Chicago, EE.UU.','Washington DC, EE.UU.',
+  'Boston, EE.UU.','New Orleans, EE.UU.','Hawái, EE.UU.',
+  'Orlando, EE.UU.','Seattle, EE.UU.','Denver, EE.UU.',
+  'Grand Canyon, EE.UU.','Yellowstone, EE.UU.','Nashville, EE.UU.',
+  'Toronto, Canadá','Vancouver, Canadá','Montreal, Canadá',
+  'Quebec, Canadá','Calgary, Canadá','Banff, Canadá','Cataratas del Niágara, Canadá',
+];
+
 export default function TravelForm({ onClose, initialDestino = '' }) {
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -16,6 +138,17 @@ export default function TravelForm({ onClose, initialDestino = '' }) {
   const [selectedOption, setSelectedOption] = useState(null);
   const [attemptsLeft, setAttemptsLeft] = useState(2);
   const [selectedPlan, setSelectedPlan] = useState(null);
+
+  // ── Autocomplete suggestions ──────────────────────────────────────────────
+  const [destinoSugg, setDestinoSugg] = useState([]);
+  const [origenSugg,  setOrigenSugg]  = useState([]);
+
+  const filterPlaces = (q) => {
+    if (!q || q.length < 2) return [];
+    const norm = s => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const qn = norm(q);
+    return PLACES.filter(p => norm(p).includes(qn)).slice(0, 7);
+  };
   
   const [formData, setFormData] = useState({
     tieneDestino: initialDestino ? true : null,
@@ -471,7 +604,36 @@ export default function TravelForm({ onClose, initialDestino = '' }) {
                 {formData.tieneDestino === true && (
                   <div className="fade-in pt-2">
                     <label className="block text-sm font-medium text-gray-700 mb-2">¿Cuál es tu destino?</label>
-                    <input type="text" placeholder="Ej: Lisboa, Portugal" value={formData.destino} onChange={(e) => setFormData({ ...formData, destino: e.target.value })} className="w-full p-4 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none" />
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        type="text"
+                        placeholder="Ej: Lisboa, Portugal"
+                        value={formData.destino}
+                        autoComplete="off"
+                        onChange={(e) => {
+                          setFormData({ ...formData, destino: e.target.value });
+                          setDestinoSugg(filterPlaces(e.target.value));
+                        }}
+                        onFocus={() => setDestinoSugg(filterPlaces(formData.destino))}
+                        onBlur={() => setTimeout(() => setDestinoSugg([]), 180)}
+                        className="w-full p-4 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none"
+                      />
+                      {destinoSugg.length > 0 && (
+                        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 60, marginTop: 4 }}
+                          className="bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
+                          {destinoSugg.map((s, i) => (
+                            <div
+                              key={i}
+                              onMouseDown={() => { setFormData({ ...formData, destino: s }); setDestinoSugg([]); }}
+                              className="px-4 py-3 hover:bg-orange-50 cursor-pointer flex items-center gap-3 text-sm border-b border-gray-50 last:border-0"
+                            >
+                              <MapPin className="w-4 h-4 text-orange-400 flex-shrink-0" />
+                              <span className="text-gray-700">{s}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -489,7 +651,36 @@ export default function TravelForm({ onClose, initialDestino = '' }) {
               <div className="space-y-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">¿Desde qué ciudad viajas?</label>
-                  <input type="text" placeholder="Ej: Santiago, Chile" value={formData.origen} onChange={(e) => setFormData({ ...formData, origen: e.target.value })} className="w-full p-4 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none" />
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type="text"
+                      placeholder="Ej: Santiago, Chile"
+                      value={formData.origen}
+                      autoComplete="off"
+                      onChange={(e) => {
+                        setFormData({ ...formData, origen: e.target.value });
+                        setOrigenSugg(filterPlaces(e.target.value));
+                      }}
+                      onFocus={() => setOrigenSugg(filterPlaces(formData.origen))}
+                      onBlur={() => setTimeout(() => setOrigenSugg([]), 180)}
+                      className="w-full p-4 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none"
+                    />
+                    {origenSugg.length > 0 && (
+                      <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 60, marginTop: 4 }}
+                        className="bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
+                        {origenSugg.map((s, i) => (
+                          <div
+                            key={i}
+                            onMouseDown={() => { setFormData({ ...formData, origen: s }); setOrigenSugg([]); }}
+                            className="px-4 py-3 hover:bg-orange-50 cursor-pointer flex items-center gap-3 text-sm border-b border-gray-50 last:border-0"
+                          >
+                            <Plane className="w-4 h-4 text-orange-400 flex-shrink-0" />
+                            <span className="text-gray-700">{s}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Presupuesto por persona (USD)</label>
