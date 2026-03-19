@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { formData, planId } = body;
+    const { formData, planId, basicItinerary } = body;
 
     if (!formData?.email || !formData?.nombre) {
       return NextResponse.json({ error: 'Faltan datos del formulario' }, { status: 400 });
@@ -89,6 +89,18 @@ Para origen_iata y destino_iata: código IATA de 3 letras del aeropuerto princip
     // airbnb → todo Airbnb | hostal → todo Hostelworld | bnb → todo Booking.com
     const alojPref   = formData.alojamiento || 'hotel';
     const interesStr = Array.isArray(formData.intereses) ? formData.intereses.join(', ') : (formData.intereses || 'cultura, gastronomía');
+    const tipoViaje  = (formData.tipoViaje || 'pareja').toLowerCase();
+    const tipoViajeRule = tipoViaje === 'familia'
+      ? `- TIPO DE VIAJE: FAMILIA. Adapta TODO el itinerario para viaje familiar: (1) Actividades aptas para niños de distintas edades (zoológicos, parques de diversiones, playas seguras, museos interactivos). (2) Restaurantes con menú infantil y mesas amplias. (3) Alojamiento con habitaciones familiares o conectadas. (4) Ritmo más tranquilo con descansos y opciones de backup si los niños se cansan. (5) Evita actividades de alto riesgo o exclusivas para adultos. Tono del texto: cálido, familiar y considerado con todas las edades.`
+      : tipoViaje === 'pareja'
+        ? `- TIPO DE VIAJE: PAREJA. Adapta TODO el itinerario para viaje romántico: (1) Experiencias íntimas (cenas con vista, paseos al atardecer, spas, tours privados). (2) Restaurantes con ambiente romántico (no bulliciosos). (3) Alojamiento con opción de habitación doble especial o suite. (4) Actividades en pareja (clases de cocina para dos, paseos en bote, miradores). Tono del texto: cálido, evocador y romántico.`
+        : tipoViaje === 'solo'
+          ? `- TIPO DE VIAJE: VIAJERO SOLO. Adapta TODO el itinerario para viaje individual: (1) Tours grupales (excelente para conocer gente). (2) Cafés con ambiente tranquilo para trabajar o leer. (3) Experiencias sociales y hostales con zonas comunes. (4) Énfasis en seguridad: zonas seguras, apps de transporte, contactos de emergencia. (5) Consejos sobre cómo moverse solo en el destino. Tono del texto: empoderador y práctico.`
+          : tipoViaje === 'amigos'
+            ? `- TIPO DE VIAJE: GRUPO DE AMIGOS. Adapta TODO el itinerario para grupo: (1) Actividades grupales (deportes de aventura, tours en grupo, vida nocturna). (2) Restaurantes con mesas grandes y ambiente animado. (3) Alojamiento tipo Airbnb casa completa o habitaciones múltiples en hotel/hostal. (4) Actividades de adrenalina y diversión colectiva. Tono del texto: energético, jovial y con humor.`
+            : tipoViaje.includes('empresa') || tipoViaje.includes('corporat') || tipoViaje.includes('negocio')
+              ? `- TIPO DE VIAJE: GRUPO EMPRESARIAL. Adapta el itinerario: (1) Hoteles de negocios con sala de reuniones y WiFi rápido. (2) Restaurantes apropiados para cenas de trabajo. (3) Opciones de team building y actividades grupales. (4) Transporte eficiente y servicio ejecutivo. Tono del texto: profesional pero cercano.`
+              : `- TIPO DE VIAJE: ${tipoViaje}. Adapta el itinerario para este perfil de viajero.`;
 
     // ── Regla ALOJAMIENTO según preferencia ─────────────────────────────────
     const alojRule = alojPref === 'hostal'
@@ -214,6 +226,7 @@ ${alojRule}
 ${diasRule}
 - RITMO: El cliente eligió ritmo ${formData.ritmo || 3}/5. DEBES respetar ESTRICTAMENTE el número de actividades por día: ritmo 1-2 = máximo 2 actividades por día (días relajados, pausas largas, tiempo libre); ritmo 3 = exactamente 2-3 actividades por día con tiempo libre entre ellas; ritmo 4-5 = 3-4 actividades por día, días aprovechados al máximo. NO incluyas más actividades de las correspondientes aunque el destino lo permita. El ritmo también afecta el tono: ritmo bajo = más descripción contemplativa, ritmo alto = más dinámico y energético.
 - INTERESES: El cliente eligió: ${interesStr}. TODAS las actividades del día a día DEBEN relacionarse con estos intereses. Mapeo obligatorio → "gastronomia": mercados de comida, clases de cocina, tours gastronómicos, degustaciones; "aventura": senderismo, deportes extremos, escalada, kayak, rafting, zipline; "playa": playas, snorkeling, surf, buceo, paseos en barco; "cultura": museos, sitios históricos, arquitectura, arte local, barrios históricos; "naturaleza": parques nacionales, cascadas, reservas naturales, avistamiento de fauna; "vida nocturna": bares de moda, rooftops, tours nocturnos, clubes. Las actividades del día a día NO pueden contradecir los intereses elegidos (ej: si eligió gastronomía, no pongas excursiones a montañas si no hay relación gastronómica).
+${tipoViajeRule}
 - AEROLÍNEAS: SOLO recomienda aerolíneas de esta lista verificada: LATAM, JetSmart, Sky Airline, Avianca, Copa Airlines, Aerolíneas Argentinas, Aeroméxico, GOL, Azul, American Airlines, United Airlines, Delta, Air Canada, WestJet, Iberia, Iberia Express, Air Europa, Turkish Airlines, Air France, KLM, Lufthansa, Swiss, Austrian Airlines, British Airways, TAP Portugal, Norwegian, EasyJet, Ryanair, Finnair, ITA Airways, Qatar Airways, Emirates, Ethiopian Airlines, Japan Airlines, ANA, Singapore Airlines, Cathay Pacific, Korean Air, Asiana, Thai Airways, Malaysia Airlines, Air New Zealand, EVA Air, China Airlines. NO recomiendes aerolíneas que no estén en esta lista.${domesticRule ? '\n' + domesticRule : ''}
 
 GENERA JSON puro (sin markdown, sin \`\`\`):
@@ -315,7 +328,19 @@ GENERA JSON puro (sin markdown, sin \`\`\`):
 }`;
 
     // ─── PROMPT PRO ────────────────────────────────────────────────────────────
+    // ── Basic→Pro continuity context ────────────────────────────────────────
+    const basicCtx = basicItinerary ? `
+CONTEXTO DEL PLAN BÁSICO PREVIO (el cliente ya lo tiene):
+El cliente ya tiene un itinerario Básico con estas fechas y vuelos:
+- Fecha salida: ${basicItinerary.resumen?.fecha_salida || ''}
+- Fecha regreso: ${basicItinerary.resumen?.fecha_regreso || ''}
+- Vuelos básicos sugeridos: ${(basicItinerary.vuelos || []).map(v => v.aerolinea + ' (' + v.ruta + ')').join(', ')}
+- Destinos cubiertos: ${basicItinerary.resumen?.distribucion || ''}
+INSTRUCCIÓN: MANTÉN las mismas fechas (fecha_salida y fecha_regreso), los mismos destinos y la misma distribución de días que el plan básico. AGREGA las secciones exclusivas Pro (bares_vida_nocturna, transporte_local, conectividad, salud_seguridad, idioma_cultura, que_empacar, extras, festivos_horarios) con contenido más rico y detallado. El día a día puede ampliarse con más detalle (plan_b, ruta_optimizada, tips insider exclusivos).
+` : '';
+
     const promptPro = `Eres el planificador PRO de VIVANTE. Itinerario PREMIUM ultra-detallado, con el tono cálido y experto VIVANTE. Precios realistas para ${currentYear}.
+${basicCtx}
 ${clienteCtx}
 
 REGLAS IMPORTANTES:
@@ -326,6 +351,7 @@ ${alojRule}
 ${diasRule}
 - RITMO: El cliente eligió ritmo ${formData.ritmo || 3}/5. DEBES respetar ESTRICTAMENTE el número de actividades por día: ritmo 1-2 = máximo 2 actividades por día (días relajados, pausas largas, tiempo libre); ritmo 3 = exactamente 2-3 actividades por día con tiempo libre entre ellas; ritmo 4-5 = 3-4 actividades por día, días aprovechados al máximo. NO incluyas más actividades de las correspondientes aunque el destino lo permita. El ritmo también afecta el tono: ritmo bajo = más descripción contemplativa, ritmo alto = más dinámico y energético.
 - INTERESES: El cliente eligió: ${interesStr}. TODAS las actividades del día a día DEBEN relacionarse con estos intereses. Mapeo obligatorio → "gastronomia": mercados de comida, clases de cocina, tours gastronómicos, degustaciones; "aventura": senderismo, deportes extremos, escalada, kayak, rafting, zipline; "playa": playas, snorkeling, surf, buceo, paseos en barco; "cultura": museos, sitios históricos, arquitectura, arte local, barrios históricos; "naturaleza": parques nacionales, cascadas, reservas naturales, avistamiento de fauna; "vida nocturna": bares de moda, rooftops, tours nocturnos, clubes. Las actividades del día a día NO pueden contradecir los intereses elegidos.
+${tipoViajeRule}
 - AEROLÍNEAS: SOLO recomienda aerolíneas de esta lista verificada: LATAM, JetSmart, Sky Airline, Avianca, Copa Airlines, Aerolíneas Argentinas, Aeroméxico, GOL, Azul, American Airlines, United Airlines, Delta, Air Canada, WestJet, Iberia, Iberia Express, Air Europa, Turkish Airlines, Air France, KLM, Lufthansa, Swiss, Austrian Airlines, British Airways, TAP Portugal, Norwegian, EasyJet, Ryanair, Finnair, ITA Airways, Qatar Airways, Emirates, Ethiopian Airlines, Japan Airlines, ANA, Singapore Airlines, Cathay Pacific, Korean Air, Asiana, Thai Airways, Malaysia Airlines, Air New Zealand, EVA Air, China Airlines. NO recomiendes aerolíneas fuera de esta lista.
 - TRANSPORTE aeropuerto→centro: lista TODAS las opciones disponibles (Uber, Taxi, Metro, Bus express, Tren, etc.) con costo estimado y duración en el array opciones_aeropuerto_centro.
 - BARES: en bares_vida_nocturna usa un objeto cuyas claves son los nombres REALES de las ciudades visitadas. Si el viaje es de UNA SOLA ciudad y más de 7 días, incluye 5 bares/lugares para esa ciudad. Para el resto, incluye EXACTAMENTE 2 bares por ciudad.
@@ -700,6 +726,62 @@ GENERA JSON puro (sin markdown, sin \`\`\`):
         });
         const upgradeUrl = `https://vivevivante.com/upgrade-pro?${upgradeParams.toString()}`;
 
+        // HTML email-safe: usa background-color sólido (NO linear-gradient → no compatible con clientes de email)
+        const diasPreview = (itinerario.dias || []).slice(0, 3).map(dia => `
+          <div style="border-left:4px solid #FF6332;padding:12px 16px;margin-bottom:12px;background:#FFF8F5;border-radius:0 8px 8px 0;">
+            <p style="font-weight:700;color:#FF6332;margin:0 0 4px;font-size:14px;">D&iacute;a ${dia.numero}: ${(dia.titulo||'').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</p>
+            <p style="margin:0 0 3px;color:#212529;font-size:13px;">${(dia.manana?.actividad||'').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</p>
+          </div>`).join('');
+
+        const upsellHtml = `<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background-color:#FCF8F4;font-family:Arial,Helvetica,sans-serif;color:#212529;">
+<div style="max-width:600px;margin:0 auto;background-color:#FCF8F4;">
+
+  <div style="background-color:#FF6332;padding:24px;text-align:center;">
+    <p style="color:#fff;font-size:26px;font-weight:800;margin:0;letter-spacing:-1px;">VIVANTE</p>
+    <p style="color:rgba(255,255,255,0.85);font-size:11px;letter-spacing:2px;margin:4px 0 0;">VIAJ&Aacute; M&Aacute;S. PLANIFIC&Aacute; MENOS.</p>
+  </div>
+
+  <div style="padding:28px 24px;">
+    <h1 style="font-size:22px;font-weight:700;color:#212529;margin:0 0 8px;">&iexcl;Hola, ${formData.nombre}! &#x2708;&#xFE0F;</h1>
+    <p style="color:#555;font-size:15px;line-height:1.6;margin:0 0 20px;">
+      Tu plan <strong style="color:#FF6332;">Vivante B&aacute;sico</strong> est&aacute; listo.
+      ${itinerario.resumen?.fecha_optima_texto ? `<br><span style="color:#6F42C1;font-style:italic;font-size:13px;">&#128197; ${itinerario.resumen.fecha_optima_texto}</span>` : ''}
+    </p>
+
+    <div style="background-color:#FFF0EB;border-radius:10px;padding:20px;margin-bottom:24px;">
+      <p style="color:#FF6332;font-size:16px;font-weight:700;margin:0 0 12px;">&#128202; Resumen de tu viaje</p>
+      <p style="margin:4px 0;font-size:14px;"><strong>Destino:</strong> ${itinerario.resumen?.destino || formData.destino || ''}</p>
+      <p style="margin:4px 0;font-size:14px;"><strong>Duraci&oacute;n:</strong> ${formData.dias} d&iacute;as &middot; ${formData.numViajeros} viajero${formData.numViajeros > 1 ? 's' : ''}</p>
+      <p style="margin:4px 0;font-size:14px;"><strong>Presupuesto estimado:</strong> ${itinerario.presupuesto_desglose?.total || ''}</p>
+    </div>
+
+    <div style="background-color:#E83E8C;border-radius:10px;padding:24px;text-align:center;margin-bottom:24px;">
+      <p style="color:#fff;font-size:18px;font-weight:800;margin:0 0 10px;">&#128640; &iquest;Quer&eacute;s m&aacute;s detalle de tu viaje?</p>
+      <p style="color:#fff;font-size:14px;line-height:1.6;margin:0 0 18px;">
+        Mejor&aacute; a <strong>Vivante Pro</strong> por solo <strong>$7 m&aacute;s</strong> y agreg&aacute; bares y vida nocturna, recomendaciones de RRSS, tips de seguridad, eSIM recomendada, frases en el idioma local y presupuesto detallado d&iacute;a a d&iacute;a.
+      </p>
+      <a href="${upgradeUrl}" style="display:inline-block;background-color:#fff;color:#E83E8C;padding:12px 32px;border-radius:24px;font-weight:800;font-size:14px;text-decoration:none;">
+        Mejorar a Pro por $7 &rarr;
+      </a>
+    </div>
+
+    ${diasPreview}
+    ${(itinerario.dias||[]).length > 3 ? `<p style="text-align:center;color:#888;font-size:13px;">&hellip; y ${itinerario.dias.length - 3} d&iacute;as m&aacute;s en tu itinerario completo</p>` : ''}
+  </div>
+
+  <div style="background-color:#212529;padding:24px;text-align:center;">
+    <p style="color:#fff;font-size:20px;font-weight:800;margin:0 0 6px;">VIVANTE</p>
+    <p style="color:rgba(255,255,255,0.6);font-size:12px;margin:0;">
+      <a href="https://vivevivante.com" style="color:rgba(255,255,255,0.7);text-decoration:none;">vivevivante.com</a>
+      &nbsp;&middot;&nbsp;
+      <a href="https://instagram.com/vive.vivante" style="color:rgba(255,255,255,0.7);text-decoration:none;">@vive.vivante</a>
+    </p>
+  </div>
+
+</div></body></html>`;
+
         await fetch('https://api.brevo.com/v3/smtp/email', {
           method: 'POST',
           headers: {
@@ -707,12 +789,10 @@ GENERA JSON puro (sin markdown, sin \`\`\`):
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            templateId: 1,
-            to: [{ email: formData.email, name: formData.nombre }],
-            params: {
-              FIRSTNAME:   formData.nombre,
-              UPGRADE_URL: upgradeUrl,
-            },
+            sender:      { name: 'VIVANTE', email: 'vive.vivante.ch@gmail.com' },
+            to:          [{ email: formData.email, name: formData.nombre }],
+            subject:     `🚀 ¿Querés más detalle de tu viaje a ${formData.destino || 'tu destino'}? — Vivante Pro`,
+            htmlContent: upsellHtml,
           }),
         }).catch(e => console.error('Brevo upsell error:', e));
       }
