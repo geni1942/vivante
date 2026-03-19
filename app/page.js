@@ -446,65 +446,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Testimonios */}
-      <section className="py-16 sm:py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-12 sm:mb-16">
-            <span className="inline-block bg-green-100 text-green-600 px-4 py-1.5 rounded-full text-sm font-medium mb-4">
-              Testimonios
-            </span>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-              Lo que dicen nuestros viajeros
-            </h2>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              {
-                nombre: 'María García',
-                ciudad: 'Santiago, Chile',
-                imagen: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop',
-                texto: 'Increíble. Me ahorré HORAS de planificación. Mi viaje a Tailandia fue perfecto gracias a las recomendaciones.',
-                destino: 'Tailandia 🇹🇭',
-              },
-              {
-                nombre: 'Carlos Mendoza',
-                ciudad: 'Buenos Aires, Argentina',
-                imagen: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop',
-                texto: 'El itinerario estaba tan bien organizado que no perdimos ni un minuto. Ya reservé mi próximo viaje con ellos.',
-                destino: 'Japón 🇯🇵',
-              },
-              {
-                nombre: 'Ana Rodríguez',
-                ciudad: 'Lima, Perú',
-                imagen: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&h=200&fit=crop',
-                texto: 'Viajamos en familia y el itinerario consideró actividades para todos. Los links directos nos ahorraron mucho.',
-                destino: 'España 🇪🇸',
-              },
-            ].map((t, i) => (
-              <div key={i} className="bg-gray-50 rounded-3xl p-8 relative">
-                <div className="absolute -top-4 right-8 bg-white shadow-lg rounded-full px-4 py-2 text-sm font-medium">
-                  {t.destino}
-                </div>
-                <div className="flex gap-1 mb-6">
-                  {[...Array(5)].map((_, j) => (
-                    <Star key={j} className="w-5 h-5 text-yellow-400 fill-yellow-400" />
-                  ))}
-                </div>
-                <p className="text-gray-600 mb-8 text-lg leading-relaxed">&ldquo;{t.texto}&rdquo;</p>
-                <div className="flex items-center gap-4">
-                  <img src={t.imagen} alt={t.nombre} className="w-14 h-14 rounded-full object-cover ring-4 ring-white" />
-                  <div>
-                    <div className="font-bold text-gray-900">{t.nombre}</div>
-                    <div className="text-gray-500 text-sm">{t.ciudad}</div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Planes y Precios */}
       <section id="precios" className="py-16 sm:py-24 bg-gray-50">
         <div className="max-w-7xl mx-auto px-6">
@@ -587,6 +528,65 @@ export default function Home() {
                 Comenzar con Pro →
               </button>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonios — debajo de Pricing (mejor conversión: social proof cierra la decisión) */}
+      <section className="py-16 sm:py-24 bg-white">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center mb-12 sm:mb-16">
+            <span className="inline-block bg-green-100 text-green-600 px-4 py-1.5 rounded-full text-sm font-medium mb-4">
+              Testimonios
+            </span>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+              Lo que dicen nuestros viajeros
+            </h2>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              {
+                nombre: 'María García',
+                ciudad: 'Santiago, Chile',
+                imagen: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop',
+                texto: 'Increíble. Me ahorré HORAS de planificación. Mi viaje a Tailandia fue perfecto gracias a las recomendaciones.',
+                destino: 'Tailandia 🇹🇭',
+              },
+              {
+                nombre: 'Carlos Mendoza',
+                ciudad: 'Buenos Aires, Argentina',
+                imagen: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop',
+                texto: 'El itinerario estaba tan bien organizado que no perdimos ni un minuto. Ya reservé mi próximo viaje con ellos.',
+                destino: 'Japón 🇯🇵',
+              },
+              {
+                nombre: 'Ana Rodríguez',
+                ciudad: 'Lima, Perú',
+                imagen: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&h=200&fit=crop',
+                texto: 'Viajamos en familia y el itinerario consideró actividades para todos. Los links directos nos ahorraron mucho.',
+                destino: 'España 🇪🇸',
+              },
+            ].map((t, i) => (
+              <div key={i} className="bg-gray-50 rounded-3xl p-8 relative">
+                <div className="absolute -top-4 right-8 bg-white shadow-lg rounded-full px-4 py-2 text-sm font-medium">
+                  {t.destino}
+                </div>
+                <div className="flex gap-1 mb-6">
+                  {[...Array(5)].map((_, j) => (
+                    <Star key={j} className="w-5 h-5 text-yellow-400 fill-yellow-400" />
+                  ))}
+                </div>
+                <p className="text-gray-600 mb-8 text-lg leading-relaxed">&ldquo;{t.texto}&rdquo;</p>
+                <div className="flex items-center gap-4">
+                  <img src={t.imagen} alt={t.nombre} className="w-14 h-14 rounded-full object-cover ring-4 ring-white" />
+                  <div>
+                    <div className="font-bold text-gray-900">{t.nombre}</div>
+                    <div className="text-gray-500 text-sm">{t.ciudad}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
