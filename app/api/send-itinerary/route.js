@@ -81,13 +81,14 @@ Para origen_iata y destino_iata: código IATA de 3 letras del aeropuerto princip
 
     // ── Regla viaje doméstico ────────────────────────────────────────────────
     const domesticRule = isDomestic
-      ? `- VIAJE DOMÉSTICO: Origen (${formData.origen}) y destino (${formData.destino}) están en el MISMO PAÍS. En checklist y tips NO incluyas: pasaporte internacional, visa de turismo, adaptador de enchufe extranjero ni seguro de viaje obligatorio. En "emergencias.embajada" pon "No aplica — viaje doméstico". El campo "dinero" debe referirse a la moneda del propio país sin conversión de divisas.`
+      ? `- VIAJE DOMÉSTICO: Origen (${formData.origen}) y destino (${formData.destino}) están en el MISMO PAÍS. Reglas ESTRICTAS: (1) "checklist": NO incluyas pasaporte internacional, visa de turismo, adaptador de enchufe extranjero ni seguro de viaje internacional. (2) "dinero.tipo_cambio": pon "No aplica — misma moneda"; "dinero.donde_cambiar": pon "No aplica — no se necesita cambiar divisas". (3) "seguro": solo asistencia médica nacional, sin mención a cobertura internacional. (4) "que_empacar.adaptador_enchufe": pon "No necesario — mismo país, mismo voltaje y tipo de enchufes". (5) "emergencias.embajada": pon "No aplica — viaje doméstico". (6) tips_culturales: NO menciones tipo de cambio, casas de cambio, conversión de divisas, adaptador de corriente ni seguro de viaje internacional.`
       : '';
 
     // Plataformas según preferencia del cliente
     // hotel → Eco=Airbnb, Mid=Booking.com, Prem=Booking.com
     // airbnb → todo Airbnb | hostal → todo Hostelworld | bnb → todo Booking.com
-    const alojPref = formData.alojamiento || 'hotel';
+    const alojPref   = formData.alojamiento || 'hotel';
+    const interesStr = Array.isArray(formData.intereses) ? formData.intereses.join(', ') : (formData.intereses || 'cultura, gastronomía');
 
     // ── Regla ALOJAMIENTO según preferencia ─────────────────────────────────
     const alojRule = alojPref === 'hostal'
@@ -195,11 +196,11 @@ IMPORTANTE: Reemplaza NOMBRE_REAL_CIUDAD_1 y NOMBRE_REAL_CIUDAD_2 con los nombre
     "duracion": "string (ej: 3 horas)",
     "precio": "string (ej: $25-40 USD por persona)",
     "anticipacion": "string (ej: Reservar con 1 semana de anticipación)",
-    "plataformas_disponibles": ["GetYourGuide", "Viator"],
-    "link_gyg": "URL directa del tour en GetYourGuide si la conoces con certeza, o null. Ejemplo: https://www.getyourguide.com/barcelona-l45/sagrada-familia-skip-the-line-t12345/ — NO inventes URLs. Si no estás seguro, pon null."
+    "plataformas_disponibles": ["GetYourGuide", "Civitatis"],
+    "link_gyg": null
   }
 ]
-IMPORTANTE sobre plataformas_disponibles: La GRAN MAYORÍA de tours, excursiones y actividades turísticas están disponibles en GetYourGuide y/o Viator. Por defecto usa ["GetYourGuide","Viator"]. Usa [] ÚNICAMENTE para actividades completamente locales/gratuitas que NO se comercializan online (ej: entrar a una iglesia gratis, caminar por un barrio, mercado local sin entrada). En caso de duda, siempre incluye GetYourGuide.`;
+IMPORTANTE sobre plataformas_disponibles: La GRAN MAYORÍA de tours y actividades turísticas están en GetYourGuide y/o Civitatis. REGLA: por defecto usa ["GetYourGuide", "Civitatis"]. Si solo está en una → pon solo esa. Usa [] ÚNICAMENTE para actividades gratuitas/locales que NO se comercializan online (ej: entrar a una iglesia gratis, caminar por un barrio, mercado sin entrada). NUNCA uses "Viator". En caso de duda, incluye GetYourGuide. Si ni GetYourGuide ni Civitatis tienen la actividad, usa [].`;
 
     // ─── PROMPT BÁSICO ─────────────────────────────────────────────────────────
     const promptBasico = `Eres el planificador de VIVANTE. Crea un itinerario COMPLETO con el tono VIVANTE: cercano, directo, como un amigo experto. Precios realistas para ${currentYear}.
@@ -211,7 +212,9 @@ ${alojRule}
 - RESTAURANTES: Si el viaje se concentra en UNA SOLA ciudad y dura más de 7 días, incluye 5 restaurantes para esa ciudad. Para viajes multi-ciudad o de 7 días o menos, incluye exactamente 3 restaurantes por ciudad visitada.
 - PRESUPUESTO: El presupuesto indicado ($${presupuesto} USD) es el TOTAL por persona para TODO el viaje. El campo presupuesto_desglose.total NO debe superar ese valor. Adapta vuelos, alojamiento y actividades a esa realidad. Si el presupuesto es insuficiente para el destino elegido, usa el campo resumen.ritmo para incluir una nota como "⚠️ Presupuesto ajustado — hemos optimizado el itinerario para sacar el máximo con tu presupuesto."
 ${diasRule}
-- RITMO: El cliente eligió ritmo ${formData.ritmo || 3}/5. DEBES respetar ESTRICTAMENTE el número de actividades por día: ritmo 1-2 = máximo 2 actividades por día (días relajados, pausas largas, tiempo libre); ritmo 3 = exactamente 2-3 actividades por día con tiempo libre entre ellas; ritmo 4-5 = 3-4 actividades por día, días aprovechados al máximo. NO incluyas más actividades de las correspondientes aunque el destino lo permita. El ritmo también afecta el tono: ritmo bajo = más descripción contemplativa, ritmo alto = más dinámico y energético.${domesticRule ? '\n' + domesticRule : ''}
+- RITMO: El cliente eligió ritmo ${formData.ritmo || 3}/5. DEBES respetar ESTRICTAMENTE el número de actividades por día: ritmo 1-2 = máximo 2 actividades por día (días relajados, pausas largas, tiempo libre); ritmo 3 = exactamente 2-3 actividades por día con tiempo libre entre ellas; ritmo 4-5 = 3-4 actividades por día, días aprovechados al máximo. NO incluyas más actividades de las correspondientes aunque el destino lo permita. El ritmo también afecta el tono: ritmo bajo = más descripción contemplativa, ritmo alto = más dinámico y energético.
+- INTERESES: El cliente eligió: ${interesStr}. TODAS las actividades del día a día DEBEN relacionarse con estos intereses. Mapeo obligatorio → "gastronomia": mercados de comida, clases de cocina, tours gastronómicos, degustaciones; "aventura": senderismo, deportes extremos, escalada, kayak, rafting, zipline; "playa": playas, snorkeling, surf, buceo, paseos en barco; "cultura": museos, sitios históricos, arquitectura, arte local, barrios históricos; "naturaleza": parques nacionales, cascadas, reservas naturales, avistamiento de fauna; "vida nocturna": bares de moda, rooftops, tours nocturnos, clubes. Las actividades del día a día NO pueden contradecir los intereses elegidos (ej: si eligió gastronomía, no pongas excursiones a montañas si no hay relación gastronómica).
+- AEROLÍNEAS: SOLO recomienda aerolíneas de esta lista verificada: LATAM, JetSmart, Sky Airline, Avianca, Copa Airlines, Aerolíneas Argentinas, Aeroméxico, GOL, Azul, American Airlines, United Airlines, Delta, Air Canada, WestJet, Iberia, Iberia Express, Air Europa, Turkish Airlines, Air France, KLM, Lufthansa, Swiss, Austrian Airlines, British Airways, TAP Portugal, Norwegian, EasyJet, Ryanair, Finnair, ITA Airways, Qatar Airways, Emirates, Ethiopian Airlines, Japan Airlines, ANA, Singapore Airlines, Cathay Pacific, Korean Air, Asiana, Thai Airways, Malaysia Airlines, Air New Zealand, EVA Air, China Airlines. NO recomiendes aerolíneas que no estén en esta lista.${domesticRule ? '\n' + domesticRule : ''}
 
 GENERA JSON puro (sin markdown, sin \`\`\`):
 {
@@ -322,9 +325,11 @@ ${alojRule}
 - PRESUPUESTO: El presupuesto indicado ($${presupuesto} USD) es el TOTAL por persona para TODO el viaje. El campo presupuesto_desglose.total NO debe superar ese valor. Adapta todas las recomendaciones (vuelos, alojamiento, actividades, restaurantes) a esa realidad. Si el presupuesto es insuficiente para el destino elegido, usa resumen.ritmo para incluir una nota como "⚠️ Presupuesto ajustado — optimizamos el itinerario para sacar el máximo con tu presupuesto."
 ${diasRule}
 - RITMO: El cliente eligió ritmo ${formData.ritmo || 3}/5. DEBES respetar ESTRICTAMENTE el número de actividades por día: ritmo 1-2 = máximo 2 actividades por día (días relajados, pausas largas, tiempo libre); ritmo 3 = exactamente 2-3 actividades por día con tiempo libre entre ellas; ritmo 4-5 = 3-4 actividades por día, días aprovechados al máximo. NO incluyas más actividades de las correspondientes aunque el destino lo permita. El ritmo también afecta el tono: ritmo bajo = más descripción contemplativa, ritmo alto = más dinámico y energético.
+- INTERESES: El cliente eligió: ${interesStr}. TODAS las actividades del día a día DEBEN relacionarse con estos intereses. Mapeo obligatorio → "gastronomia": mercados de comida, clases de cocina, tours gastronómicos, degustaciones; "aventura": senderismo, deportes extremos, escalada, kayak, rafting, zipline; "playa": playas, snorkeling, surf, buceo, paseos en barco; "cultura": museos, sitios históricos, arquitectura, arte local, barrios históricos; "naturaleza": parques nacionales, cascadas, reservas naturales, avistamiento de fauna; "vida nocturna": bares de moda, rooftops, tours nocturnos, clubes. Las actividades del día a día NO pueden contradecir los intereses elegidos.
+- AEROLÍNEAS: SOLO recomienda aerolíneas de esta lista verificada: LATAM, JetSmart, Sky Airline, Avianca, Copa Airlines, Aerolíneas Argentinas, Aeroméxico, GOL, Azul, American Airlines, United Airlines, Delta, Air Canada, WestJet, Iberia, Iberia Express, Air Europa, Turkish Airlines, Air France, KLM, Lufthansa, Swiss, Austrian Airlines, British Airways, TAP Portugal, Norwegian, EasyJet, Ryanair, Finnair, ITA Airways, Qatar Airways, Emirates, Ethiopian Airlines, Japan Airlines, ANA, Singapore Airlines, Cathay Pacific, Korean Air, Asiana, Thai Airways, Malaysia Airlines, Air New Zealand, EVA Air, China Airlines. NO recomiendes aerolíneas fuera de esta lista.
 - TRANSPORTE aeropuerto→centro: lista TODAS las opciones disponibles (Uber, Taxi, Metro, Bus express, Tren, etc.) con costo estimado y duración en el array opciones_aeropuerto_centro.
 - BARES: en bares_vida_nocturna usa un objeto cuyas claves son los nombres REALES de las ciudades visitadas. Si el viaje es de UNA SOLA ciudad y más de 7 días, incluye 5 bares/lugares para esa ciudad. Para el resto, incluye EXACTAMENTE 2 bares por ciudad.
-- EXTRAS: las categorías deben relacionarse directamente con los intereses del cliente (${Array.isArray(formData.intereses) ? formData.intereses.join(', ') : 'cultura, aventura'}). Ejemplo: si tiene 'gastronomia' → categoría gastronómica; si tiene 'aventura' → actividades de adrenalina. Siempre incluir una categoría "Para días de lluvia o descanso".
+- EXTRAS: las categorías deben relacionarse directamente con los intereses del cliente (${interesStr}). Ejemplo: si tiene 'gastronomia' → categoría gastronómica; si tiene 'aventura' → actividades de adrenalina. Siempre incluir una categoría "Para días de lluvia o descanso".
 - QUE_EMPACAR: adapta el clima_esperado a las fechas reales propuestas (fecha_salida / fecha_regreso). La lista de ropa debe ser práctica y concisa para el tipo de viaje y el clima del destino.${domesticRule ? '\n' + domesticRule : ''}
 
 GENERA JSON puro (sin markdown, sin \`\`\`):
