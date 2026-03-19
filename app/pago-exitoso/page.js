@@ -24,8 +24,9 @@ function buildAirbnbUrl(destino, checkin, checkout, adults) {
   return `https://www.airbnb.com/s/${encodeURIComponent(destino || '')}/homes?checkin=${checkin || ''}&checkout=${checkout || ''}&adults=${adults || 2}`;
 }
 
-function buildHostelworldUrl(destino, checkin, checkout) {
-  return `https://www.hostelworld.com/findabed.php/ChosenCity.${encodeURIComponent(destino || '')}/StartDate.${checkin || ''}/EndDate.${checkout || ''}`;
+function buildHostelworldUrl(destino, checkin, checkout, adults) {
+  const p = new URLSearchParams({ search_keywords: destino || '', dateFrom: checkin || '', dateTo: checkout || '', numberOfGuests: adults || 2 });
+  return `https://www.hostelworld.com/search?${p}`;
 }
 
 function alojamientoLink(op, destino, checkin, checkout, adults) {
@@ -34,7 +35,7 @@ function alojamientoLink(op, destino, checkin, checkout, adults) {
   const plat = (op.plataforma || '').toLowerCase();
   const nombre = (op.nombre || '').trim();
 
-  if (plat.includes('hostel')) return buildHostelworldUrl(destino, checkin, checkout);
+  if (plat.includes('hostel')) return buildHostelworldUrl(destino, checkin, checkout, adults);
 
   if (plat.includes('airbnb')) {
     // Airbnb: buscamos por ciudad + nombre en el query
@@ -220,8 +221,8 @@ function buildAirlineUrl(aerolinea, origenIata, destinoIata, fechaSalida, fechaR
     return `https://www.china-airlines.com/us/en/book/booking/flight-booking.html?from=${o}&to=${d}&departure=${dep}&return=${ret}&adult=${n}`;
   }
 
-  // ── Fallback: sin botón (mejor que redirigir a un agregador) ─────────────
-  return null;
+  // ── Fallback: Google Flights (aerolínea no reconocida → siempre hay botón) ─
+  return `https://www.google.com/travel/flights#flt=${o}.${d}.${dep}${ret ? `*${d}.${o}.${ret}` : ''};c:USD;e:1;sd:1;t:f`;
 }
 
 function formatDate(d) {
@@ -722,13 +723,13 @@ function ItinerarioContent() {
                       const qPlus = rawQ.replace(/\s+/g, '+');
                       // GYG: SIEMPRE búsqueda con + encoding (nunca links del AI — son IDs inventados)
                       const gygUrl = `https://www.getyourguide.com/s/?q=${qPlus}&partner_id=UCJJVUD`;
-                      // Viator: parámetro text= (formato actual correcto de viator.com)
-                      const viatorUrl = `https://www.viator.com/search?text=${qPlus}`;
+                      // Civitatis: búsqueda en su catálogo
+                      const civitatisUrl = `https://www.civitatis.com/es/buscar/?q=${encodeURIComponent(rawQ)}`;
                       // plataformas_disponibles: undefined → mostrar ambas (backward compat); [] → ninguna; ["X"] → solo X
                       const plats = exp.plataformas_disponibles;
-                      const showGyg    = !plats || plats.includes('GetYourGuide');
-                      const showViator = !plats || plats.includes('Viator');
-                      const showNone   = Array.isArray(plats) && plats.length === 0;
+                      const showGyg       = !plats || plats.includes('GetYourGuide');
+                      const showCivitatis = !plats || plats.includes('Civitatis') || plats.includes('Viator'); // Viator = backward compat itinerarios viejos
+                      const showNone      = Array.isArray(plats) && plats.length === 0;
                       return (
                       <tr key={ei} style={{ background: ei % 2 === 0 ? C.bg0 : '#fff', verticalAlign: 'top' }}>
                         <td style={{ padding: '10px 12px' }}>
@@ -741,7 +742,7 @@ function ItinerarioContent() {
                         <td style={{ padding: '10px 12px' }}>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                             {showGyg    && <BtnLink href={gygUrl}    small color="#FF6600">GetYourGuide →</BtnLink>}
-                            {showViator && <BtnLink href={viatorUrl}  small color="#333">Viator →</BtnLink>}
+                            {showCivitatis && <BtnLink href={civitatisUrl} small color="#00A651">Civitatis →</BtnLink>}
                             {showNone   && <span style={{ fontSize: 12, color: '#999', fontStyle: 'italic' }}>Reservar localmente</span>}
                           </div>
                         </td>
