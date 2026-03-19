@@ -68,10 +68,35 @@ Hoy es ${today}. Los precios, vuelos y datos de alojamiento deben ser realistas 
 Para fecha_salida y fecha_regreso: propón fechas REALES en formato YYYY-MM-DD, mínimo 6-8 semanas desde hoy (${today}), en temporada ideal para el destino. fecha_regreso = fecha_salida + ${dias} días.
 Para origen_iata y destino_iata: código IATA de 3 letras del aeropuerto principal.`;
 
+    // ── Detección de viaje doméstico ─────────────────────────────────────────
+    const origenStr  = (formData.origen  || 'Santiago, Chile').toLowerCase();
+    const destinoStr = (formData.destino || '').toLowerCase();
+    const paisesComunes = ['chile','argentina','perú','peru','bolivia','colombia','ecuador',
+                           'brasil','brazil','uruguay','paraguay','venezuela','méxico','mexico',
+                           'costa rica','panamá','panama','cuba'];
+    const isDomestic = paisesComunes.find(p => origenStr.includes(p) && destinoStr.includes(p)) || null;
+
+    // ── Regla DÍAS: siempre generar los N días completos ─────────────────────
+    const diasRule = `- DÍAS COMPLETOS: El array "dias" del JSON DEBE contener EXACTAMENTE ${dias} objetos (uno por cada día del viaje). NUNCA generes menos días aunque el presupuesto sea ajustado. Si el presupuesto es bajo, adapta con actividades gratuitas (parques, iglesias, miradores, mercados), comida callejera y alojamiento económico — pero SIEMPRE genera los ${dias} días completos. Un presupuesto ajustado NO es excusa para recortar el itinerario.`;
+
+    // ── Regla viaje doméstico ────────────────────────────────────────────────
+    const domesticRule = isDomestic
+      ? `- VIAJE DOMÉSTICO: Origen (${formData.origen}) y destino (${formData.destino}) están en el MISMO PAÍS. En checklist y tips NO incluyas: pasaporte internacional, visa de turismo, adaptador de enchufe extranjero ni seguro de viaje obligatorio. En "emergencias.embajada" pon "No aplica — viaje doméstico". El campo "dinero" debe referirse a la moneda del propio país sin conversión de divisas.`
+      : '';
+
     // Plataformas según preferencia del cliente
     // hotel → Eco=Airbnb, Mid=Booking.com, Prem=Booking.com
     // airbnb → todo Airbnb | hostal → todo Hostelworld | bnb → todo Booking.com
     const alojPref = formData.alojamiento || 'hotel';
+
+    // ── Regla ALOJAMIENTO según preferencia ─────────────────────────────────
+    const alojRule = alojPref === 'hostal'
+      ? `- ALOJAMIENTO: El cliente eligió HOSTALES. Las 3 opciones (Económico, Confort, Premium) DEBEN ser hostales/albergues reales con nombre verificable en Hostelworld. PROHIBIDO recomendar hoteles de cadena (Hilton, Marriott, Ibis, etc.) ni Airbnb. Las 3 plataformas son TODAS "Hostelworld". Busca hostales reales en el destino.`
+      : alojPref === 'airbnb'
+        ? `- ALOJAMIENTO: El cliente eligió AIRBNB. Las 3 opciones deben ser propiedades reales en Airbnb (apartamentos, casas, estudios). SIEMPRE incluye EXACTAMENTE 3 opciones por ciudad: Económico, Confort y Premium. Nunca menos de 3.`
+        : alojPref === 'bnb'
+          ? `- ALOJAMIENTO: El cliente eligió B&B / Booking.com. Las 3 opciones deben ser B&B o hoteles boutique reales en Booking.com. SIEMPRE incluye EXACTAMENTE 3 opciones por ciudad.`
+          : `- ALOJAMIENTO: Recomienda SOLO hoteles con nombre REAL y verificable. Prioriza cadenas conocidas (Hilton, Marriott, NH, Ibis, Radisson, Hyatt, etc.) o boutiques con alta presencia online. NUNCA inventes nombres. SIEMPRE incluye EXACTAMENTE 3 opciones por ciudad: Económico, Confort y Premium. Nunca menos de 3.`;
     const platEco  = alojPref === 'hostal'  ? 'Hostelworld'
                    : alojPref === 'airbnb'  ? 'Airbnb'
                    : alojPref === 'bnb'     ? 'Booking.com'
@@ -160,7 +185,7 @@ Para origen_iata y destino_iata: código IATA de 3 letras del aeropuerto princip
     { "nombre": "restaurante 3", "ubicacion": "string", "tipo": "string", "precio_promedio": "string", "requiere_reserva": boolean, "por_que": "string", "link_reserva": "https://www.google.com/maps/search/NOMBRE+CIUDAD", "instagram": "string o null" }
   ]
 }
-IMPORTANTE: Reemplaza NOMBRE_REAL_CIUDAD_1 y NOMBRE_REAL_CIUDAD_2 con los nombres reales de las ciudades visitadas. Incluye EXACTAMENTE 3 restaurantes por ciudad. Si hay más ciudades, agrega más claves al objeto. Varía barrios, tipos de cocina y rangos de precio.`;
+IMPORTANTE: Reemplaza NOMBRE_REAL_CIUDAD_1 y NOMBRE_REAL_CIUDAD_2 con los nombres reales de las ciudades visitadas. Si el viaje es a UNA SOLA ciudad y dura más de ${dias > 7 ? `${dias} días (más de 7)` : '7 días'} incluye ${dias > 7 ? '5' : '3'} restaurantes para esa ciudad${dias > 7 ? ' — no 3, sino 5' : ''}. Para múltiples ciudades, incluye 3 restaurantes por ciudad. Varía barrios, tipos de cocina y rangos de precio.`;
 
     const experienciasSchema = `
 "experiencias": [
@@ -181,11 +206,12 @@ IMPORTANTE sobre plataformas_disponibles: La GRAN MAYORÍA de tours, excursiones
 ${clienteCtx}
 
 REGLAS IMPORTANTES:
-- VUELOS: Usa tu conocimiento real de rutas aéreas. Incluye mínimo 3 aerolíneas distintas. SOLO pon escala="Directo" si existe un vuelo directo real en esa ruta específica. Si NO hay vuelo directo, nunca lo inventes — pon la mejor conexión con ciudad real de escala (ej: "1 escala en Lima"). En el campo "ruta" especifica siempre las ciudades de escala reales (ej: "SCL → BOG → NRT").
-- ALOJAMIENTO: Recomienda SOLO hoteles/alojamientos con nombre REAL y verificable. Prioriza cadenas conocidas (Hilton, Marriott, NH, Ibis, Radisson, Hyatt, etc.) o boutiques con alta presencia online. NUNCA inventes nombres de hoteles. SIEMPRE incluye EXACTAMENTE 3 opciones por ciudad: Económico, Confort y Premium. Nunca menos de 3.
-- RESTAURANTES: incluye exactamente 3 restaurantes por cada ciudad/destino visitado, agrupados por ciudad.
+- VUELOS: Usa tu conocimiento real de rutas aéreas. Incluye mínimo 3 aerolíneas distintas. SOLO pon escala="Directo" si existe un vuelo directo real en esa ruta específica. Si NO hay vuelo directo, nunca lo inventes — pon la mejor conexión con ciudad real de escala (ej: "1 escala en Lima"). En el campo "ruta" especifica siempre las ciudades de escala reales (ej: "SCL → BOG → NRT").${isDomestic ? ' Si el viaje es DOMÉSTICO, los vuelos son dentro del mismo país — precios en moneda local y sin escalas internacionales.' : ''}
+${alojRule}
+- RESTAURANTES: Si el viaje se concentra en UNA SOLA ciudad y dura más de 7 días, incluye 5 restaurantes para esa ciudad. Para viajes multi-ciudad o de 7 días o menos, incluye exactamente 3 restaurantes por ciudad visitada.
 - PRESUPUESTO: El presupuesto indicado ($${presupuesto} USD) es el TOTAL por persona para TODO el viaje. El campo presupuesto_desglose.total NO debe superar ese valor. Adapta vuelos, alojamiento y actividades a esa realidad. Si el presupuesto es insuficiente para el destino elegido, usa el campo resumen.ritmo para incluir una nota como "⚠️ Presupuesto ajustado — hemos optimizado el itinerario para sacar el máximo con tu presupuesto."
-- RITMO: El cliente eligió ritmo ${formData.ritmo || 3}/5. DEBES respetar ESTRICTAMENTE el número de actividades por día: ritmo 1-2 = máximo 2 actividades por día (días relajados, pausas largas, tiempo libre); ritmo 3 = exactamente 2-3 actividades por día con tiempo libre entre ellas; ritmo 4-5 = 3-4 actividades por día, días aprovechados al máximo. NO incluyas más actividades de las correspondientes aunque el destino lo permita. El ritmo también afecta el tono: ritmo bajo = más descripción contemplativa, ritmo alto = más dinámico y energético.
+${diasRule}
+- RITMO: El cliente eligió ritmo ${formData.ritmo || 3}/5. DEBES respetar ESTRICTAMENTE el número de actividades por día: ritmo 1-2 = máximo 2 actividades por día (días relajados, pausas largas, tiempo libre); ritmo 3 = exactamente 2-3 actividades por día con tiempo libre entre ellas; ritmo 4-5 = 3-4 actividades por día, días aprovechados al máximo. NO incluyas más actividades de las correspondientes aunque el destino lo permita. El ritmo también afecta el tono: ritmo bajo = más descripción contemplativa, ritmo alto = más dinámico y energético.${domesticRule ? '\n' + domesticRule : ''}
 
 GENERA JSON puro (sin markdown, sin \`\`\`):
 {
@@ -290,15 +316,16 @@ GENERA JSON puro (sin markdown, sin \`\`\`):
 ${clienteCtx}
 
 REGLAS IMPORTANTES:
-- VUELOS: Usa tu conocimiento real de rutas aéreas. Incluye mínimo 3 aerolíneas distintas. SOLO pon escala="Directo" si existe un vuelo directo real en esa ruta específica. Si NO hay vuelo directo, nunca lo inventes — pon la mejor conexión con ciudad real de escala (ej: "1 escala en Lima"). En el campo "ruta" especifica siempre las ciudades de escala reales (ej: "SCL → BOG → NRT").
-- ALOJAMIENTO: Recomienda SOLO hoteles/alojamientos con nombre REAL y verificable. Prioriza cadenas conocidas (Hilton, Marriott, NH, Ibis, Radisson, Hyatt, etc.) o boutiques con alta presencia online. NUNCA inventes nombres de hoteles. SIEMPRE incluye EXACTAMENTE 3 opciones por ciudad: Económico, Confort y Premium. Nunca menos de 3.
-- RESTAURANTES: incluye exactamente 3 restaurantes por cada ciudad/destino visitado, agrupados por ciudad.
+- VUELOS: Usa tu conocimiento real de rutas aéreas. Incluye mínimo 3 aerolíneas distintas. SOLO pon escala="Directo" si existe un vuelo directo real en esa ruta específica. Si NO hay vuelo directo, nunca lo inventes — pon la mejor conexión con ciudad real de escala (ej: "1 escala en Lima"). En el campo "ruta" especifica siempre las ciudades de escala reales (ej: "SCL → BOG → NRT").${isDomestic ? ' Si el viaje es DOMÉSTICO, los vuelos son dentro del mismo país — precios en moneda local y sin escalas internacionales.' : ''}
+${alojRule}
+- RESTAURANTES: Si el viaje se concentra en UNA SOLA ciudad y dura más de 7 días, incluye 5 restaurantes para esa ciudad. Para viajes multi-ciudad o de 7 días o menos, incluye exactamente 3 restaurantes por ciudad visitada.
 - PRESUPUESTO: El presupuesto indicado ($${presupuesto} USD) es el TOTAL por persona para TODO el viaje. El campo presupuesto_desglose.total NO debe superar ese valor. Adapta todas las recomendaciones (vuelos, alojamiento, actividades, restaurantes) a esa realidad. Si el presupuesto es insuficiente para el destino elegido, usa resumen.ritmo para incluir una nota como "⚠️ Presupuesto ajustado — optimizamos el itinerario para sacar el máximo con tu presupuesto."
+${diasRule}
 - RITMO: El cliente eligió ritmo ${formData.ritmo || 3}/5. DEBES respetar ESTRICTAMENTE el número de actividades por día: ritmo 1-2 = máximo 2 actividades por día (días relajados, pausas largas, tiempo libre); ritmo 3 = exactamente 2-3 actividades por día con tiempo libre entre ellas; ritmo 4-5 = 3-4 actividades por día, días aprovechados al máximo. NO incluyas más actividades de las correspondientes aunque el destino lo permita. El ritmo también afecta el tono: ritmo bajo = más descripción contemplativa, ritmo alto = más dinámico y energético.
 - TRANSPORTE aeropuerto→centro: lista TODAS las opciones disponibles (Uber, Taxi, Metro, Bus express, Tren, etc.) con costo estimado y duración en el array opciones_aeropuerto_centro.
-- BARES: en bares_vida_nocturna usa un objeto cuyas claves son los nombres REALES de las ciudades visitadas. Incluye EXACTAMENTE 2 bares/lugares por ciudad.
+- BARES: en bares_vida_nocturna usa un objeto cuyas claves son los nombres REALES de las ciudades visitadas. Si el viaje es de UNA SOLA ciudad y más de 7 días, incluye 5 bares/lugares para esa ciudad. Para el resto, incluye EXACTAMENTE 2 bares por ciudad.
 - EXTRAS: las categorías deben relacionarse directamente con los intereses del cliente (${Array.isArray(formData.intereses) ? formData.intereses.join(', ') : 'cultura, aventura'}). Ejemplo: si tiene 'gastronomia' → categoría gastronómica; si tiene 'aventura' → actividades de adrenalina. Siempre incluir una categoría "Para días de lluvia o descanso".
-- QUE_EMPACAR: adapta el clima_esperado a las fechas reales propuestas (fecha_salida / fecha_regreso). La lista de ropa debe ser práctica y concisa para el tipo de viaje y el clima del destino.
+- QUE_EMPACAR: adapta el clima_esperado a las fechas reales propuestas (fecha_salida / fecha_regreso). La lista de ropa debe ser práctica y concisa para el tipo de viaje y el clima del destino.${domesticRule ? '\n' + domesticRule : ''}
 
 GENERA JSON puro (sin markdown, sin \`\`\`):
 {
