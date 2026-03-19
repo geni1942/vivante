@@ -11,6 +11,42 @@ export default function Home() {
   const [showContact, setShowContact] = useState(false);
   const [initialDestino, setInitialDestino] = useState('');
 
+  // ── Exit Intent (Option A) ────────────────────────────────────────────────
+  const [showExitIntent, setShowExitIntent] = useState(false);
+  const [exitEmail, setExitEmail]           = useState('');
+  const [exitSubmitting, setExitSubmitting] = useState(false);
+  const [exitDone, setExitDone]             = useState(false);
+
+  useEffect(() => {
+    // Mostrar solo una vez por sesión; no mostrar si ya tiene email guardado
+    const alreadyShown = sessionStorage.getItem('vivante_exit_shown');
+    if (alreadyShown) return;
+    const handler = (e) => {
+      // Solo disparar cuando el mouse sale por la parte superior de la ventana
+      if (e.clientY <= 10 && !showForm) {
+        sessionStorage.setItem('vivante_exit_shown', '1');
+        setShowExitIntent(true);
+      }
+    };
+    document.addEventListener('mouseleave', handler);
+    return () => document.removeEventListener('mouseleave', handler);
+  }, [showForm]);
+
+  const handleExitSubmit = async () => {
+    if (!exitEmail.includes('@') || !exitEmail.includes('.')) return;
+    setExitSubmitting(true);
+    try {
+      localStorage.setItem('vivante_lead', JSON.stringify({ email: exitEmail, ts: Date.now(), source: 'exit_intent' }));
+      fetch('/api/lead', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: exitEmail, nombre: '', destino: '' }),
+      }).catch(() => {});
+      setExitDone(true);
+    } catch (_) {}
+    setExitSubmitting(false);
+  };
+
   const destinosHero = [
     { nombre: 'Torres del Paine', pais: 'Chile', imagen: '/images/Torres del paine, Chile.jpg' },
     { nombre: 'Santorini', pais: 'Grecia', imagen: '/images/Santorini, Grecia.jpg' },
@@ -672,6 +708,90 @@ export default function Home() {
 
       {/* Modal del formulario */}
       {showForm && <TravelForm onClose={() => { setShowForm(false); setInitialDestino(''); }} initialDestino={initialDestino} />}
+
+      {/* ── Exit Intent Popup (Option A) ─────────────────────────────────── */}
+      {showExitIntent && !showForm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }}
+        >
+          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden relative">
+            {/* Botón cerrar */}
+            <button
+              onClick={() => setShowExitIntent(false)}
+              className="absolute top-4 right-4 w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 z-10 text-gray-500 font-bold"
+            >
+              ✕
+            </button>
+
+            {/* Header naranja */}
+            <div className="bg-gradient-to-r from-orange-500 to-pink-500 px-8 pt-8 pb-6 text-center">
+              <div className="text-4xl mb-3">✈️</div>
+              <h2 className="text-white text-2xl font-bold leading-tight">
+                ¡Un segundo antes de irte!
+              </h2>
+              <p className="text-white/90 text-sm mt-2">
+                Recibe tips de viaje exclusivos y sé el primero en enterarte de nuestras ofertas.
+              </p>
+            </div>
+
+            {/* Body */}
+            <div className="px-8 py-6">
+              {!exitDone ? (
+                <>
+                  <div className="flex gap-3 mb-4 text-sm text-gray-600">
+                    <span>✅ Tips de planificación</span>
+                    <span>✅ Ofertas exclusivas</span>
+                  </div>
+                  <input
+                    type="email"
+                    placeholder="tu@email.com"
+                    value={exitEmail}
+                    onChange={(e) => setExitEmail(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleExitSubmit()}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none text-base mb-3"
+                    autoFocus
+                  />
+                  <button
+                    onClick={handleExitSubmit}
+                    disabled={exitSubmitting || !exitEmail.includes('@')}
+                    className={`w-full py-3 rounded-xl font-bold text-white transition-all ${
+                      exitEmail.includes('@') && !exitSubmitting
+                        ? 'bg-gradient-to-r from-orange-500 to-pink-500 hover:opacity-90 hover:shadow-lg'
+                        : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                    }`}
+                  >
+                    {exitSubmitting ? 'Guardando...' : '¡Quiero mis tips gratis! 🎒'}
+                  </button>
+                  <p className="text-center text-xs text-gray-400 mt-3">
+                    Sin spam. Solo lo bueno. Podés darte de baja cuando quieras.
+                  </p>
+                  <button
+                    onClick={() => setShowExitIntent(false)}
+                    className="w-full text-center text-xs text-gray-400 mt-2 hover:text-gray-600 py-1"
+                  >
+                    No gracias, prefiero planificar solo.
+                  </button>
+                </>
+              ) : (
+                <div className="text-center py-4">
+                  <div className="text-5xl mb-3">🎉</div>
+                  <h3 className="text-xl font-bold text-gray-800 mb-2">¡Listo! Ya estás dentro.</h3>
+                  <p className="text-gray-500 text-sm mb-5">
+                    Pronto recibirás nuestros mejores tips de viaje. ✈️
+                  </p>
+                  <button
+                    onClick={() => { setShowExitIntent(false); setShowForm(true); }}
+                    className="bg-gradient-to-r from-orange-500 to-pink-500 text-white px-6 py-3 rounded-xl font-bold hover:opacity-90 transition-all"
+                  >
+                    Planificar mi viaje ahora →
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
