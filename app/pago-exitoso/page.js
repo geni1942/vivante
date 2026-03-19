@@ -75,10 +75,12 @@ function buildAirlineUrl(aerolinea, origenIata, destinoIata, fechaSalida, fechaR
     return url;
   }
   if (a.includes('jetsmart')) {
-    return `https://book.jetsmart.com/S7/pasajeros?o1=${o}&d1=${d}&dp1=${dep}&r=${ret}&pc=0&ac=${n}&cc=0&bc=0&mon=true&culture=es-CL`;
+    // JetSmart usa Navitaire con código IATA "JA" (no S7 que es Siberia Airlines)
+    return `https://book.jetsmart.com/JA/pasajeros?o1=${o}&d1=${d}&dp1=${dep}&r=${ret}&pc=0&ac=${n}&cc=0&bc=0&mon=true&culture=es-CL`;
   }
   if (a.includes('sky') && !a.includes('scanner')) {
-    return `https://www.skyairline.com/es-cl/vuelos?from=${o}&to=${d}&departure=${s}&adults=${n}`;
+    // Sky Airline espera fecha en formato YYYY-MM-DD (dep), no YYYYMMDD (s)
+    return `https://www.skyairline.com/es-cl/vuelos?from=${o}&to=${d}&departure=${dep}&adults=${n}`;
   }
   if (a.includes('avianca')) {
     return `https://www.avianca.com/es-cl/vuelos/?origin=${o}&destination=${d}&departureDate=${dep}&returnDate=${ret}&adults=${n}`;
@@ -122,8 +124,15 @@ function buildAirlineUrl(aerolinea, origenIata, destinoIata, fechaSalida, fechaR
   }
 
   // ── Europeas ──────────────────────────────────────────────────────────────
-  if (a.includes('iberia')) {
-    return `https://www.iberia.com/es/vuelos/?from=${o}&to=${d}&departureDate=${dep}&returnDate=${ret}&adults=${n}`;
+  if (a.includes('iberia') && !a.includes('express')) {
+    // URL actualizada — formato con parámetros en CamelCase que usa el motor de Iberia
+    return `https://www.iberia.com/es/vuelos/?Adults=${n}&Cabin=Y&Origin=${o}&Destination=${d}&DepartureDate=${dep}&ReturnDate=${ret}&TripType=R`;
+  }
+  if (a.includes('iberia express') || (a.includes('iberia') && a.includes('express'))) {
+    return `https://booking.iberiaexpress.com/es/vuelos?adults=${n}&origin=${o}&destination=${d}&departureDate=${dep}&returnDate=${ret}`;
+  }
+  if (a.includes('air europa') || a.includes('aireuropa')) {
+    return `https://www.aireuropa.com/es/vuelos?origen=${o}&destino=${d}&tipoViaje=2&fechaIda=${dep}&fechaVuelta=${ret}&adultos=${n}`;
   }
   if (a.includes('turkish') || a.includes('thy')) {
     return `https://www.turkishairlines.com/en-int/flights/find-flights/?fromPort=${o}&toPort=${d}&departureDate=${dep}&returnDate=${ret}&passengerCount=${n}`;
