@@ -1105,15 +1105,17 @@ export default function TravelForm({ onClose, initialDestino = '' }) {
                   <input type="email" placeholder="tu@email.com" value={formData.email} onChange={(e) => {
                     const newEmail = e.target.value;
                     setFormData({ ...formData, email: newEmail });
-                    // Guardar lead inmediatamente para remarketing si abandona
+                    // Guardar lead para remarketing (localStorage + Brevo)
                     if (newEmail.includes('@') && newEmail.includes('.')) {
                       try {
-                        localStorage.setItem('vivante_lead', JSON.stringify({
-                          email: newEmail,
-                          nombre: formData.nombre,
-                          destino: formData.destino,
-                          ts: Date.now(),
-                        }));
+                        const lead = { email: newEmail, nombre: formData.nombre, destino: formData.destino, ts: Date.now() };
+                        localStorage.setItem('vivante_lead', JSON.stringify(lead));
+                        // POST al servidor → Brevo Contacts (fire-and-forget)
+                        fetch('/api/lead', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ email: newEmail, nombre: formData.nombre, destino: formData.destino }),
+                        }).catch(() => {});
                       } catch (_) {}
                     }
                   }} className="w-full p-4 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none" />
