@@ -23,22 +23,64 @@ export async function POST(request) {
     });
     const currentYear = new Date().getFullYear();
 
+    // ── Validación de presupuesto vs destino ────────────────────────────────
+    const presupuesto = formData.presupuesto || 0;
+    const destino     = (formData.destino || '').toLowerCase();
+    const origen      = (formData.origen  || 'Santiago').toLowerCase();
+    const dias        = formData.dias || 7;
+
+    // Umbrales mínimos estimados para viaje completo desde Chile (vuelo + alojamiento + comidas)
+    const umbralMin = (() => {
+      if (destino.includes('chile') || !destino) return 300;
+      if (/argentina|uruguay|bolivia|perú|peru/.test(destino)) return 800;
+      if (/brasil|colombia|ecuador|venezuela|paraguay/.test(destino)) return 1200;
+      if (/méxico|mexico|cuba|caribe|dominicana|costa rica|panamá|panama/.test(destino)) return 1500;
+      if (/eeuu|ee\.uu|estados unidos|new york|miami|florida|california|chicago/.test(destino)) return 2000;
+      if (/canadá|canada/.test(destino)) return 2200;
+      if (/europa|españa|portugal|francia|italia|alemania|reino unido|grecia|turquía|turquia/.test(destino)) return 2500;
+      if (/japón|japon|china|corea|tailandia|vietnam|india|indonesia|singapur|asia/.test(destino)) return 3000;
+      if (/australia|nueva zelanda|oceanía|oceania/.test(destino)) return 4000;
+      return 1500; // internacional genérico
+    })();
+
+    const budgetWarning = presupuesto < umbralMin ? `
+⚠️ ALERTA DE PRESUPUESTO: El cliente tiene $${presupuesto} USD/persona pero el viaje a ${formData.destino || 'este destino'} típicamente cuesta $${umbralMin}+ USD/persona.
+DEBES:
+1. Mencionarlo con empatía en el campo "resumen.ritmo" o añadir una nota en "resumen.distribucion": "⚠️ Tu presupuesto es ajustado para este destino — considera fechas flexibles y hostels."
+2. Adaptar TODAS las recomendaciones al presupuesto real: hostels/Airbnb económico, comida callejera, actividades gratuitas.
+3. En presupuesto_desglose.total NO superar $${presupuesto * 1.1} USD.
+4. Si el presupuesto solo alcanza para el pasaje (menos de $${Math.round(umbralMin * 0.4)} USD), indicarlo claramente y sugerir destinos alternativos más económicos.` : '';
+
     const clienteCtx = `
 DATOS DEL CLIENTE:
 - Nombre: ${formData.nombre}
 - Destino: ${formData.destino || 'Destino flexible'}
 - Origen: ${formData.origen || 'Santiago, Chile'}
-- Presupuesto: $${formData.presupuesto >= 15000 ? '15.000+' : formData.presupuesto} USD por persona
-- Duración: ${formData.dias} días
+- Presupuesto: $${presupuesto >= 15000 ? '15.000+' : presupuesto} USD por persona (TOTAL para TODO el viaje: vuelos + alojamiento + comidas + actividades)
+- Duración: ${dias} días
 - Tipo de viajero: ${formData.tipoViaje || 'pareja'}
 - Número de viajeros: ${formData.numViajeros || 2}
 - Intereses: ${Array.isArray(formData.intereses) ? formData.intereses.join(', ') : (formData.intereses || 'cultura, gastronomía')}
 - Ritmo: ${formData.ritmo <= 2 ? 'Relajado (max 2 actividades/día)' : formData.ritmo <= 3 ? 'Moderado (2-3 actividades)' : 'Intenso (3-4 actividades)'}
 - Alojamiento preferido: ${formData.alojamiento || 'hotel'}
-
+${budgetWarning}
 Hoy es ${today}. Los precios, vuelos y datos de alojamiento deben ser realistas para esta fecha.
-Para fecha_salida y fecha_regreso: propón fechas REALES en formato YYYY-MM-DD, mínimo 6-8 semanas desde hoy (${today}), en temporada ideal para el destino. fecha_regreso = fecha_salida + ${formData.dias} días.
+Para fecha_salida y fecha_regreso: propón fechas REALES en formato YYYY-MM-DD, mínimo 6-8 semanas desde hoy (${today}), en temporada ideal para el destino. fecha_regreso = fecha_salida + ${dias} días.
 Para origen_iata y destino_iata: código IATA de 3 letras del aeropuerto principal.`;
+
+    // Plataformas según preferencia del cliente
+    const alojPref = formData.alojamiento || 'hotel';
+    const platEco  = alojPref === 'hostal'  ? 'Hostelworld'
+                   : alojPref === 'airbnb'  ? 'Airbnb'
+                   : alojPref === 'bnb'     ? 'Booking.com'
+                   : 'Booking.com';
+    const platMid  = alojPref === 'hostal'  ? 'Hostelworld'
+                   : alojPref === 'airbnb'  ? 'Airbnb'
+                   : alojPref === 'bnb'     ? 'Booking.com'
+                   : 'Booking.com';
+    const platPrem = alojPref === 'hostal'  ? 'Hostelworld'
+                   : alojPref === 'airbnb'  ? 'Airbnb'
+                   : 'Airbnb';
 
     const alojamientoSchema = `
 "alojamiento": [
@@ -47,7 +89,7 @@ Para origen_iata y destino_iata: código IATA de 3 letras del aeropuerto princip
     "noches": número,
     "opciones": [
       {
-        "plataforma": "Booking.com",
+        "plataforma": "${platEco}",
         "nombre": "string (nombre real del alojamiento)",
         "categoria": "Económico",
         "precio_noche": "string en USD",
@@ -55,10 +97,10 @@ Para origen_iata y destino_iata: código IATA de 3 letras del aeropuerto princip
         "cancelacion": "Gratuita",
         "highlights": ["string feature 1", "string feature 2"],
         "por_que": "string en voz VIVANTE cálida y directa",
-        "link": "URL directa del alojamiento en la plataforma o URL de búsqueda: https://www.booking.com/searchresults.html?ss=CIUDAD&group_adults=VIAJEROS"
+        "link": "URL de búsqueda: https://www.booking.com/searchresults.html?ss=CIUDAD&group_adults=VIAJEROS"
       },
       {
-        "plataforma": "${formData.alojamiento === 'airbnb' ? 'Airbnb' : formData.alojamiento === 'hostal' ? 'Hostelworld' : 'Booking.com'}",
+        "plataforma": "${platMid}",
         "nombre": "string",
         "categoria": "Confort",
         "precio_noche": "string",
@@ -69,7 +111,7 @@ Para origen_iata y destino_iata: código IATA de 3 letras del aeropuerto princip
         "link": "URL"
       },
       {
-        "plataforma": "Airbnb",
+        "plataforma": "${platPrem}",
         "nombre": "string",
         "categoria": "Premium",
         "precio_noche": "string",
@@ -77,7 +119,7 @@ Para origen_iata y destino_iata: código IATA de 3 letras del aeropuerto princip
         "cancelacion": "string",
         "highlights": ["string"],
         "por_que": "string",
-        "link": "URL directa o búsqueda: https://www.airbnb.com/s/CIUDAD/homes"
+        "link": "URL de búsqueda: https://www.airbnb.com/s/CIUDAD/homes"
       }
     ]
   }
@@ -129,6 +171,7 @@ REGLAS IMPORTANTES:
 - VUELOS: Usa tu conocimiento real de rutas aéreas. Incluye mínimo 3 aerolíneas distintas. SOLO pon escala="Directo" si existe un vuelo directo real en esa ruta específica. Si NO hay vuelo directo, nunca lo inventes — pon la mejor conexión con ciudad real de escala (ej: "1 escala en Lima"). En el campo "ruta" especifica siempre las ciudades de escala reales (ej: "SCL → BOG → NRT").
 - ALOJAMIENTO: Recomienda SOLO hoteles/alojamientos con nombre REAL y verificable. Prioriza cadenas conocidas (Hilton, Marriott, NH, Ibis, Radisson, Hyatt, etc.) o boutiques con alta presencia online. NUNCA inventes nombres de hoteles. SIEMPRE incluye EXACTAMENTE 3 opciones por ciudad: Económico, Confort y Premium. Nunca menos de 3.
 - RESTAURANTES: incluye exactamente 3 restaurantes por cada ciudad/destino visitado, agrupados por ciudad.
+- PRESUPUESTO: El presupuesto indicado ($${presupuesto} USD) es el TOTAL por persona para TODO el viaje. El campo presupuesto_desglose.total NO debe superar ese valor. Adapta vuelos, alojamiento y actividades a esa realidad. Si el presupuesto es insuficiente para el destino elegido, usa el campo resumen.ritmo para incluir una nota como "⚠️ Presupuesto ajustado — hemos optimizado el itinerario para sacar el máximo con tu presupuesto."
 
 GENERA JSON puro (sin markdown, sin \`\`\`):
 {
@@ -236,6 +279,7 @@ REGLAS IMPORTANTES:
 - VUELOS: Usa tu conocimiento real de rutas aéreas. Incluye mínimo 3 aerolíneas distintas. SOLO pon escala="Directo" si existe un vuelo directo real en esa ruta específica. Si NO hay vuelo directo, nunca lo inventes — pon la mejor conexión con ciudad real de escala (ej: "1 escala en Lima"). En el campo "ruta" especifica siempre las ciudades de escala reales (ej: "SCL → BOG → NRT").
 - ALOJAMIENTO: Recomienda SOLO hoteles/alojamientos con nombre REAL y verificable. Prioriza cadenas conocidas (Hilton, Marriott, NH, Ibis, Radisson, Hyatt, etc.) o boutiques con alta presencia online. NUNCA inventes nombres de hoteles. SIEMPRE incluye EXACTAMENTE 3 opciones por ciudad: Económico, Confort y Premium. Nunca menos de 3.
 - RESTAURANTES: incluye exactamente 3 restaurantes por cada ciudad/destino visitado, agrupados por ciudad.
+- PRESUPUESTO: El presupuesto indicado ($${presupuesto} USD) es el TOTAL por persona para TODO el viaje. El campo presupuesto_desglose.total NO debe superar ese valor. Adapta todas las recomendaciones (vuelos, alojamiento, actividades, restaurantes) a esa realidad. Si el presupuesto es insuficiente para el destino elegido, usa resumen.ritmo para incluir una nota como "⚠️ Presupuesto ajustado — optimizamos el itinerario para sacar el máximo con tu presupuesto."
 - TRANSPORTE aeropuerto→centro: lista TODAS las opciones disponibles (Uber, Taxi, Metro, Bus express, Tren, etc.) con costo estimado y duración en el array opciones_aeropuerto_centro.
 - BARES: en bares_vida_nocturna usa un objeto cuyas claves son los nombres REALES de las ciudades visitadas. Incluye EXACTAMENTE 2 bares/lugares por ciudad.
 - EXTRAS: las categorías deben relacionarse directamente con los intereses del cliente (${Array.isArray(formData.intereses) ? formData.intereses.join(', ') : 'cultura, aventura'}). Ejemplo: si tiene 'gastronomia' → categoría gastronómica; si tiene 'aventura' → actividades de adrenalina. Siempre incluir una categoría "Para días de lluvia o descanso".
