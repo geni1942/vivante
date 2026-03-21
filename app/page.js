@@ -91,10 +91,10 @@ export default function Home() {
             <Image
               src="/images/vivante_logo.svg"
               alt="VIVANTE"
-              width={130}
-              height={95}
+              width={180}
+              height={130}
               priority
-              style={{ height: '46px', width: 'auto' }}
+              style={{ height: '64px', width: 'auto' }}
             />
           </div>
           <button
@@ -628,9 +628,9 @@ export default function Home() {
               <Image
                 src="/images/vivante_logo.svg"
                 alt="VIVANTE"
-                width={110}
-                height={80}
-                style={{ height: '40px', width: 'auto' }}
+                width={150}
+                height={108}
+                style={{ height: '56px', width: 'auto' }}
               />
             </div>
 
