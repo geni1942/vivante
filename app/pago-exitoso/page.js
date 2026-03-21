@@ -65,172 +65,70 @@ function alojamientoLink(op, destino, checkin, checkout, adults) {
   return `https://www.booking.com/searchresults.html?${p}`;
 }
 
-// ─── Airline deep-links — DIRECTO a la aerolínea, nunca a agregadores ────────
-function buildAirlineUrl(aerolinea, origenIata, destinoIata, fechaSalida, fechaRegreso, numViajeros) {
-  if (!origenIata || !destinoIata || !fechaSalida) return null;
-  const s   = fechaSalida.replace(/-/g, '');                    // YYYYMMDD
-  const r   = fechaRegreso ? fechaRegreso.replace(/-/g, '') : '';
-  const n   = numViajeros || 1;
-  const a   = (aerolinea || '').toLowerCase();
-  const o   = origenIata;
-  const d   = destinoIata;
-  const dep = fechaSalida;          // YYYY-MM-DD
-  const ret = fechaRegreso || '';
+// ─── Airline URLs — página principal de cada aerolínea ────────────────────────
+function buildAirlineUrl(aerolinea, origenIata, destinoIata, fechaSalida, fechaRegreso) {
+  const a = (aerolinea || '').toLowerCase();
 
   // ── Latinoamericanas ──────────────────────────────────────────────────────
-  if (a.includes('latam')) {
-    let url = `https://www.latam.com/es_cl/apps/personas/booking?fecha1_outbound=${s}&from=${o}&to=${d}&nro_adu=${n}&cabina=Y&openDatePicker=false`;
-    if (r) url += `&fecha1_inbound=${r}`;
-    return url;
-  }
-  if (a.includes('jetsmart')) {
-    // JetSmart usa Navitaire con código IATA "JA" (no S7 que es Siberia Airlines)
-    return `https://book.jetsmart.com/JA/pasajeros?o1=${o}&d1=${d}&dp1=${dep}&r=${ret}&pc=0&ac=${n}&cc=0&bc=0&mon=true&culture=es-CL`;
-  }
-  if (a.includes('sky') && !a.includes('scanner')) {
-    // Sky Airline espera fecha en formato YYYY-MM-DD (dep), no YYYYMMDD (s)
-    return `https://www.skyairline.com/es-cl/vuelos?from=${o}&to=${d}&departure=${dep}&adults=${n}`;
-  }
-  if (a.includes('avianca')) {
-    return `https://www.avianca.com/es-cl/vuelos/?origin=${o}&destination=${d}&departureDate=${dep}&returnDate=${ret}&adults=${n}`;
-  }
-  if (a.includes('copa')) {
-    return `https://www.copaair.com/es-gs/comprar/buscar-vuelos/?origin=${o}&destination=${d}&departure=${dep}&return=${ret}&adult=${n}&cabin=Y`;
-  }
-  if (a.includes('aerolineas') || a.includes('aerolíneas') || a.includes('argentinas')) {
-    return `https://www.aerolineas.com.ar/es-ar/vuelos?origin=${o}&destination=${d}&departure=${dep}&return=${ret}&adults=${n}`;
-  }
-  if (a.includes('aeromexico') || a.includes('aeroméxico')) {
-    return `https://aeromexico.com/en-us/flight-booking?origin=${o}&destination=${d}&departureDate=${dep}&returnDate=${ret}&adults=${n}&triptype=RT`;
-  }
-  if (a.includes('gol')) {
-    return 'https://www.voegol.com.br/';
-  }
-  if (a.includes('azul')) {
-    return 'https://www.voeazul.com.br/';
-  }
-  if (a.includes('tam') && !a.includes('latam')) {
-    let url = `https://www.latam.com/pt_br/apps/personas/booking?fecha1_outbound=${s}&from=${o}&to=${d}&nro_adu=${n}&cabina=Y&openDatePicker=false`;
-    if (r) url += `&fecha1_inbound=${r}`;
-    return url;
-  }
+  if (a.includes('latam'))                                                        return 'https://www.latam.com/';
+  if (a.includes('jetsmart'))                                                     return 'https://www.jetsmart.com/';
+  if (a.includes('sky') && !a.includes('scanner'))                               return 'https://www.skyairline.com/';
+  if (a.includes('avianca'))                                                      return 'https://www.avianca.com/';
+  if (a.includes('copa'))                                                         return 'https://www.copaair.com/';
+  if (a.includes('aerolineas') || a.includes('aerolíneas') || a.includes('argentinas')) return 'https://www.aerolineas.com.ar/';
+  if (a.includes('aeromexico') || a.includes('aeroméxico'))                      return 'https://www.aeromexico.com/';
+  if (a.includes('gol'))                                                          return 'https://www.voegol.com.br/';
+  if (a.includes('azul'))                                                         return 'https://www.voeazul.com.br/';
+  if (a.includes('tam'))                                                          return 'https://www.latam.com/'; // TAM = LATAM Brazil
 
   // ── Norteamericanas ───────────────────────────────────────────────────────
-  if (a.includes('american')) {
-    return `https://www.aa.com/booking/search?requestType=MASM&searchType=R&passengers=${n}&origin=${o}&destination=${d}&departureDate=${dep}&returnDate=${ret}&isFlexibleDate=false`;
-  }
-  if (a.includes('united')) {
-    return `https://www.united.com/en/us/flights/search#f=${o}&t=${d}&d=${dep}&r=${ret}&tt=2&px=${n}`;
-  }
-  if (a.includes('delta')) {
-    return `https://www.delta.com/us/en/flight-search/book-a-flight#origin=${o}&departure=${dep}&destination=${d}&return=${ret}&adults=${n}&tripType=roundtrip`;
-  }
-  if (a.includes('air canada')) {
-    return `https://www.aircanada.com/en-ca/book-trip/flight/search#origin=${o}&destination=${d}&departureDate=${dep}&returnDate=${ret}&adults=${n}`;
-  }
-  if (a.includes('westjet')) {
-    return `https://www.westjet.com/en-ca/book-trip/flight/search?origin=${o}&destination=${d}&departureDate=${dep}&returnDate=${ret}&adults=${n}`;
-  }
+  if (a.includes('american'))                                                     return 'https://www.aa.com/';
+  if (a.includes('united'))                                                       return 'https://www.united.com/';
+  if (a.includes('delta'))                                                        return 'https://www.delta.com/';
+  if (a.includes('air canada'))                                                   return 'https://www.aircanada.com/';
+  if (a.includes('westjet'))                                                      return 'https://www.westjet.com/';
 
   // ── Europeas ──────────────────────────────────────────────────────────────
-  if (a.includes('iberia') && !a.includes('express')) {
-    // Iberia deep-link: /comprar/vuelos/ con fechas YYYY-MM-DD
-    return `https://www.iberia.com/es/comprar/vuelos/?adults=${n}&children=0&infants=0&origin=${o}&destination=${d}&departure=${dep}${ret ? `&return=${ret}&triptype=R` : '&triptype=OW'}`;
-  }
-  if (a.includes('iberia express') || (a.includes('iberia') && a.includes('express'))) {
-    return `https://booking.iberiaexpress.com/es/vuelos?adults=${n}&origin=${o}&destination=${d}&departureDate=${dep}&returnDate=${ret}`;
-  }
-  if (a.includes('air europa') || a.includes('aireuropa')) {
-    return `https://www.aireuropa.com/es/vuelos?origen=${o}&destino=${d}&tipoViaje=2&fechaIda=${dep}&fechaVuelta=${ret}&adultos=${n}`;
-  }
-  if (a.includes('turkish') || a.includes('thy')) {
-    return `https://www.turkishairlines.com/en-int/flights/find-flights/?fromPort=${o}&toPort=${d}&departureDate=${dep}&returnDate=${ret}&passengerCount=${n}`;
-  }
-  if (a.includes('air france') || a.includes('airfrance')) {
-    return `https://www.airfrance.com/booking/offers?departureCityCode=${o}&arrivalCityCode=${d}&departureDate=${dep}&returnDate=${ret}&adultNumber=${n}&tripType=ROUND_TRIP`;
-  }
-  if (a.includes('klm')) {
-    return `https://www.klm.com/search/flights?lang=en&flightType=RT&origin=${o}&destination=${d}&outboundDate=${dep}&inboundDate=${ret}&adults=${n}`;
-  }
-  if (a.includes('lufthansa')) {
-    return `https://www.lufthansa.com/de/en/flight-search?adults=${n}&origin=${o}&destination=${d}&departureDate=${dep}&returnDate=${ret}`;
-  }
-  if (a.includes('swiss')) {
-    return `https://www.swiss.com/de/en/book/flights?origin=${o}&destination=${d}&departureDate=${dep}&returnDate=${ret}&adults=${n}`;
-  }
-  if (a.includes('austrian')) {
-    return `https://www.austrian.com/de/en/flight-search?origin=${o}&destination=${d}&departureDate=${dep}&returnDate=${ret}&adults=${n}`;
-  }
-  if (a.includes('british') || (a.includes('ba') && a.length < 6)) {
-    return `https://www.britishairways.com/travel/book/public/en_gb?from=${o}&to=${d}&depart=${dep}&return=${ret}&adult=${n}&cabin=M`;
-  }
-  if (a.includes('tap') || (a.includes('portugal') && !a.includes('tap'))) {
-    return `https://www.flytap.com/en-us/book-trip/search?outboundDate=${dep}&inboundDate=${ret}&origin=${o}&destination=${d}&adults=${n}&tripType=RT`;
-  }
-  if (a.includes('norwegian')) {
-    return `https://www.flynorwegian.com/en/flights/?from=${o}&to=${d}&dep=${dep}&ret=${ret}&adults=${n}`;
-  }
-  if (a.includes('easyjet')) {
-    return `https://www.easyjet.com/en/cheap-flights?from=${o}&to=${d}&dep=${dep}`;
-  }
-  if (a.includes('ryanair')) {
-    return `https://www.ryanair.com/us/en/trip/flights/search?adults=${n}&dateOut=${dep}&dateIn=${ret}&isReturn=true&originIata=${o}&destinationIata=${d}`;
-  }
-  if (a.includes('finnair')) {
-    return `https://www.finnair.com/en/book/flights?origin=${o}&destination=${d}&departureDate=${dep}&returnDate=${ret}&adults=${n}`;
-  }
-  if (a.includes('ita airways') || a.includes('ita air')) {
-    return `https://www.ita-airways.com/en_us/flights.html?from=${o}&to=${d}&departureDate=${dep}&returnDate=${ret}&adults=${n}`;
-  }
+  if (a.includes('iberia express') || (a.includes('iberia') && a.includes('express'))) return 'https://www.iberiaexpress.com/';
+  if (a.includes('iberia'))                                                       return 'https://www.iberia.com/';
+  if (a.includes('air europa') || a.includes('aireuropa'))                       return 'https://www.aireuropa.com/';
+  if (a.includes('turkish') || a.includes('thy'))                                return 'https://www.turkishairlines.com/';
+  if (a.includes('air france') || a.includes('airfrance'))                       return 'https://www.airfrance.com/';
+  if (a.includes('klm'))                                                          return 'https://www.klm.com/';
+  if (a.includes('lufthansa'))                                                    return 'https://www.lufthansa.com/';
+  if (a.includes('swiss'))                                                        return 'https://www.swiss.com/';
+  if (a.includes('austrian'))                                                     return 'https://www.austrian.com/';
+  if (a.includes('british') || (a.includes('ba') && a.length < 6))              return 'https://www.britishairways.com/';
+  if (a.includes('tap') || (a.includes('portugal') && !a.includes('tap')))       return 'https://www.flytap.com/';
+  if (a.includes('norwegian'))                                                    return 'https://www.norwegian.com/';
+  if (a.includes('easyjet'))                                                      return 'https://www.easyjet.com/';
+  if (a.includes('ryanair'))                                                      return 'https://www.ryanair.com/';
+  if (a.includes('finnair'))                                                      return 'https://www.finnair.com/';
+  if (a.includes('ita airways') || a.includes('ita air'))                        return 'https://www.ita-airways.com/';
 
   // ── Medio Oriente / África ────────────────────────────────────────────────
-  if (a.includes('qatar')) {
-    return `https://www.qatarairways.com/en-us/homepage.html?origin=${o}&destination=${d}&triptype=R&outboundDate=${dep}&inboundDate=${ret}&adult=${n}`;
-  }
-  if (a.includes('emirates')) {
-    return `https://www.emirates.com/en/english/book/flights/?type=return&adult=${n}&from=${o}&to=${d}&Departure=${dep}&return=${ret}`;
-  }
-  if (a.includes('ethiopian')) {
-    return `https://www.ethiopianairlines.com/en/book/results?origin=${o}&destination=${d}&departureDate=${dep}&returnDate=${ret}&adults=${n}`;
-  }
+  if (a.includes('qatar'))                                                        return 'https://www.qatarairways.com/';
+  if (a.includes('emirates'))                                                     return 'https://www.emirates.com/';
+  if (a.includes('ethiopian'))                                                    return 'https://www.ethiopianairlines.com/';
 
   // ── Asiáticas ─────────────────────────────────────────────────────────────
-  if (a.includes('japan airlines') || a.includes('jal')) {
-    return `https://www.jal.co.jp/en/international/booking/search/?departureAirport=${o}&arrivalAirport=${d}&departureDate=${s}&returnDate=${r}&adults=${n}`;
-  }
-  if (a.includes('all nippon') || /\bana\b/.test(a)) {
-    return `https://www.ana.co.jp/en/us/plan-book/find-flights/?from=${o}&to=${d}&departureDate=${dep}&returnDate=${ret}&adults=${n}`;
-  }
-  if (a.includes('singapore')) {
-    return `https://www.singaporeair.com/en_UK/us/plan-travel/find-a-flight/?tripType=R&fromCode=${o}&toCode=${d}&departDate=${dep}&returnDate=${ret}&numAdults=${n}`;
-  }
-  if (a.includes('cathay')) {
-    return `https://www.cathaypacific.com/cx/en_US/book-a-trip/book-flight.html?origin=${o}&destination=${d}&departureDate=${dep}&returnDate=${ret}&adults=${n}`;
-  }
-  if (a.includes('korean air')) {
-    return `https://www.koreanair.com/content/koreanair/en_US/booking.html?from=${o}&to=${d}&date=${dep}&returnDate=${ret}&pax=${n}`;
-  }
-  if (a.includes('asiana')) {
-    return `https://www.flyasiana.com/C/en/main#/flight/search?origin=${o}&destination=${d}&departureDate=${dep}&returnDate=${ret}&adults=${n}`;
-  }
-  if (a.includes('thai')) {
-    return `https://www.thaiairways.com/en_TH/book_fly/search_flight/search_result.page?from=${o}&to=${d}&departDate=${dep}&returnDate=${ret}&adults=${n}`;
-  }
-  if (a.includes('malaysia')) {
-    return `https://www.malaysiaairlines.com/my/en/plan-your-trip/book.html?from=${o}&to=${d}&departureDate=${dep}&returnDate=${ret}&adults=${n}`;
-  }
-  if (a.includes('air new zealand')) {
-    return `https://www.airnewzealand.com/book?from=${o}&to=${d}&departureDate=${dep}&returnDate=${ret}&adults=${n}`;
-  }
-  if (a.includes('eva air') || (a.includes('eva') && !a.includes('evacuacion'))) {
-    return `https://www.evaair.com/en-global/book/flight-booking/?from=${o}&to=${d}&departureDate=${dep}&returnDate=${ret}&adults=${n}`;
-  }
-  if (a.includes('china airlines')) {
-    return `https://www.china-airlines.com/us/en/book/booking/flight-booking.html?from=${o}&to=${d}&departure=${dep}&return=${ret}&adult=${n}`;
-  }
+  if (a.includes('japan airlines') || a.includes('jal'))                         return 'https://www.jal.co.jp/';
+  if (a.includes('all nippon') || /\bana\b/.test(a))                             return 'https://www.ana.co.jp/';
+  if (a.includes('singapore'))                                                    return 'https://www.singaporeair.com/';
+  if (a.includes('cathay'))                                                       return 'https://www.cathaypacific.com/';
+  if (a.includes('korean air'))                                                   return 'https://www.koreanair.com/';
+  if (a.includes('asiana'))                                                       return 'https://www.flyasiana.com/';
+  if (a.includes('thai'))                                                         return 'https://www.thaiairways.com/';
+  if (a.includes('malaysia'))                                                     return 'https://www.malaysiaairlines.com/';
+  if (a.includes('air new zealand'))                                              return 'https://www.airnewzealand.com/';
+  if (a.includes('eva air') || (a.includes('eva') && !a.includes('evacuacion'))) return 'https://www.evaair.com/';
+  if (a.includes('china airlines'))                                               return 'https://www.china-airlines.com/';
 
-  // ── Fallback: Google Flights (aerolínea no reconocida → siempre hay botón) ─
-  return `https://www.google.com/travel/flights#flt=${o}.${d}.${dep}${ret ? `*${d}.${o}.${ret}` : ''};c:USD;e:1;sd:1;t:f`;
+  // ── Fallback: Google Flights (aerolínea no reconocida) ────────────────────
+  if (!origenIata || !destinoIata || !fechaSalida) return null;
+  const dep = fechaSalida;
+  const ret = fechaRegreso || '';
+  return `https://www.google.com/travel/flights#flt=${origenIata}.${destinoIata}.${dep}${ret ? `*${destinoIata}.${origenIata}.${ret}` : ''};c:USD;e:1;sd:1;t:f`;
 }
 
 function formatDate(d) {
