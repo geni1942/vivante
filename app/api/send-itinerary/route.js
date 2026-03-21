@@ -73,21 +73,13 @@ function buildConfirmationEmail(formData, itinerario, planLabel, fechaTexto) {
 // ─── Helper: Generar PDF del itinerario con pdfmake ───────────────────────────
 async function generateItinerarioPdf(itinerario, formData, planLabel) {
   try {
-    const { default: PdfPrinter } = await import('pdfmake');
-    const vfsModule = await import('pdfmake/build/vfs_fonts.js');
-    const vfsData = vfsModule.default || vfsModule;
-    const vfs = vfsData?.pdfMake?.vfs || vfsData?.vfs || {};
-
-    const fonts = {
-      Roboto: {
-        normal:      Buffer.from(vfs['Roboto-Regular.ttf'],       'base64'),
-        bold:        Buffer.from(vfs['Roboto-Medium.ttf'],        'base64'),
-        italics:     Buffer.from(vfs['Roboto-Italic.ttf'],        'base64'),
-        bolditalics: Buffer.from(vfs['Roboto-MediumItalic.ttf'],  'base64'),
-      },
-    };
-
-    const printer = new PdfPrinter(fonts);
+    // pdfmake/build/pdfmake.js funciona en Node.js y en el browser (API unificada).
+    // Importamos el bundle completo y le asignamos el VFS con las fuentes Roboto.
+    const pdfMakeModule = await import('pdfmake/build/pdfmake.js');
+    const pdfMake = pdfMakeModule.default || pdfMakeModule;
+    const vfsFontsModule = await import('pdfmake/build/vfs_fonts.js');
+    const vfsFonts = vfsFontsModule.default || vfsFontsModule;
+    pdfMake.vfs = vfsFonts?.pdfMake?.vfs || vfsFonts?.vfs || {};
     const coral   = '#FF6332';
     const carbon  = '#212529';
     const purple  = '#6F42C1';
@@ -230,13 +222,17 @@ async function generateItinerarioPdf(itinerario, formData, planLabel) {
       info: { title: itinerario.titulo || 'Itinerario VIVANTE', author: 'VIVANTE' },
     };
 
-    const pdfDoc = printer.createPdfKitDocument(docDefinition);
     return await new Promise((resolve, reject) => {
-      const chunks = [];
-      pdfDoc.on('data', chunk => chunks.push(chunk));
-      pdfDoc.on('end', () => resolve(Buffer.concat(chunks).toString('base64')));
-      pdfDoc.on('error', reject);
-      pdfDoc.end();
+      const timeout = setTimeout(() => reject(new Error('PDF generation timeout')), 30000);
+      try {
+        pdfMake.createPdf(docDefinition).getBase64((base64data) => {
+          clearTimeout(timeout);
+          resolve(base64data);
+        });
+      } catch (err) {
+        clearTimeout(timeout);
+        reject(err);
+      }
     });
   } catch (e) {
     console.error('PDF generation error:', e.message);
@@ -460,7 +456,7 @@ IMPORTANTE sobre plataformas_disponibles: La GRAN MAYORÍA de tours y actividade
 ${clienteCtx}
 
 REGLAS IMPORTANTES:
-- VUELOS: Usa tu conocimiento real de rutas aéreas. Incluye mínimo 3 aerolíneas distintas. SOLO pon escala="Directo" si existe un vuelo directo real en esa ruta específica. Si NO hay vuelo directo, nunca lo inventes — pon la mejor conexión con ciudad real de escala (ej: "1 escala en Lima"). En el campo "ruta" especifica siempre las ciudades de escala reales (ej: "SCL → BOG → NRT").${isDomestic ? ' Si el viaje es DOMÉSTICO, los vuelos son dentro del mismo país — precios en moneda local y sin escalas internacionales.' : ''}
+- VUELOS: Usa tu conocimiento real de rutas aéreas. Incluye mínimo 3 aerolíneas distintas. SOLO pon escala="Directo" si existe un vuelo directo real en esa ruta específica. Si NO hay vuelo directo, nunca lo inventes — pon la mejor conexión con ciudad real de escala (ej: "1 escala en Lima"). En el campo "ruta" especifica siempre las ciudades de escala reales (ej: "SCL → BOG → NRT"). Si existe un vuelo directo en la ruta Y el presupuesto total ($${presupuesto} USD por persona) lo permite, incluye SIEMPRE al menos 1 opción de vuelo directo en el array, aunque cueste más que las opciones con escala.${isDomestic ? ' Si el viaje es DOMÉSTICO, los vuelos son dentro del mismo país — precios en moneda local y sin escalas internacionales.' : ''}
 ${alojRule}
 - RESTAURANTES: Si el viaje se concentra en UNA SOLA ciudad y dura más de 7 días, incluye 5 restaurantes para esa ciudad. Para viajes multi-ciudad o de 7 días o menos, incluye exactamente 3 restaurantes por ciudad visitada.
 - PRESUPUESTO: El presupuesto indicado ($${presupuesto} USD) es el TOTAL por persona para TODO el viaje. El campo presupuesto_desglose.total NO debe superar ese valor. Adapta vuelos, alojamiento y actividades a esa realidad. Si el presupuesto es insuficiente para el destino elegido, usa el campo resumen.ritmo para incluir una nota como "⚠️ Presupuesto ajustado — hemos optimizado el itinerario para sacar el máximo con tu presupuesto."
@@ -589,7 +585,7 @@ ${basicCtx}
 ${clienteCtx}
 
 REGLAS IMPORTANTES:
-- VUELOS: Usa tu conocimiento real de rutas aéreas. Incluye mínimo 3 aerolíneas distintas. SOLO pon escala="Directo" si existe un vuelo directo real en esa ruta específica. Si NO hay vuelo directo, nunca lo inventes — pon la mejor conexión con ciudad real de escala (ej: "1 escala en Lima"). En el campo "ruta" especifica siempre las ciudades de escala reales (ej: "SCL → BOG → NRT").${isDomestic ? ' Si el viaje es DOMÉSTICO, los vuelos son dentro del mismo país — precios en moneda local y sin escalas internacionales.' : ''}
+- VUELOS: Usa tu conocimiento real de rutas aéreas. Incluye mínimo 3 aerolíneas distintas. SOLO pon escala="Directo" si existe un vuelo directo real en esa ruta específica. Si NO hay vuelo directo, nunca lo inventes — pon la mejor conexión con ciudad real de escala (ej: "1 escala en Lima"). En el campo "ruta" especifica siempre las ciudades de escala reales (ej: "SCL → BOG → NRT"). Si existe un vuelo directo en la ruta Y el presupuesto total ($${presupuesto} USD por persona) lo permite, incluye SIEMPRE al menos 1 opción de vuelo directo en el array, aunque cueste más que las opciones con escala.${isDomestic ? ' Si el viaje es DOMÉSTICO, los vuelos son dentro del mismo país — precios en moneda local y sin escalas internacionales.' : ''}
 ${alojRule}
 - RESTAURANTES: Si el viaje se concentra en UNA SOLA ciudad y dura más de 7 días, incluye 5 restaurantes para esa ciudad. Para viajes multi-ciudad o de 7 días o menos, incluye exactamente 3 restaurantes por ciudad visitada.
 - PRESUPUESTO: El presupuesto indicado ($${presupuesto} USD) es el TOTAL por persona para TODO el viaje. El campo presupuesto_desglose.total NO debe superar ese valor. Adapta todas las recomendaciones (vuelos, alojamiento, actividades, restaurantes) a esa realidad. Si el presupuesto es insuficiente para el destino elegido, usa resumen.ritmo para incluir una nota como "⚠️ Presupuesto ajustado — optimizamos el itinerario para sacar el máximo con tu presupuesto."
