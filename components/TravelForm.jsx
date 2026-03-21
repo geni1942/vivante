@@ -29,11 +29,11 @@ const PLACES = [
   'Los Ángeles, Chile','Santa Bárbara, Chile','Mulchén, Chile',
   'Angol, Chile','Traiguén, Chile','Collipulli, Chile',
   'Nueva Imperial, Chile','Carahue, Chile','Puerto Saavedra, Chile',
-  'Villarrica (volcán), Chile','Lanín, Chile','Lonquimay, Chile',
+  'Villarrica (volcán), Chile','Volcán Lanín, Chile','Lonquimay, Chile',
   'Cunco, Chile','Loncoche, Chile','Pitrufquén, Chile',
   'Valdivia (río), Chile','Niebla, Chile','Corral, Chile',
   'Puyehue, Chile','Entre Lagos, Chile','Antillanca, Chile',
-  'Futaleufú, Chile','Palena, Chile','Chaitén, Chile','Santa Bárbara (sur), Chile',
+  'Futaleufú, Chile','Palena, Chile','Chaitén, Chile',
   'Coyhaique, Chile','Puerto Aysén, Chile','Cochrane, Chile','Villa O\'Higgins, Chile',
   'Laguna San Rafael, Chile','Parque Patagonia, Chile',
   'Porvenir, Chile','Cerro Castillo, Chile',
@@ -51,7 +51,7 @@ const PLACES = [
   'Coronel, Chile','Lota, Chile','Arauco, Chile',
   'Lebu, Chile','Cañete, Chile','Tirúa, Chile',
   'Nahuelbuta, Chile','Parque Nahuelbuta, Chile',
-  'Cueva del Milodón, Chile','Cerro Torre (Chile), Chile',
+  'Cueva del Milodón, Chile',
   'Valle de la Luna, Chile','Atacama (desierto), Chile',
   'Geisers del Tatio, Chile','Lagunas Altiplánicas, Chile',
   'Ojos del Salado, Chile','Parque Llanos de Challe, Chile',
@@ -224,7 +224,7 @@ const PLACES = [
   'Pompeya, Italia','Herculano, Italia',
   'Bolzano, Italia','Cortina d\'Ampezzo, Italia','Dolomitas, Italia',
   'Perugia, Italia','Asís, Italia','Orvieto, Italia','Siena, Italia',
-  'San Gimignano, Italia','Lucca, Italia','Pisa, Italia',
+  'San Gimignano, Italia','Lucca, Italia',
   'Cerdeña, Italia','Cagliari, Italia','Olbia, Italia',
   // ── Francia ──
   'París, Francia','Niza, Francia','Lyon, Francia','Burdeos, Francia',
@@ -402,10 +402,10 @@ const PLACES = [
   'Orlando, EE.UU.','Seattle, EE.UU.','Denver, EE.UU.',
   'Grand Canyon, EE.UU.','Yellowstone, EE.UU.','Nashville, EE.UU.',
   'Austin, EE.UU.','Houston, EE.UU.','Dallas, EE.UU.','San Antonio, EE.UU.',
-  'Portland, EE.UU.','San Diego, EE.UU.','Santa Fe, EE.UU.','Sedona, EE.UU.',
+  'Portland, EE.UU.','San Diego, EE.UU.','Santa Barbara, CA, EE.UU.','Santa Fe, EE.UU.','Sedona, EE.UU.',
   'Napa Valley, EE.UU.','Yosemite, EE.UU.','Zion, EE.UU.','Bryce Canyon, EE.UU.',
   'Monument Valley, EE.UU.','Antelope Canyon, EE.UU.',
-  'Nueva Orleans, EE.UU.','Memphis, EE.UU.','Atlanta, EE.UU.','Charlotte, EE.UU.',
+  'Memphis, EE.UU.','Atlanta, EE.UU.','Charlotte, EE.UU.',
   'Philadelphia, EE.UU.','Baltimore, EE.UU.',
   'Minneapolis, EE.UU.','Milwaukee, EE.UU.',
   'Savannah, EE.UU.','Charleston, EE.UU.','Asheville, EE.UU.',
@@ -729,6 +729,7 @@ export default function TravelForm({ onClose, initialDestino = '' }) {
                     const data = await res.json();
                     if (data.init_point) {
                       localStorage.setItem('vivante_formData', JSON.stringify(formData));
+                      localStorage.setItem('vivante_planId', selectedPlan); // Persistir plan para pago-exitoso
                       window.location.href = data.init_point;
                     } else {
                       throw new Error(data.error || 'No se pudo iniciar el pago');
