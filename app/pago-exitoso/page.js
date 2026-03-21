@@ -104,10 +104,10 @@ function buildAirlineUrl(aerolinea, origenIata, destinoIata, fechaSalida, fechaR
     return `https://aeromexico.com/en-us/flight-booking?origin=${o}&destination=${d}&departureDate=${dep}&returnDate=${ret}&adults=${n}&triptype=RT`;
   }
   if (a.includes('gol')) {
-    return `https://www.voegol.com.br/en/reservations/?searchType=RT&AirportIATACode=${o}&DestinationAirportIATACode=${d}&InitialFlight=${s}&ReturnFlight=${r}&NumPassengersAdult=${n}`;
+    return 'https://www.voegol.com.br/';
   }
   if (a.includes('azul')) {
-    return `https://www.voeazul.com.br/en/flights/?from=${o}&to=${d}&date=${dep}&returnDate=${ret}&adults=${n}`;
+    return 'https://www.voeazul.com.br/';
   }
   if (a.includes('tam') && !a.includes('latam')) {
     let url = `https://www.latam.com/pt_br/apps/personas/booking?fecha1_outbound=${s}&from=${o}&to=${d}&nro_adu=${n}&cabina=Y&openDatePicker=false`;
@@ -363,12 +363,12 @@ function ItinerarioContent() {
   const isPro = planId === 'pro';
   const res   = itinerario?.resumen || {};
 
-  // ─── Descargar PDF con html2pdf.js (sin URL de navegador, sin página en blanco) ──
+  // ─── Descargar PDF con html2pdf.js (sin URL de navegador, sin página en blanco, logo en cada página) ──
   const handleDownloadPdf = async () => {
     setPdfLoading(true);
     setPrintAll(true);
     // Esperar que React re-renderice con todas las secciones visibles
-    await new Promise(r => setTimeout(r, 400));
+    await new Promise(r => setTimeout(r, 500));
     try {
       const html2pdfLib = await import('html2pdf.js');
       const html2pdfFn = html2pdfLib.default || html2pdfLib;
@@ -378,24 +378,43 @@ function ItinerarioContent() {
         .split(',')[0]).toLowerCase()
         .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
         .replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-      await new Promise((resolve, reject) => {
-        html2pdfFn()
-          .set({
-            margin: [10, 8, 10, 8],
-            filename: `itinerario-vivante-${destName}.pdf`,
-            image: { type: 'jpeg', quality: 0.92 },
-            html2canvas: { scale: 2, useCORS: true, logging: false, allowTaint: true },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-            pagebreak: { mode: 'avoid-all', before: '.print-break' },
-          })
-          .from(element)
-          .save()
-          .then(resolve)
-          .catch(reject);
-      });
+
+      await html2pdfFn()
+        .set({
+          margin: [14, 8, 10, 8], // top 14mm: espacio para el encabezado en páginas 2+
+          filename: `itinerario-vivante-${destName}.pdf`,
+          image: { type: 'jpeg', quality: 0.92 },
+          html2canvas: { scale: 2, useCORS: true, logging: false, allowTaint: true, scrollY: 0 },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+          // Sin forced page-breaks (evita página 2 vacía). Solo previene cortes internos.
+          pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
+        })
+        .from(element)
+        .toPdf()
+        .get('pdf')
+        .then(pdf => {
+          const totalPages = pdf.internal.getNumberOfPages();
+          for (let i = 2; i <= totalPages; i++) {
+            pdf.setPage(i);
+            // Franja beige de encabezado
+            pdf.setFillColor(252, 248, 244);
+            pdf.rect(0, 0, 210, 12, 'F');
+            // Línea coral separadora
+            pdf.setDrawColor(255, 99, 50);
+            pdf.setLineWidth(0.4);
+            pdf.line(0, 12, 210, 12);
+            // Texto VIVANTE alineado a la derecha
+            pdf.setFontSize(11);
+            pdf.setTextColor(255, 99, 50);
+            pdf.setFont('helvetica', 'bold');
+            pdf.text('VIVANTE', 202, 8, { align: 'right' });
+          }
+          return pdf;
+        })
+        .save();
     } catch (err) {
       console.error('PDF error:', err);
-      window.print(); // fallback
+      window.print();
     } finally {
       setPrintAll(false);
       setPdfLoading(false);
@@ -461,9 +480,9 @@ function ItinerarioContent() {
 
       {/* HEADER */}
       <div style={{ background: C.coral, padding: '20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <img src="/images/vivante_logo.svg" alt="VIVANTE" style={{ height: 52, width: 'auto' }}
+        <img src="/images/vivante_logo.svg" alt="VIVANTE" style={{ height: 72, width: 'auto' }}
           onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }} />
-        <span style={{ display: 'none', color: '#fff', fontFamily: 'Syne, sans-serif', fontSize: 28, fontWeight: 800, letterSpacing: -1 }}>VIVANTE</span>
+        <span style={{ display: 'none', color: '#fff', fontFamily: 'Syne, sans-serif', fontSize: 36, fontWeight: 800, letterSpacing: -1 }}>VIVANTE</span>
       </div>
 
       {/* HERO */}
@@ -538,10 +557,12 @@ function ItinerarioContent() {
 
         {/* CABECERA PDF: solo visible en el PDF generado con html2pdf.js */}
         {printAll && (
-          <div style={{ textAlign: 'center', padding: '16px 0 20px', borderBottom: `3px solid ${C.coral}`, marginBottom: 20 }}>
-            <div style={{ color: C.coral, fontFamily: 'Syne, sans-serif', fontSize: 26, fontWeight: 800, letterSpacing: -1 }}>VIVANTE</div>
-            <div style={{ color: C.carbon, fontSize: 17, fontWeight: 700, marginTop: 4 }}>{itinerario?.titulo || `Itinerario: ${formData?.destino}`}</div>
-            {itinerario?.subtitulo && <div style={{ color: '#666', fontSize: 13, fontStyle: 'italic', marginTop: 3 }}>{itinerario.subtitulo}</div>}
+          <div style={{ background: '#FCF8F4', textAlign: 'center', padding: '28px 0 24px', borderBottom: `3px solid ${C.coral}`, marginBottom: 24 }}>
+            <img src="/images/vivante_logo.svg" alt="VIVANTE" style={{ height: 80, width: 'auto', marginBottom: 10 }}
+              onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }} />
+            <div style={{ display: 'none', color: C.coral, fontFamily: 'Syne, sans-serif', fontSize: 38, fontWeight: 800, letterSpacing: -1, marginBottom: 8 }}>VIVANTE</div>
+            <div style={{ color: C.carbon, fontSize: 18, fontWeight: 700, marginTop: 6 }}>{itinerario?.titulo || `Itinerario: ${formData?.destino}`}</div>
+            {itinerario?.subtitulo && <div style={{ color: '#666', fontSize: 13, fontStyle: 'italic', marginTop: 4 }}>{itinerario.subtitulo}</div>}
           </div>
         )}
 
@@ -675,9 +696,6 @@ function ItinerarioContent() {
                 </tbody>
               </table>
             </div>
-            <p style={{ margin: '12px 0 0', fontSize: 11, color: '#aaa' }}>
-              * Precios estimativos. Los botones abren el buscador de cada aerolínea con origen, destino y fechas pre-cargados.
-            </p>
           </Sec>
         </div>
 
@@ -1260,9 +1278,9 @@ function ItinerarioContent() {
 
       {/* FOOTER */}
       <div style={{ background: C.coral, padding: '32px 20px', textAlign: 'center', marginTop: 12 }}>
-        <img src="/images/vivante_logo.svg" alt="VIVANTE" style={{ height: 44, width: 'auto', marginBottom: 10 }}
+        <img src="/images/vivante_logo.svg" alt="VIVANTE" style={{ height: 64, width: 'auto', marginBottom: 10 }}
           onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }} />
-        <span style={{ display: 'none', color: '#fff', fontFamily: 'Syne, sans-serif', fontSize: 22, fontWeight: 800, marginBottom: 8 }}>VIVANTE</span>
+        <span style={{ display: 'none', color: '#fff', fontFamily: 'Syne, sans-serif', fontSize: 28, fontWeight: 800, marginBottom: 8 }}>VIVANTE</span>
         <p style={{ color: 'rgba(255,255,255,0.9)', margin: '0 0 12px', fontSize: 15 }}>
           ¡Que tengas el viaje de tu vida, {formData?.nombre}! ✈️
         </p>
