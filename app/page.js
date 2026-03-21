@@ -430,7 +430,7 @@ export default function Home() {
               { icon: Plane, title: 'Vuelos recomendados', desc: 'Las mejores opciones según tu origen y presupuesto', color: 'from-blue-500 to-cyan-500' },
               { icon: Hotel, title: 'Alojamiento ideal', desc: 'Hoteles, Airbnb o hostales según tu estilo', color: 'from-purple-500 to-pink-500' },
               { icon: Calendar, title: 'Itinerario día a día', desc: 'Cada día planificado con horarios y actividades', color: 'from-orange-500 to-red-500' },
-              { icon: MapPin, title: 'Lugares secretos', desc: 'Tips de locales que no están en las guías', color: 'from-green-500 to-emerald-500' },
+              { icon: MapPin, title: 'Lugares secretos', desc: 'Tips de locales para una experiencia inolvidable', color: 'from-green-500 to-emerald-500' },
               { icon: Sparkles, title: 'Restaurantes top', desc: 'Dónde comer según tus gustos y presupuesto', color: 'from-yellow-500 to-orange-500' },
               { icon: CheckCircle, title: 'Links directos', desc: 'Todo listo para reservar con un clic', color: 'from-pink-500 to-rose-500' },
             ].map((item, i) => (
