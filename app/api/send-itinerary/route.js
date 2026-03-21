@@ -240,6 +240,126 @@ async function generateItinerarioPdf(itinerario, formData, planLabel) {
   }
 }
 
+// ─── A: Tabla de contexto de viaje por origen→destino ────────────────────────
+// Devuelve texto con info de visa/pasaporte y adaptador para inyectar en el checklist
+function getCountryTravelContext(origenStr, destinoStr) {
+  const o = (origenStr || '').toLowerCase();
+  const d = (destinoStr || '').toLowerCase();
+
+  const isChile = o.includes('chile') || o.includes('santiago') || o.includes('scl') || o.includes('valparaíso') || o.includes('valparaiso') || o.includes('concepción') || o.includes('concepcion');
+
+  // ── Adaptador de enchufe según destino ──────────────────────────────────
+  let adapterInfo = '';
+  if (d.includes('eeuu') || d.includes('estados unidos') || d.includes('usa') || d.includes('nueva york') || d.includes('new york') || d.includes('miami') || d.includes('los angeles') || d.includes('chicago') || d.includes('houston') || d.includes('boston') || d.includes('san francisco') || d.includes('washington') || d.includes('orlando') || d.includes('canadá') || d.includes('canada') || d.includes('toronto') || d.includes('vancouver') || d.includes('montreal') || d.includes('méxico') || d.includes('mexico') || d.includes('colombia') || d.includes('bogotá') || d.includes('bogota') || d.includes('medellín') || d.includes('medellin') || d.includes('cartagena') || d.includes('perú') || d.includes('peru') || d.includes('lima') || d.includes('cusco') || d.includes('ecuador') || d.includes('quito') || d.includes('venezuela') || d.includes('cuba') || d.includes('habana'))
+    adapterInfo = 'Adaptador Tipo A/B (2 patas planas) — imprescindible si llevas enchufes tipo L chilenos';
+  else if (d.includes('europa') || d.includes('españa') || d.includes('france') || d.includes('paris') || d.includes('italia') || d.includes('roma') || d.includes('alemania') || d.includes('berlin') || d.includes('berlín') || d.includes('grecia') || d.includes('atenas') || d.includes('portugal') || d.includes('lisboa') || d.includes('holanda') || d.includes('amsterdam') || d.includes('bélgica') || d.includes('belgica') || d.includes('bruselas') || d.includes('suecia') || d.includes('estocolmo') || d.includes('noruega') || d.includes('oslo') || d.includes('dinamarca') || d.includes('copenhague') || d.includes('suiza') || d.includes('zurich') || d.includes('austria') || d.includes('viena') || d.includes('turquía') || d.includes('turquia') || d.includes('estambul') || d.includes('istanbul') || d.includes('rusia') || d.includes('moscú') || d.includes('croacia') || d.includes('zagreb') || d.includes('hungría') || d.includes('hungria') || d.includes('budapest') || d.includes('polonia') || d.includes('varsovia') || d.includes('república checa') || d.includes('republica checa') || d.includes('praga') || d.includes('madrid') || d.includes('barcelona') || d.includes('sevilla') || d.includes('florencia') || d.includes('venecia') || d.includes('milan') || d.includes('milán') || d.includes('nápoles') || d.includes('napoles') || d.includes('amsterdam') || d.includes('frankfurt'))
+    adapterInfo = 'Adaptador Tipo C/E/F (2 patas redondas) — necesario en casi toda Europa continental';
+  else if (d.includes('reino unido') || d.includes('uk') || d.includes('inglaterra') || d.includes('londres') || d.includes('london') || d.includes('irlanda') || d.includes('dublin') || d.includes('hong kong') || d.includes('singapur') || d.includes('singapore') || d.includes('malasia') || d.includes('malaysia') || d.includes('kuala lumpur'))
+    adapterInfo = 'Adaptador Tipo G (3 patas rectangulares) — Reino Unido, Hong Kong, Singapur y Malasia';
+  else if (d.includes('australia') || d.includes('sídney') || d.includes('sydney') || d.includes('melbourne') || d.includes('brisbane') || d.includes('nueva zelanda') || d.includes('new zealand') || d.includes('auckland'))
+    adapterInfo = 'Adaptador Tipo I (2 patas en V) — Australia y Nueva Zelanda. ¡Mismo que Chile! Podrías no necesitar adaptador';
+  else if (d.includes('brasil') || d.includes('brazil') || d.includes('río de janeiro') || d.includes('rio de janeiro') || d.includes('são paulo') || d.includes('sao paulo') || d.includes('salvador') || d.includes('florianópolis') || d.includes('florianopolis') || d.includes('iguazú') || d.includes('iguazu') || d.includes('foz do iguaçu'))
+    adapterInfo = 'Adaptador Tipo N (2 patas redondas, estándar brasileño) — diferente al chileno, necesitas adaptador';
+  else if (d.includes('japon') || d.includes('japón') || d.includes('tokyo') || d.includes('tokio') || d.includes('osaka') || d.includes('kyoto') || d.includes('hiroshima') || d.includes('nara') || d.includes('sapporo'))
+    adapterInfo = 'Adaptador Tipo A (2 patas planas, 110V) — Japón usa 110V. Verifica que tus dispositivos soporten 110-240V';
+  else if (d.includes('china') || d.includes('beijing') || d.includes('shanghai') || d.includes('chengdu') || d.includes('canton') || d.includes('guangzhou'))
+    adapterInfo = 'Adaptador universal recomendado — China acepta varios tipos de enchufe (A, C, I)';
+  else if (d.includes('india') || d.includes('delhi') || d.includes('mumbai') || d.includes('goa') || d.includes('bangalore') || d.includes('jaipur'))
+    adapterInfo = 'Adaptador universal recomendado — India usa tipos C, D y M según la zona';
+  else if (d.includes('tailandia') || d.includes('thailand') || d.includes('bangkok') || d.includes('phuket') || d.includes('chiang mai') || d.includes('bali') || d.includes('indonesia') || d.includes('jakarta') || d.includes('vietnam') || d.includes('hanoi') || d.includes('ho chi minh') || d.includes('camboya') || d.includes('siem reap'))
+    adapterInfo = 'Adaptador universal recomendado — el Sudeste Asiático tiene múltiples estándares de enchufe';
+  else if (d.includes('argentina') || d.includes('buenos aires') || d.includes('mendoza') || d.includes('bariloche') || d.includes('córdoba') || d.includes('cordoba') || d.includes('salta') || d.includes('uruguay') || d.includes('montevideo') || d.includes('paraguay') || d.includes('asunción') || d.includes('asuncion'))
+    adapterInfo = 'Enchufe Tipo L (igual que Chile) — Argentina, Uruguay y Paraguay usan el mismo tipo. ¡No necesitas adaptador!';
+  else if (d.includes('emiratos') || d.includes('dubai') || d.includes('abu dhabi') || d.includes('qatar') || d.includes('doha'))
+    adapterInfo = 'Adaptador Tipo G o C — Emiratos y Qatar. Mejor llevar adaptador universal';
+  else if (d.includes('sudáfrica') || d.includes('sudafrica') || d.includes('cape town') || d.includes('ciudad del cabo') || d.includes('johannesburg') || d.includes('johannesburgo'))
+    adapterInfo = 'Adaptador Tipo M (3 patas gruesas) — Sudáfrica tiene su propio estándar';
+  else if (d.includes('marruecos') || d.includes('marrakech') || d.includes('fez') || d.includes('casablanca') || d.includes('tánger'))
+    adapterInfo = 'Adaptador Tipo C/E (2 patas redondas) — igual que Europa continental';
+  else if (d.includes('kenia') || d.includes('kenya') || d.includes('nairobi') || d.includes('mombasa'))
+    adapterInfo = 'Adaptador Tipo G (3 patas rectangulares) — Kenia usa el estándar británico';
+  else if (d.includes('maldivas') || d.includes('maldives') || d.includes('islas maldivas'))
+    adapterInfo = 'Adaptador Tipo G (3 patas rectangulares) — Maldivas usa estándar británico';
+  else
+    adapterInfo = 'Adaptador universal recomendado — verifica el tipo de enchufe específico del país de destino';
+
+  // ── Visa / Pasaporte para viajeros chilenos ──────────────────────────────
+  let visaInfo = '';
+  if (isChile) {
+    if (d.includes('eeuu') || d.includes('estados unidos') || d.includes('nueva york') || d.includes('new york') || d.includes('miami') || d.includes('los angeles') || d.includes('chicago') || d.includes('houston') || d.includes('boston') || d.includes('san francisco') || d.includes('washington') || d.includes('orlando'))
+      visaInfo = 'PASAPORTE + ESTA: Los chilenos viajan SIN VISA a EE.UU. pero necesitan ESTA (Electronic System for Travel Authorization, ~US$21). Tramítala en esta-online.us con al menos 72h de anticipación. Pasaporte vigente obligatorio.';
+    else if (d.includes('canadá') || d.includes('canada') || d.includes('toronto') || d.includes('vancouver') || d.includes('montreal') || d.includes('ottawa') || d.includes('calgary'))
+      visaInfo = 'PASAPORTE + eTA: Los chilenos necesitan eTA para Canadá (Electronic Travel Authorization, ~CAD$7), tramitable online en canada.ca. No es visa, se aprueba en minutos. Pasaporte vigente obligatorio.';
+    else if (d.includes('europa') || d.includes('schengen') || d.includes('españa') || d.includes('france') || d.includes('paris') || d.includes('italia') || d.includes('roma') || d.includes('alemania') || d.includes('berlin') || d.includes('berlín') || d.includes('grecia') || d.includes('atenas') || d.includes('portugal') || d.includes('lisboa') || d.includes('holanda') || d.includes('amsterdam') || d.includes('bélgica') || d.includes('belgica') || d.includes('bruselas') || d.includes('suecia') || d.includes('estocolmo') || d.includes('noruega') || d.includes('oslo') || d.includes('dinamarca') || d.includes('copenhague') || d.includes('suiza') || d.includes('zurich') || d.includes('austria') || d.includes('viena') || d.includes('croacia') || d.includes('zagreb') || d.includes('hungría') || d.includes('budapest') || d.includes('polonia') || d.includes('varsovia') || d.includes('república checa') || d.includes('praga') || d.includes('madrid') || d.includes('barcelona') || d.includes('sevilla') || d.includes('florencia') || d.includes('venecia') || d.includes('milan') || d.includes('frankfurt'))
+      visaInfo = 'PASAPORTE (SIN VISA): Los chilenos viajan SIN VISA a toda la Zona Schengen hasta 90 días. Solo pasaporte vigente con al menos 6 meses de validez desde la fecha de regreso. No es necesario el DNI.';
+    else if (d.includes('reino unido') || d.includes('uk') || d.includes('inglaterra') || d.includes('londres') || d.includes('london') || d.includes('irlanda') || d.includes('dublin'))
+      visaInfo = 'PASAPORTE (SIN VISA): Los chilenos viajan SIN VISA al Reino Unido hasta 6 meses. Pasaporte vigente obligatorio. El UK NO forma parte de Schengen — si combinas con Europa, son permisos de entrada separados.';
+    else if (d.includes('australia') || d.includes('sídney') || d.includes('sydney') || d.includes('melbourne') || d.includes('brisbane'))
+      visaInfo = 'PASAPORTE + eVisitor: Los chilenos necesitan eVisitor (subclass 651) para Australia. Es GRATUITO y se tramita online en immi.homeaffairs.gov.au en minutos. Pasaporte vigente obligatorio.';
+    else if (d.includes('nueva zelanda') || d.includes('new zealand') || d.includes('auckland'))
+      visaInfo = 'PASAPORTE + NZeTA: Los chilenos necesitan NZeTA (New Zealand Electronic Travel Authority, ~NZD$23) tramitable online o en la app oficial. Pasaporte vigente obligatorio.';
+    else if (d.includes('japon') || d.includes('japón') || d.includes('tokyo') || d.includes('tokio') || d.includes('osaka') || d.includes('kyoto'))
+      visaInfo = 'PASAPORTE (SIN VISA): Los chilenos viajan SIN VISA a Japón hasta 90 días. Solo pasaporte vigente. Sin trámite previo. Una ventaja enorme frente a otros latinoamericanos.';
+    else if (d.includes('tailandia') || d.includes('thailand') || d.includes('bangkok') || d.includes('phuket') || d.includes('chiang mai'))
+      visaInfo = 'PASAPORTE (SIN VISA): Los chilenos viajan SIN VISA a Tailandia hasta 30 días. Pasaporte vigente obligatorio. Prórroga posible a 60 días en oficina de inmigración local.';
+    else if (d.includes('china') || d.includes('beijing') || d.includes('shanghai') || d.includes('chengdu'))
+      visaInfo = 'PASAPORTE + VISA: Los chilenos necesitan visa para China continental (tramitar en la Embajada China en Santiago). Para Hong Kong no se requiere visa (14 días). Pasaporte con al menos 6 meses de vigencia.';
+    else if (d.includes('hong kong'))
+      visaInfo = 'PASAPORTE (SIN VISA): Los chilenos no necesitan visa para Hong Kong — entrada libre por 14 días. Pasaporte vigente obligatorio.';
+    else if (d.includes('india') || d.includes('delhi') || d.includes('mumbai') || d.includes('goa') || d.includes('jaipur'))
+      visaInfo = 'PASAPORTE + e-VISA: Los chilenos necesitan e-Visa para India (~US$25), tramitable online en indianvisaonline.gov.in. Se obtiene en 72-96h. Pasaporte con al menos 6 meses de vigencia desde el ingreso.';
+    else if (d.includes('brasil') || d.includes('brazil') || d.includes('río de janeiro') || d.includes('rio de janeiro') || d.includes('são paulo') || d.includes('sao paulo'))
+      visaInfo = 'PASAPORTE / CARNET: Los chilenos viajan SIN VISA a Brasil. Con carnet de identidad chileno vigente alcanza para 90 días. No es necesario el pasaporte.';
+    else if (d.includes('argentina') || d.includes('buenos aires') || d.includes('mendoza') || d.includes('bariloche') || d.includes('salta') || d.includes('córdoba') || d.includes('cordoba'))
+      visaInfo = 'CARNET DE IDENTIDAD: Para Argentina basta con el carnet de identidad chileno vigente. No se requiere pasaporte. Estancia hasta 90 días.';
+    else if (d.includes('perú') || d.includes('peru') || d.includes('lima') || d.includes('cusco') || d.includes('machu picchu') || d.includes('arequipa'))
+      visaInfo = 'CARNET DE IDENTIDAD: Para Perú basta el carnet de identidad chileno vigente. No se requiere pasaporte. Estancia hasta 183 días.';
+    else if (d.includes('colombia') || d.includes('bogotá') || d.includes('bogota') || d.includes('cartagena') || d.includes('medellín') || d.includes('medellin') || d.includes('cali'))
+      visaInfo = 'PASAPORTE / CARNET (SIN VISA): Los chilenos viajan SIN VISA a Colombia hasta 90 días. Pasaporte o carnet de identidad vigente. Completar formulario Check-Mig online previo al viaje (gratuito).';
+    else if (d.includes('uruguay') || d.includes('montevideo') || d.includes('punta del este'))
+      visaInfo = 'CARNET DE IDENTIDAD: Para Uruguay basta el carnet de identidad chileno vigente. No se requiere pasaporte. Estancia libre hasta 90 días.';
+    else if (d.includes('bolivia') || d.includes('la paz') || d.includes('cochabamba') || d.includes('santa cruz de la sierra'))
+      visaInfo = 'CARNET DE IDENTIDAD: Para Bolivia basta el carnet de identidad chileno vigente. No se requiere pasaporte ni visa.';
+    else if (d.includes('emiratos') || d.includes('dubai') || d.includes('abu dhabi'))
+      visaInfo = 'PASAPORTE (VISA ON ARRIVAL): Los chilenos obtienen visa gratuita al llegar a Dubai por convenio. Pasaporte con al menos 6 meses de validez. Verificar vigencia del convenio antes del viaje.';
+    else if (d.includes('turquía') || d.includes('turquia') || d.includes('estambul') || d.includes('istanbul') || d.includes('capadocia') || d.includes('cappadocia') || d.includes('antalya'))
+      visaInfo = 'PASAPORTE + e-VISA: Los chilenos necesitan e-Visa para Turquía (~US$50), tramitable en evisa.gov.tr en minutos. Pasaporte con al menos 6 meses de validez.';
+    else if (d.includes('vietnam') || d.includes('hanoi') || d.includes('ho chi minh') || d.includes('hoi an') || d.includes('da nang'))
+      visaInfo = 'PASAPORTE + e-VISA: Los chilenos necesitan e-Visa para Vietnam (~US$25), tramitable en xuatnhapcanh.gov.vn. Aprobación en 3 días hábiles. Pasaporte con al menos 6 meses de vigencia.';
+    else if (d.includes('bali') || d.includes('indonesia') || d.includes('jakarta') || d.includes('lombok') || d.includes('yogyakarta'))
+      visaInfo = 'PASAPORTE (VISA ON ARRIVAL): Los chilenos obtienen Visa on Arrival en Indonesia (~US$35) por 30 días, prorrogable 30 días más. Pasaporte con al menos 6 meses de validez.';
+    else if (d.includes('maldivas') || d.includes('maldives') || d.includes('islas maldivas'))
+      visaInfo = 'PASAPORTE (VISA GRATUITA): Los chilenos obtienen Visa on Arrival GRATUITA en Maldivas por 30 días. Solo pasaporte vigente y reserva de alojamiento.';
+    else if (d.includes('cuba') || d.includes('habana') || d.includes('la habana') || d.includes('varadero'))
+      visaInfo = 'PASAPORTE + TARJETA DEL TURISTA: Los chilenos necesitan Tarjeta del Turista (~US$25) para Cuba, comprable en el aeropuerto de salida o en la aerolínea. Pasaporte vigente obligatorio.';
+    else if (d.includes('marruecos') || d.includes('marrakech') || d.includes('fez') || d.includes('casablanca') || d.includes('tánger'))
+      visaInfo = 'PASAPORTE (SIN VISA): Los chilenos viajan SIN VISA a Marruecos hasta 90 días. Pasaporte vigente obligatorio. Control migratorio estricto — lleva reservas de hotel impresas.';
+    else if (d.includes('kenia') || d.includes('kenya') || d.includes('nairobi') || d.includes('safari') || d.includes('masai mara'))
+      visaInfo = 'PASAPORTE + e-VISA: Los chilenos necesitan e-Visa para Kenia (~US$51), tramitable en evisa.go.ke. Pasaporte con al menos 6 meses de validez.';
+    else if (d.includes('sudáfrica') || d.includes('sudafrica') || d.includes('cape town') || d.includes('ciudad del cabo') || d.includes('johannesburg'))
+      visaInfo = 'PASAPORTE (SIN VISA): Los chilenos viajan SIN VISA a Sudáfrica hasta 30 días. Pasaporte con al menos 6 meses de validez y 2 páginas en blanco.';
+    else if (d.includes('qatar') || d.includes('doha'))
+      visaInfo = 'PASAPORTE (SIN VISA): Los chilenos viajan SIN VISA a Qatar hasta 30 días. Pasaporte vigente obligatorio.';
+    else if (d.includes('méxico') || d.includes('mexico') || d.includes('cancún') || d.includes('cancun') || d.includes('ciudad de méxico') || d.includes('cdmx') || d.includes('playa del carmen') || d.includes('tulum'))
+      visaInfo = 'PASAPORTE (SIN VISA): Los chilenos viajan SIN VISA a México hasta 180 días. Pasaporte vigente obligatorio. Se exige llenar Forma Migratoria Múltiple (FMM) en el avión o en el aeropuerto.';
+    else if (d.includes('costa rica') || d.includes('san josé') || d.includes('san jose'))
+      visaInfo = 'PASAPORTE (SIN VISA): Los chilenos viajan SIN VISA a Costa Rica hasta 90 días. Pasaporte vigente obligatorio.';
+    else if (d.includes('panamá') || d.includes('panama') || d.includes('ciudad de panamá'))
+      visaInfo = 'PASAPORTE (SIN VISA): Los chilenos viajan SIN VISA a Panamá hasta 90 días. Pasaporte vigente obligatorio.';
+    else if (d.includes('singapur') || d.includes('singapore'))
+      visaInfo = 'PASAPORTE (SIN VISA): Los chilenos viajan SIN VISA a Singapur hasta 30 días. Pasaporte vigente obligatorio.';
+    else if (d.includes('corea del sur') || d.includes('seoul') || d.includes('seúl') || d.includes('busan') || d.includes('jeju'))
+      visaInfo = 'PASAPORTE (SIN VISA): Los chilenos viajan SIN VISA a Corea del Sur hasta 90 días. Pasaporte vigente obligatorio.';
+    else
+      visaInfo = 'PASAPORTE: Verifica los requisitos de visa en minrel.gob.cl (Ministerio de Relaciones Exteriores de Chile). Estándar: pasaporte vigente con al menos 6 meses de validez desde la fecha de regreso.';
+  }
+
+  const lines = [];
+  if (visaInfo) lines.push(visaInfo);
+  if (adapterInfo) lines.push(`ADAPTADOR DE ENCHUFE: ${adapterInfo}`);
+  return lines.join('\n');
+}
+
 export async function POST(request) {
   try {
     const body = await request.json();
@@ -312,6 +432,12 @@ Para origen_iata y destino_iata: código IATA de 3 letras del aeropuerto princip
                            'brasil','brazil','uruguay','paraguay','venezuela','méxico','mexico',
                            'costa rica','panamá','panama','cuba'];
     const isDomestic = paisesComunes.find(p => origenStr.includes(p) && destinoStr.includes(p)) || null;
+
+    // ── B: Contexto de viaje personalizado (visa + adaptador) para el checklist ─
+    const travelContext = !isDomestic ? getCountryTravelContext(origenStr, destinoStr) : '';
+    const checklistRule = travelContext
+      ? `- CHECKLIST PERSONALIZADO: Para los ítems del checklist, usa OBLIGATORIAMENTE esta información verificada sobre los requisitos del viaje desde ${formData.origen || 'Chile'} hacia ${formData.destino}:\n${travelContext}\nEstos ítems DEBEN aparecer literalmente en el checklist (no los parafrasees ni inventes información diferente). Completa el resto con ítems prácticos de preparativos: contratar seguro de viaje, llevar efectivo en la moneda local, confirmar reservas de vuelo y alojamiento, descargar apps útiles (Google Maps offline, Uber, traductor), ropa adecuada al clima del destino. Total: 8-10 ítems concisos y accionables.`
+      : '';
 
     // ── Regla DÍAS: siempre generar los N días completos ─────────────────────
     const diasRule = `- DÍAS COMPLETOS: El array "dias" del JSON DEBE contener EXACTAMENTE ${dias} objetos (uno por cada día del viaje). NUNCA generes menos días aunque el presupuesto sea ajustado. Si el presupuesto es bajo, adapta con actividades gratuitas (parques, iglesias, miradores, mercados), comida callejera y alojamiento económico — pero SIEMPRE genera los ${dias} días completos. Un presupuesto ajustado NO es excusa para recortar el itinerario.`;
@@ -464,7 +590,7 @@ ${diasRule}
 - RITMO: El cliente eligió ritmo ${formData.ritmo || 3}/5. DEBES respetar ESTRICTAMENTE el número de actividades por día: ritmo 1-2 = máximo 2 actividades por día (días relajados, pausas largas, tiempo libre); ritmo 3 = exactamente 2-3 actividades por día con tiempo libre entre ellas; ritmo 4-5 = 3-4 actividades por día, días aprovechados al máximo. NO incluyas más actividades de las correspondientes aunque el destino lo permita. El ritmo también afecta el tono: ritmo bajo = más descripción contemplativa, ritmo alto = más dinámico y energético.
 - INTERESES: El cliente eligió: ${interesStr}. TODAS las actividades del día a día DEBEN relacionarse con estos intereses. Mapeo obligatorio → "gastronomia": mercados de comida, clases de cocina, tours gastronómicos, degustaciones; "aventura": senderismo, deportes extremos, escalada, kayak, rafting, zipline; "playa": playas, snorkeling, surf, buceo, paseos en barco; "cultura": museos, sitios históricos, arquitectura, arte local, barrios históricos; "naturaleza": parques nacionales, cascadas, reservas naturales, avistamiento de fauna; "vida nocturna": bares de moda, rooftops, tours nocturnos, clubes. Las actividades del día a día NO pueden contradecir los intereses elegidos (ej: si eligió gastronomía, no pongas excursiones a montañas si no hay relación gastronómica).
 ${tipoViajeRule}
-- AEROLÍNEAS: SOLO recomienda aerolíneas de esta lista verificada: LATAM, JetSmart, Sky Airline, Avianca, Copa Airlines, Aerolíneas Argentinas, Aeroméxico, GOL, Azul, American Airlines, United Airlines, Delta, Air Canada, WestJet, Iberia, Iberia Express, Air Europa, Turkish Airlines, Air France, KLM, Lufthansa, Swiss, Austrian Airlines, British Airways, TAP Portugal, Norwegian, EasyJet, Ryanair, Finnair, ITA Airways, Qatar Airways, Emirates, Ethiopian Airlines, Japan Airlines, ANA, Singapore Airlines, Cathay Pacific, Korean Air, Asiana, Thai Airways, Malaysia Airlines, Air New Zealand, EVA Air, China Airlines. NO recomiendes aerolíneas que no estén en esta lista.${domesticRule ? '\n' + domesticRule : ''}
+- AEROLÍNEAS: SOLO recomienda aerolíneas de esta lista verificada: LATAM, JetSmart, Sky Airline, Avianca, Copa Airlines, Aerolíneas Argentinas, Aeroméxico, GOL, Azul, American Airlines, United Airlines, Delta, Air Canada, WestJet, Iberia, Iberia Express, Air Europa, Turkish Airlines, Air France, KLM, Lufthansa, Swiss, Austrian Airlines, British Airways, TAP Portugal, Norwegian, EasyJet, Ryanair, Finnair, ITA Airways, Qatar Airways, Emirates, Ethiopian Airlines, Japan Airlines, ANA, Singapore Airlines, Cathay Pacific, Korean Air, Asiana, Thai Airways, Malaysia Airlines, Air New Zealand, EVA Air, China Airlines. NO recomiendes aerolíneas que no estén en esta lista.${domesticRule ? '\n' + domesticRule : ''}${checklistRule ? '\n' + checklistRule : ''}
 
 GENERA JSON puro (sin markdown, sin \`\`\`):
 {
@@ -597,7 +723,7 @@ ${tipoViajeRule}
 - TRANSPORTE aeropuerto→centro: lista TODAS las opciones disponibles (Uber, Taxi, Metro, Bus express, Tren, etc.) con costo estimado y duración en el array opciones_aeropuerto_centro.
 - BARES: en bares_vida_nocturna usa un objeto cuyas claves son los nombres REALES de las ciudades visitadas. Si el viaje es de UNA SOLA ciudad y más de 7 días, incluye 5 bares/lugares para esa ciudad. Para el resto, incluye EXACTAMENTE 2 bares por ciudad.
 - EXTRAS: las categorías deben relacionarse directamente con los intereses del cliente (${interesStr}). Ejemplo: si tiene 'gastronomia' → categoría gastronómica; si tiene 'aventura' → actividades de adrenalina. Siempre incluir una categoría "Para días de lluvia o descanso".
-- QUE_EMPACAR: adapta el clima_esperado a las fechas reales propuestas (fecha_salida / fecha_regreso). La lista de ropa debe ser práctica y concisa para el tipo de viaje y el clima del destino.${domesticRule ? '\n' + domesticRule : ''}
+- QUE_EMPACAR: adapta el clima_esperado a las fechas reales propuestas (fecha_salida / fecha_regreso). La lista de ropa debe ser práctica y concisa para el tipo de viaje y el clima del destino.${domesticRule ? '\n' + domesticRule : ''}${checklistRule ? '\n' + checklistRule : ''}
 
 GENERA JSON puro (sin markdown, sin \`\`\`):
 {
