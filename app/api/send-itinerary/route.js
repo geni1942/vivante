@@ -246,20 +246,24 @@ function getCountryTravelContext(origenStr, destinoStr) {
   const o = (origenStr || '').toLowerCase();
   const d = (destinoStr || '').toLowerCase();
 
-  const isChile = o.includes('chile') || o.includes('santiago') || o.includes('scl') || o.includes('valparaíso') || o.includes('valparaiso') || o.includes('concepción') || o.includes('concepcion');
+  const isChile     = o.includes('chile') || o.includes('santiago') || o.includes('scl') || o.includes('valparaíso') || o.includes('valparaiso') || o.includes('concepción') || o.includes('concepcion');
+  const isArgentina = o.includes('argentin') || o.includes('buenos aires') || o.includes('córdoba') || o.includes('cordoba') || o.includes('rosario') || o.includes('mendoza') || o.includes('bariloche') || o.includes('salta') || o.includes('tucumán') || o.includes('tucuman');
+  const isBrasil    = o.includes('brasil') || o.includes('brazil') || o.includes('são paulo') || o.includes('sao paulo') || o.includes('rio de janeiro') || o.includes('brasília') || o.includes('brasilia') || o.includes('porto alegre') || o.includes('florianópolis') || o.includes('florianopolis') || o.includes('belo horizonte') || o.includes('salvador') || o.includes('fortaleza') || o.includes('recife');
+  const isColombia  = o.includes('colombia') || o.includes('bogotá') || o.includes('bogota') || o.includes('medellín') || o.includes('medellin') || o.includes('cali') || o.includes('cartagena de indias') || o.includes('barranquilla') || o.includes('bucaramanga');
+  const isMexico    = (o.includes('méxico') || o.includes('mexico')) && !o.includes('nuevo mexico') || o.includes('ciudad de méxico') || o.includes('cdmx') || o.includes('guadalajara') || o.includes('monterrey') || o.includes('cancún') || o.includes('cancun') || o.includes('puebla') || o.includes('tijuana');
 
   // ── Adaptador de enchufe según destino ──────────────────────────────────
   let adapterInfo = '';
   if (d.includes('eeuu') || d.includes('estados unidos') || d.includes('usa') || d.includes('nueva york') || d.includes('new york') || d.includes('miami') || d.includes('los angeles') || d.includes('chicago') || d.includes('houston') || d.includes('boston') || d.includes('san francisco') || d.includes('washington') || d.includes('orlando') || d.includes('canadá') || d.includes('canada') || d.includes('toronto') || d.includes('vancouver') || d.includes('montreal') || d.includes('méxico') || d.includes('mexico') || d.includes('colombia') || d.includes('bogotá') || d.includes('bogota') || d.includes('medellín') || d.includes('medellin') || d.includes('cartagena') || d.includes('perú') || d.includes('peru') || d.includes('lima') || d.includes('cusco') || d.includes('ecuador') || d.includes('quito') || d.includes('venezuela') || d.includes('cuba') || d.includes('habana'))
-    adapterInfo = 'Adaptador Tipo A/B (2 patas planas) — imprescindible si llevas enchufes tipo L chilenos';
+    adapterInfo = 'Tipo A/B (2 patas planas) — estándar de EE.UU., Canadá, México y varios países latinoamericanos';
   else if (d.includes('europa') || d.includes('españa') || d.includes('france') || d.includes('paris') || d.includes('italia') || d.includes('roma') || d.includes('alemania') || d.includes('berlin') || d.includes('berlín') || d.includes('grecia') || d.includes('atenas') || d.includes('portugal') || d.includes('lisboa') || d.includes('holanda') || d.includes('amsterdam') || d.includes('bélgica') || d.includes('belgica') || d.includes('bruselas') || d.includes('suecia') || d.includes('estocolmo') || d.includes('noruega') || d.includes('oslo') || d.includes('dinamarca') || d.includes('copenhague') || d.includes('suiza') || d.includes('zurich') || d.includes('austria') || d.includes('viena') || d.includes('turquía') || d.includes('turquia') || d.includes('estambul') || d.includes('istanbul') || d.includes('rusia') || d.includes('moscú') || d.includes('croacia') || d.includes('zagreb') || d.includes('hungría') || d.includes('hungria') || d.includes('budapest') || d.includes('polonia') || d.includes('varsovia') || d.includes('república checa') || d.includes('republica checa') || d.includes('praga') || d.includes('madrid') || d.includes('barcelona') || d.includes('sevilla') || d.includes('florencia') || d.includes('venecia') || d.includes('milan') || d.includes('milán') || d.includes('nápoles') || d.includes('napoles') || d.includes('amsterdam') || d.includes('frankfurt'))
     adapterInfo = 'Adaptador Tipo C/E/F (2 patas redondas) — necesario en casi toda Europa continental';
   else if (d.includes('reino unido') || d.includes('uk') || d.includes('inglaterra') || d.includes('londres') || d.includes('london') || d.includes('irlanda') || d.includes('dublin') || d.includes('hong kong') || d.includes('singapur') || d.includes('singapore') || d.includes('malasia') || d.includes('malaysia') || d.includes('kuala lumpur'))
     adapterInfo = 'Adaptador Tipo G (3 patas rectangulares) — Reino Unido, Hong Kong, Singapur y Malasia';
   else if (d.includes('australia') || d.includes('sídney') || d.includes('sydney') || d.includes('melbourne') || d.includes('brisbane') || d.includes('nueva zelanda') || d.includes('new zealand') || d.includes('auckland'))
-    adapterInfo = 'Adaptador Tipo I (2 patas en V) — Australia y Nueva Zelanda. ¡Mismo que Chile! Podrías no necesitar adaptador';
+    adapterInfo = 'Tipo I (2 patas en V) — Australia y Nueva Zelanda. También usado en Chile y Argentina';
   else if (d.includes('brasil') || d.includes('brazil') || d.includes('río de janeiro') || d.includes('rio de janeiro') || d.includes('são paulo') || d.includes('sao paulo') || d.includes('salvador') || d.includes('florianópolis') || d.includes('florianopolis') || d.includes('iguazú') || d.includes('iguazu') || d.includes('foz do iguaçu'))
-    adapterInfo = 'Adaptador Tipo N (2 patas redondas, estándar brasileño) — diferente al chileno, necesitas adaptador';
+    adapterInfo = 'Tipo N (2 patas redondas) — estándar propio de Brasil, diferente del resto de Sudamérica';
   else if (d.includes('japon') || d.includes('japón') || d.includes('tokyo') || d.includes('tokio') || d.includes('osaka') || d.includes('kyoto') || d.includes('hiroshima') || d.includes('nara') || d.includes('sapporo'))
     adapterInfo = 'Adaptador Tipo A (2 patas planas, 110V) — Japón usa 110V. Verifica que tus dispositivos soporten 110-240V';
   else if (d.includes('china') || d.includes('beijing') || d.includes('shanghai') || d.includes('chengdu') || d.includes('canton') || d.includes('guangzhou'))
@@ -269,7 +273,7 @@ function getCountryTravelContext(origenStr, destinoStr) {
   else if (d.includes('tailandia') || d.includes('thailand') || d.includes('bangkok') || d.includes('phuket') || d.includes('chiang mai') || d.includes('bali') || d.includes('indonesia') || d.includes('jakarta') || d.includes('vietnam') || d.includes('hanoi') || d.includes('ho chi minh') || d.includes('camboya') || d.includes('siem reap'))
     adapterInfo = 'Adaptador universal recomendado — el Sudeste Asiático tiene múltiples estándares de enchufe';
   else if (d.includes('argentina') || d.includes('buenos aires') || d.includes('mendoza') || d.includes('bariloche') || d.includes('córdoba') || d.includes('cordoba') || d.includes('salta') || d.includes('uruguay') || d.includes('montevideo') || d.includes('paraguay') || d.includes('asunción') || d.includes('asuncion'))
-    adapterInfo = 'Enchufe Tipo L (igual que Chile) — Argentina, Uruguay y Paraguay usan el mismo tipo. ¡No necesitas adaptador!';
+    adapterInfo = 'Tipo L (2 patas en V) — estándar de Chile, Argentina, Uruguay y Paraguay';
   else if (d.includes('emiratos') || d.includes('dubai') || d.includes('abu dhabi') || d.includes('qatar') || d.includes('doha'))
     adapterInfo = 'Adaptador Tipo G o C — Emiratos y Qatar. Mejor llevar adaptador universal';
   else if (d.includes('sudáfrica') || d.includes('sudafrica') || d.includes('cape town') || d.includes('ciudad del cabo') || d.includes('johannesburg') || d.includes('johannesburgo'))
@@ -352,6 +356,192 @@ function getCountryTravelContext(origenStr, destinoStr) {
       visaInfo = 'PASAPORTE (SIN VISA): Los chilenos viajan SIN VISA a Corea del Sur hasta 90 días. Pasaporte vigente obligatorio.';
     else
       visaInfo = 'PASAPORTE: Verifica los requisitos de visa en minrel.gob.cl (Ministerio de Relaciones Exteriores de Chile). Estándar: pasaporte vigente con al menos 6 meses de validez desde la fecha de regreso.';
+
+  // ── Visa / Pasaporte para viajeros ARGENTINOS ──────────────────────────────
+  } else if (isArgentina) {
+    if (d.includes('eeuu') || d.includes('estados unidos') || d.includes('nueva york') || d.includes('new york') || d.includes('miami') || d.includes('los angeles') || d.includes('chicago') || d.includes('houston') || d.includes('orlando') || d.includes('washington') || d.includes('boston') || d.includes('san francisco'))
+      visaInfo = 'PASAPORTE + VISA B1/B2: Los argentinos NECESITAN visa para EE.UU. (no es visa-free). Tramitar en la Embajada de EE.UU. en Buenos Aires (usembassy.gov). El proceso puede tardar semanas o meses — ¡gestionarla con anticipación!';
+    else if (d.includes('canadá') || d.includes('canada') || d.includes('toronto') || d.includes('vancouver') || d.includes('montreal'))
+      visaInfo = 'PASAPORTE + VISA: Los argentinos generalmente necesitan visa de turista para Canadá. Tramitar en el Consulado de Canadá en Argentina (canada.ca/es). Pasaporte vigente obligatorio.';
+    else if (d.includes('europa') || d.includes('schengen') || d.includes('españa') || d.includes('france') || d.includes('paris') || d.includes('italia') || d.includes('roma') || d.includes('alemania') || d.includes('berlin') || d.includes('berlín') || d.includes('grecia') || d.includes('portugal') || d.includes('lisboa') || d.includes('holanda') || d.includes('amsterdam') || d.includes('suiza') || d.includes('austria') || d.includes('viena') || d.includes('hungría') || d.includes('budapest') || d.includes('república checa') || d.includes('praga') || d.includes('madrid') || d.includes('barcelona') || d.includes('florencia') || d.includes('venecia'))
+      visaInfo = 'PASAPORTE (SIN VISA): Los argentinos viajan SIN VISA a la Zona Schengen hasta 90 días. Solo pasaporte vigente con al menos 6 meses de validez desde la fecha de regreso.';
+    else if (d.includes('reino unido') || d.includes('uk') || d.includes('inglaterra') || d.includes('londres') || d.includes('london'))
+      visaInfo = 'PASAPORTE (SIN VISA): Los argentinos viajan SIN VISA al Reino Unido hasta 6 meses. Pasaporte vigente obligatorio. UK es independiente de Schengen.';
+    else if (d.includes('australia') || d.includes('sydney') || d.includes('sídney') || d.includes('melbourne'))
+      visaInfo = 'PASAPORTE + eVisitor: Los argentinos necesitan eVisitor (651) para Australia, GRATUITO, tramitable online en immi.homeaffairs.gov.au. Pasaporte vigente obligatorio.';
+    else if (d.includes('nueva zelanda') || d.includes('new zealand') || d.includes('auckland'))
+      visaInfo = 'PASAPORTE + NZeTA: Los argentinos necesitan NZeTA (~NZD$23), tramitable online en immigation.govt.nz. Pasaporte vigente obligatorio.';
+    else if (d.includes('japon') || d.includes('japón') || d.includes('tokyo') || d.includes('osaka') || d.includes('kyoto'))
+      visaInfo = 'PASAPORTE (SIN VISA): Los argentinos viajan SIN VISA a Japón hasta 90 días. Solo pasaporte vigente.';
+    else if (d.includes('tailandia') || d.includes('thailand') || d.includes('bangkok') || d.includes('phuket'))
+      visaInfo = 'PASAPORTE (SIN VISA): Los argentinos viajan SIN VISA a Tailandia hasta 30 días. Pasaporte vigente obligatorio.';
+    else if (d.includes('china') || d.includes('beijing') || d.includes('shanghai'))
+      visaInfo = 'PASAPORTE + VISA: Los argentinos necesitan visa para China continental. Tramitar en la Embajada China en Buenos Aires. Pasaporte con al menos 6 meses de vigencia.';
+    else if (d.includes('india') || d.includes('delhi') || d.includes('mumbai') || d.includes('goa'))
+      visaInfo = 'PASAPORTE + e-VISA: Los argentinos necesitan e-Visa para India (~US$25), en indianvisaonline.gov.in. Aprobación en 72-96h. Pasaporte con al menos 6 meses de vigencia.';
+    else if (d.includes('brasil') || d.includes('brazil') || d.includes('río de janeiro') || d.includes('rio de janeiro') || d.includes('são paulo') || d.includes('sao paulo'))
+      visaInfo = 'DNI O PASAPORTE (SIN VISA): Los argentinos viajan a Brasil sin visa. Con DNI argentino vigente alcanza para 90 días — no es necesario el pasaporte.';
+    else if (d.includes('chile') || d.includes('santiago') || d.includes('valparaíso') || d.includes('patagonia chilena'))
+      visaInfo = 'DNI O PASAPORTE (SIN VISA): Para Chile basta el DNI argentino vigente. Sin visa ni trámite previo.';
+    else if (d.includes('perú') || d.includes('peru') || d.includes('lima') || d.includes('cusco') || d.includes('machu picchu'))
+      visaInfo = 'DNI O PASAPORTE (SIN VISA): Los argentinos viajan a Perú sin visa. Con DNI argentino vigente alcanza hasta 183 días.';
+    else if (d.includes('colombia') || d.includes('bogotá') || d.includes('cartagena') || d.includes('medellín'))
+      visaInfo = 'PASAPORTE (SIN VISA): Los argentinos viajan a Colombia sin visa hasta 90 días. Pasaporte o DNI argentino vigente.';
+    else if (d.includes('uruguay') || d.includes('montevideo') || d.includes('punta del este'))
+      visaInfo = 'DNI O PASAPORTE (SIN VISA): Para Uruguay basta el DNI argentino vigente. Libre hasta 90 días.';
+    else if (d.includes('bolivia') || d.includes('la paz') || d.includes('cochabamba'))
+      visaInfo = 'DNI O PASAPORTE (SIN VISA): Para Bolivia basta el DNI argentino vigente. Sin visa.';
+    else if (d.includes('méxico') || d.includes('mexico') || d.includes('cancún') || d.includes('cancun'))
+      visaInfo = 'PASAPORTE (SIN VISA): Los argentinos viajan a México sin visa hasta 180 días. Pasaporte vigente. Completar FMM en el avión o aeropuerto.';
+    else if (d.includes('emiratos') || d.includes('dubai') || d.includes('abu dhabi'))
+      visaInfo = 'PASAPORTE (VISA ON ARRIVAL): Los argentinos obtienen visa gratuita al llegar a Dubai. Pasaporte con al menos 6 meses de validez. Verificar vigencia del convenio.';
+    else if (d.includes('turquía') || d.includes('turquia') || d.includes('estambul') || d.includes('istanbul'))
+      visaInfo = 'PASAPORTE + e-VISA: Los argentinos necesitan e-Visa para Turquía (~US$50), en evisa.gov.tr. Proceso de minutos online.';
+    else if (d.includes('singapur') || d.includes('singapore'))
+      visaInfo = 'PASAPORTE (SIN VISA): Los argentinos viajan SIN VISA a Singapur hasta 30 días. Pasaporte vigente.';
+    else if (d.includes('corea del sur') || d.includes('seoul') || d.includes('seúl'))
+      visaInfo = 'PASAPORTE (SIN VISA): Los argentinos viajan SIN VISA a Corea del Sur hasta 90 días. Pasaporte vigente.';
+    else if (d.includes('cuba') || d.includes('habana') || d.includes('varadero'))
+      visaInfo = 'PASAPORTE + TARJETA DEL TURISTA: Los argentinos necesitan Tarjeta del Turista para Cuba (~US$25), comprable en el aeropuerto o con la aerolínea.';
+    else
+      visaInfo = 'PASAPORTE: Verifica los requisitos de visa en cancilleria.gob.ar (Cancillería argentina). Estándar: pasaporte vigente con al menos 6 meses de validez desde la fecha de regreso.';
+
+  // ── Visa / Pasaporte para viajeros BRASILEÑOS ──────────────────────────────
+  } else if (isBrasil) {
+    if (d.includes('eeuu') || d.includes('estados unidos') || d.includes('nueva york') || d.includes('new york') || d.includes('miami') || d.includes('los angeles') || d.includes('chicago') || d.includes('orlando'))
+      visaInfo = 'PASAPORTE + VISA: Los brasileños históricamente han necesitado visa B1/B2 para EE.UU. Los requisitos están cambiando (2023-2024). Verifica el estado actual en br.usembassy.gov antes de viajar.';
+    else if (d.includes('canadá') || d.includes('canada') || d.includes('toronto') || d.includes('vancouver') || d.includes('montreal'))
+      visaInfo = 'PASAPORTE + VISA o eTA: Los brasileños generalmente necesitan visa de turista para Canadá. Verifica si calificas para eTA en canada.ca. Tramitar con anticipación.';
+    else if (d.includes('europa') || d.includes('schengen') || d.includes('españa') || d.includes('france') || d.includes('paris') || d.includes('italia') || d.includes('roma') || d.includes('alemania') || d.includes('berlin') || d.includes('grecia') || d.includes('portugal') || d.includes('lisboa') || d.includes('holanda') || d.includes('amsterdam') || d.includes('suiza') || d.includes('austria') || d.includes('viena') || d.includes('hungary') || d.includes('budapest') || d.includes('república checa') || d.includes('praga') || d.includes('madrid') || d.includes('barcelona') || d.includes('florencia') || d.includes('venecia'))
+      visaInfo = 'PASSAPORTE (SEM VISTO): Os brasileiros viajam SEM VISTO para a Zona Schengen por até 90 dias. Apenas passaporte válido com pelo menos 6 meses de validade a partir da data de retorno.';
+    else if (d.includes('reino unido') || d.includes('uk') || d.includes('inglaterra') || d.includes('londres') || d.includes('london'))
+      visaInfo = 'PASSAPORTE (SEM VISTO): Os brasileiros viajam SEM VISTO para o Reino Unido por até 6 meses. Passaporte válido obrigatório. O UK não faz parte do Schengen — são permissões separadas.';
+    else if (d.includes('australia') || d.includes('sydney') || d.includes('melbourne'))
+      visaInfo = 'PASSAPORTE + ETA: Os brasileiros precisam de Electronic Travel Authority (ETA subclass 601, gratuita) para a Austrália, disponível em immi.homeaffairs.gov.au. Passaporte válido obrigatório.';
+    else if (d.includes('japon') || d.includes('japón') || d.includes('tokyo') || d.includes('osaka') || d.includes('kyoto'))
+      visaInfo = 'PASSAPORTE (SEM VISTO): Os brasileiros viajam SEM VISTO ao Japão por até 90 dias. Apenas passaporte válido — sem burocracia prévia.';
+    else if (d.includes('tailandia') || d.includes('thailand') || d.includes('bangkok') || d.includes('phuket'))
+      visaInfo = 'PASSAPORTE (SEM VISTO): Os brasileiros viajam SEM VISTO à Tailândia por até 30 dias. Passaporte válido obrigatório.';
+    else if (d.includes('china') || d.includes('beijing') || d.includes('shanghai'))
+      visaInfo = 'PASSAPORTE + VISTO: Os brasileiros precisam de visto para a China continental. Solicitar na Embaixada/Consulado da China no Brasil. Passaporte com ao menos 6 meses de validade.';
+    else if (d.includes('india') || d.includes('delhi') || d.includes('mumbai') || d.includes('goa'))
+      visaInfo = 'PASSAPORTE + e-VISA: Os brasileiros precisam de e-Visa para a Índia (~US$25), em indianvisaonline.gov.in. Aprovação em 72-96h. Passaporte com ao menos 6 meses de validade.';
+    else if (d.includes('argentina') || d.includes('buenos aires') || d.includes('mendoza') || d.includes('bariloche'))
+      visaInfo = 'PASSAPORTE OU RG (SEM VISTO): Para a Argentina basta a Carteira de Identidade (RG) brasileira válida. Não é necessário passaporte. Estadia livre por 90 dias.';
+    else if (d.includes('chile') || d.includes('santiago'))
+      visaInfo = 'PASSAPORTE OU RG (SEM VISTO): Para o Chile basta a Carteira de Identidade (RG) brasileira válida. Sem visto, sem burocracia.';
+    else if (d.includes('perú') || d.includes('peru') || d.includes('lima') || d.includes('cusco') || d.includes('machu picchu'))
+      visaInfo = 'PASSAPORTE OU RG (SEM VISTO): Para o Peru basta a Carteira de Identidade (RG) brasileira válida. Estadia até 183 dias.';
+    else if (d.includes('colombia') || d.includes('bogotá') || d.includes('cartagena') || d.includes('medellín'))
+      visaInfo = 'PASSAPORTE (SEM VISTO): Os brasileiros viajam à Colômbia sem visto por até 90 dias. Passaporte válido obrigatório.';
+    else if (d.includes('uruguay') || d.includes('montevideo') || d.includes('punta del este'))
+      visaInfo = 'PASSAPORTE OU RG (SEM VISTO): Para o Uruguai basta a Carteira de Identidade (RG) brasileira válida.';
+    else if (d.includes('bolivia') || d.includes('la paz'))
+      visaInfo = 'PASSAPORTE OU RG (SEM VISTO): Para a Bolívia basta a Carteira de Identidade (RG) brasileira válida.';
+    else if (d.includes('méxico') || d.includes('mexico') || d.includes('cancún') || d.includes('cancun'))
+      visaInfo = 'PASSAPORTE (SEM VISTO): Os brasileiros viajam ao México sem visto. Passaporte válido. Preencher FMM no avião ou aeroporto.';
+    else if (d.includes('emiratos') || d.includes('dubai') || d.includes('abu dhabi'))
+      visaInfo = 'PASSAPORTE (VISTO NA CHEGADA): Os brasileiros obtêm visto gratuito ao chegar em Dubai por acordo bilateral. Passaporte com ao menos 6 meses de validade. Confirmar o acordo antes de viajar.';
+    else if (d.includes('turquía') || d.includes('turquia') || d.includes('estambul') || d.includes('istanbul'))
+      visaInfo = 'PASSAPORTE + e-VISTO: Os brasileiros precisam de e-Visa para a Turquia (~US$50), em evisa.gov.tr. Processo online em minutos.';
+    else if (d.includes('cuba') || d.includes('habana') || d.includes('varadero'))
+      visaInfo = 'PASSAPORTE + CARTÃO DE TURISTA: Os brasileiros precisam do Cartão de Turista para Cuba (~US$25), comprado no aeroporto ou com a companhia aérea. Passaporte válido.';
+    else if (d.includes('bali') || d.includes('indonesia') || d.includes('jakarta'))
+      visaInfo = 'PASSAPORTE (VISTO NA CHEGADA): Os brasileiros obtêm Visto na Chegada na Indonésia (~US$35) por 30 dias, prorrogável por mais 30. Passaporte com ao menos 6 meses de validade.';
+    else
+      visaInfo = 'PASSAPORTE: Verifique os requisitos de visto no portal do Itamaraty (itamaraty.gov.br). Padrão: passaporte válido com ao menos 6 meses de validade a partir da data de retorno.';
+
+  // ── Visa / Pasaporte para viajeros COLOMBIANOS ─────────────────────────────
+  } else if (isColombia) {
+    if (d.includes('eeuu') || d.includes('estados unidos') || d.includes('nueva york') || d.includes('new york') || d.includes('miami') || d.includes('los angeles') || d.includes('chicago') || d.includes('orlando'))
+      visaInfo = 'PASAPORTE + VISA B1/B2: Los colombianos NECESITAN visa para EE.UU. Tramitar en la Embajada de EE.UU. en Bogotá (co.usembassy.gov). Iniciar el proceso con meses de anticipación.';
+    else if (d.includes('canadá') || d.includes('canada') || d.includes('toronto') || d.includes('vancouver') || d.includes('montreal'))
+      visaInfo = 'PASAPORTE + VISA: Los colombianos necesitan visa de turista para Canadá. Tramitar en el Consulado de Canadá en Colombia (canada.ca). Pasaporte vigente obligatorio.';
+    else if (d.includes('europa') || d.includes('schengen') || d.includes('españa') || d.includes('france') || d.includes('paris') || d.includes('italia') || d.includes('roma') || d.includes('alemania') || d.includes('berlin') || d.includes('grecia') || d.includes('portugal') || d.includes('lisboa') || d.includes('holanda') || d.includes('amsterdam') || d.includes('suiza') || d.includes('austria') || d.includes('viena') || d.includes('hungría') || d.includes('budapest') || d.includes('república checa') || d.includes('praga') || d.includes('madrid') || d.includes('barcelona'))
+      visaInfo = 'PASAPORTE (SIN VISA): Desde junio 2023, los colombianos viajan SIN VISA a la Zona Schengen hasta 90 días. Solo pasaporte vigente con al menos 6 meses de validez. ¡Gran avance para los viajeros colombianos!';
+    else if (d.includes('reino unido') || d.includes('uk') || d.includes('inglaterra') || d.includes('londres') || d.includes('london'))
+      visaInfo = 'PASAPORTE + VISA: Los colombianos NECESITAN visa para el Reino Unido. Tramitar online en gov.uk. El UK no aplica el acuerdo Schengen. Pasaporte vigente obligatorio.';
+    else if (d.includes('australia') || d.includes('sydney') || d.includes('melbourne'))
+      visaInfo = 'PASAPORTE + VISA: Los colombianos necesitan visa de turista para Australia (Visitor Visa subclass 600). Tramitar online en immi.homeaffairs.gov.au. Pasaporte vigente obligatorio.';
+    else if (d.includes('japon') || d.includes('japón') || d.includes('tokyo') || d.includes('osaka') || d.includes('kyoto'))
+      visaInfo = 'PASAPORTE (SIN VISA): Los colombianos viajan SIN VISA a Japón hasta 90 días. Solo pasaporte vigente — sin burocracia previa.';
+    else if (d.includes('tailandia') || d.includes('thailand') || d.includes('bangkok') || d.includes('phuket'))
+      visaInfo = 'PASAPORTE (SIN VISA): Los colombianos viajan SIN VISA a Tailandia hasta 30 días. Pasaporte vigente obligatorio.';
+    else if (d.includes('china') || d.includes('beijing') || d.includes('shanghai'))
+      visaInfo = 'PASAPORTE + VISA: Los colombianos necesitan visa para China. Tramitar en la Embajada China en Bogotá. Pasaporte con al menos 6 meses de vigencia.';
+    else if (d.includes('india') || d.includes('delhi') || d.includes('mumbai') || d.includes('goa'))
+      visaInfo = 'PASAPORTE + e-VISA: Los colombianos necesitan e-Visa para India (~US$25), en indianvisaonline.gov.in. Aprobación en 72-96h.';
+    else if (d.includes('argentina') || d.includes('buenos aires') || d.includes('mendoza') || d.includes('bariloche'))
+      visaInfo = 'PASAPORTE (SIN VISA): Los colombianos viajan a Argentina sin visa hasta 90 días. Pasaporte vigente obligatorio.';
+    else if (d.includes('chile') || d.includes('santiago'))
+      visaInfo = 'PASAPORTE (SIN VISA): Los colombianos viajan a Chile sin visa hasta 90 días. Pasaporte vigente obligatorio.';
+    else if (d.includes('perú') || d.includes('peru') || d.includes('lima') || d.includes('cusco') || d.includes('machu picchu'))
+      visaInfo = 'PASAPORTE O CÉDULA (SIN VISA): Los colombianos viajan a Perú sin visa. Pasaporte o cédula de ciudadanía colombiana vigente hasta 183 días.';
+    else if (d.includes('brasil') || d.includes('brazil') || d.includes('río de janeiro') || d.includes('são paulo') || d.includes('sao paulo'))
+      visaInfo = 'PASAPORTE (SIN VISA): Los colombianos viajan a Brasil sin visa hasta 90 días. Pasaporte vigente obligatorio.';
+    else if (d.includes('uruguay') || d.includes('montevideo'))
+      visaInfo = 'PASAPORTE (SIN VISA): Los colombianos viajan a Uruguay sin visa hasta 90 días. Pasaporte vigente.';
+    else if (d.includes('bolivia') || d.includes('la paz'))
+      visaInfo = 'PASAPORTE O CÉDULA (SIN VISA): Para Bolivia basta la cédula de ciudadanía colombiana vigente. Sin visa.';
+    else if (d.includes('méxico') || d.includes('mexico') || d.includes('cancún') || d.includes('cancun'))
+      visaInfo = 'PASAPORTE (SIN VISA): Los colombianos viajan a México sin visa. Pasaporte vigente. Completar FMM en el avión o aeropuerto.';
+    else if (d.includes('emiratos') || d.includes('dubai') || d.includes('abu dhabi'))
+      visaInfo = 'PASAPORTE (VISA ON ARRIVAL): Los colombianos obtienen visa gratuita al llegar a Dubai. Pasaporte con al menos 6 meses de validez. Verificar convenio vigente.';
+    else if (d.includes('turquía') || d.includes('turquia') || d.includes('estambul') || d.includes('istanbul'))
+      visaInfo = 'PASAPORTE + e-VISA: Los colombianos necesitan e-Visa para Turquía (~US$50), en evisa.gov.tr.';
+    else if (d.includes('singapur') || d.includes('singapore'))
+      visaInfo = 'PASAPORTE (SIN VISA): Los colombianos viajan SIN VISA a Singapur hasta 30 días. Pasaporte vigente.';
+    else if (d.includes('cuba') || d.includes('habana') || d.includes('varadero'))
+      visaInfo = 'PASAPORTE + TARJETA DEL TURISTA: Los colombianos necesitan Tarjeta del Turista para Cuba (~US$25), comprable en el aeropuerto o aerolínea.';
+    else
+      visaInfo = 'PASAPORTE: Verifica los requisitos de visa en cancilleria.gov.co (Cancillería de Colombia). Estándar: pasaporte vigente con al menos 6 meses de validez desde la fecha de regreso.';
+
+  // ── Visa / Pasaporte para viajeros MEXICANOS ───────────────────────────────
+  } else if (isMexico) {
+    if (d.includes('eeuu') || d.includes('estados unidos') || d.includes('nueva york') || d.includes('new york') || d.includes('miami') || d.includes('los angeles') || d.includes('chicago') || d.includes('orlando') || d.includes('washington') || d.includes('houston'))
+      visaInfo = 'PASAPORTE + VISA B1/B2: Los mexicanos generalmente NECESITAN visa para EE.UU. Si ya la tienes vigente, ¡perfecto! Si no, tramitar en la Embajada de EE.UU. en México (mx.usembassy.gov). El proceso puede tardar meses.';
+    else if (d.includes('canadá') || d.includes('canada') || d.includes('toronto') || d.includes('vancouver') || d.includes('montreal'))
+      visaInfo = 'PASAPORTE + VISA o eTA: Los mexicanos necesitan visa de turista para Canadá (o eTA si viajaron en avión con visa canadiense previa). Tramitar con anticipación en canada.ca.';
+    else if (d.includes('europa') || d.includes('schengen') || d.includes('españa') || d.includes('france') || d.includes('paris') || d.includes('italia') || d.includes('roma') || d.includes('alemania') || d.includes('berlin') || d.includes('grecia') || d.includes('portugal') || d.includes('lisboa') || d.includes('holanda') || d.includes('amsterdam') || d.includes('suiza') || d.includes('austria') || d.includes('viena') || d.includes('hungría') || d.includes('budapest') || d.includes('república checa') || d.includes('praga') || d.includes('madrid') || d.includes('barcelona'))
+      visaInfo = 'PASAPORTE (SIN VISA): Los mexicanos viajan SIN VISA a la Zona Schengen hasta 90 días. Solo pasaporte vigente con al menos 6 meses de validez.';
+    else if (d.includes('reino unido') || d.includes('uk') || d.includes('inglaterra') || d.includes('londres') || d.includes('london'))
+      visaInfo = 'PASAPORTE (SIN VISA): Los mexicanos viajan SIN VISA al Reino Unido hasta 6 meses. Pasaporte vigente obligatorio.';
+    else if (d.includes('australia') || d.includes('sydney') || d.includes('melbourne'))
+      visaInfo = 'PASAPORTE + eVisitor: Los mexicanos necesitan eVisitor (651) para Australia, GRATUITO, tramitable online en immi.homeaffairs.gov.au. Pasaporte vigente obligatorio.';
+    else if (d.includes('japon') || d.includes('japón') || d.includes('tokyo') || d.includes('osaka') || d.includes('kyoto'))
+      visaInfo = 'PASAPORTE (SIN VISA): Los mexicanos viajan SIN VISA a Japón hasta 90 días. Solo pasaporte vigente — sin trámites previos.';
+    else if (d.includes('tailandia') || d.includes('thailand') || d.includes('bangkok') || d.includes('phuket'))
+      visaInfo = 'PASAPORTE (SIN VISA): Los mexicanos viajan SIN VISA a Tailandia hasta 30 días. Pasaporte vigente obligatorio.';
+    else if (d.includes('china') || d.includes('beijing') || d.includes('shanghai'))
+      visaInfo = 'PASAPORTE + VISA: Los mexicanos necesitan visa para China. Tramitar en la Embajada China en México. Pasaporte con al menos 6 meses de vigencia.';
+    else if (d.includes('india') || d.includes('delhi') || d.includes('mumbai') || d.includes('goa'))
+      visaInfo = 'PASAPORTE + e-VISA: Los mexicanos necesitan e-Visa para India (~US$25), en indianvisaonline.gov.in. Aprobación en 72-96h.';
+    else if (d.includes('argentina') || d.includes('buenos aires') || d.includes('mendoza') || d.includes('bariloche'))
+      visaInfo = 'PASAPORTE (SIN VISA): Los mexicanos viajan a Argentina sin visa hasta 90 días. Pasaporte vigente obligatorio.';
+    else if (d.includes('chile') || d.includes('santiago'))
+      visaInfo = 'PASAPORTE (SIN VISA): Los mexicanos viajan a Chile sin visa hasta 90 días. Pasaporte vigente obligatorio.';
+    else if (d.includes('perú') || d.includes('peru') || d.includes('lima') || d.includes('cusco') || d.includes('machu picchu'))
+      visaInfo = 'PASAPORTE (SIN VISA): Los mexicanos viajan a Perú sin visa hasta 183 días. Pasaporte vigente obligatorio.';
+    else if (d.includes('colombia') || d.includes('bogotá') || d.includes('cartagena') || d.includes('medellín'))
+      visaInfo = 'PASAPORTE (SIN VISA): Los mexicanos viajan a Colombia sin visa hasta 90 días. Pasaporte vigente.';
+    else if (d.includes('brasil') || d.includes('brazil') || d.includes('río de janeiro') || d.includes('são paulo') || d.includes('sao paulo'))
+      visaInfo = 'PASAPORTE (SIN VISA): Los mexicanos viajan a Brasil sin visa hasta 90 días. Pasaporte vigente obligatorio.';
+    else if (d.includes('uruguay') || d.includes('montevideo'))
+      visaInfo = 'PASAPORTE (SIN VISA): Los mexicanos viajan a Uruguay sin visa. Pasaporte vigente.';
+    else if (d.includes('cuba') || d.includes('habana') || d.includes('varadero'))
+      visaInfo = 'PASAPORTE + TARJETA DEL TURISTA: Los mexicanos necesitan Tarjeta del Turista para Cuba (~US$25), comprable en el aeropuerto o aerolínea. Pasaporte vigente.';
+    else if (d.includes('emiratos') || d.includes('dubai') || d.includes('abu dhabi'))
+      visaInfo = 'PASAPORTE (VISA ON ARRIVAL): Los mexicanos obtienen visa gratuita al llegar a Dubai por acuerdo. Pasaporte con al menos 6 meses de validez.';
+    else if (d.includes('turquía') || d.includes('turquia') || d.includes('estambul') || d.includes('istanbul'))
+      visaInfo = 'PASAPORTE + e-VISA: Los mexicanos necesitan e-Visa para Turquía (~US$50), en evisa.gov.tr.';
+    else if (d.includes('singapur') || d.includes('singapore'))
+      visaInfo = 'PASAPORTE (SIN VISA): Los mexicanos viajan SIN VISA a Singapur hasta 30 días. Pasaporte vigente.';
+    else if (d.includes('corea del sur') || d.includes('seoul') || d.includes('seúl'))
+      visaInfo = 'PASAPORTE (SIN VISA): Los mexicanos viajan SIN VISA a Corea del Sur hasta 90 días. Pasaporte vigente.';
+    else if (d.includes('bali') || d.includes('indonesia') || d.includes('jakarta'))
+      visaInfo = 'PASAPORTE (VISA ON ARRIVAL): Los mexicanos obtienen Visa on Arrival en Indonesia (~US$35) por 30 días, prorrogable 30 días más. Pasaporte con 6 meses de validez.';
+    else
+      visaInfo = 'PASAPORTE: Verifica los requisitos de visa en sre.gob.mx (Secretaría de Relaciones Exteriores de México). Estándar: pasaporte vigente con al menos 6 meses de validez desde la fecha de regreso.';
   }
 
   const lines = [];
