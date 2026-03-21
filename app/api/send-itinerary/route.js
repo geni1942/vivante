@@ -3,6 +3,247 @@ import { NextResponse } from 'next/server';
 export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
 
+// ─── Helper: HTML del email de confirmación ───────────────────────────────────
+function buildConfirmationEmail(formData, itinerario, planLabel, fechaTexto) {
+  return `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Tu itinerario VIVANTE</title>
+</head>
+<body style="margin:0;padding:0;background:#FCF8F4;font-family:Arial,sans-serif;color:#212529;">
+<div style="max-width:640px;margin:0 auto;background:#FCF8F4;">
+
+  <div style="background:#FF6332;padding:28px;text-align:center;">
+    <img src="https://vivevivante.com/images/vivante_logo.svg" alt="VIVANTE" style="height:52px;width:auto;" onerror="this.style.display='none'"/>
+    <p style="color:#fff;font-size:13px;margin:6px 0 0;letter-spacing:2px;">VIAJA MÁS. PLANIFICA MENOS.</p>
+  </div>
+
+  <div style="padding:32px;">
+    <h1 style="font-size:24px;color:#212529;margin:0 0 8px;">
+      ¡Hola, ${formData.nombre}! ✈️
+    </h1>
+    <p style="color:#555;font-size:15px;line-height:1.6;margin:0 0 6px;">
+      Tu plan <strong style="color:#FF6332;">${planLabel}</strong> está listo.
+    </p>
+    ${fechaTexto ? `<p style="color:#6F42C1;font-style:italic;font-size:14px;margin:0 0 20px;">📅 ${fechaTexto}</p>` : ''}
+
+    <div style="background:#FFF0EB;border-radius:12px;padding:20px;margin-bottom:24px;">
+      <h2 style="color:#FF6332;font-size:18px;margin:0 0 12px;">📊 Resumen</h2>
+      <p style="margin:4px 0;"><strong>Destino:</strong> ${itinerario.resumen?.destino || formData.destino}</p>
+      <p style="margin:4px 0;"><strong>Duración:</strong> ${formData.dias} días · ${formData.numViajeros} viajero${formData.numViajeros > 1 ? 's' : ''}</p>
+      <p style="margin:4px 0;"><strong>Fecha de ida:</strong> ${itinerario.resumen?.fecha_salida || 'Ver en el itinerario'}</p>
+      <p style="margin:4px 0;"><strong>Fecha de vuelta:</strong> ${itinerario.resumen?.fecha_regreso || 'Ver en el itinerario'}</p>
+      <p style="margin:4px 0;"><strong>Presupuesto estimado:</strong> ${itinerario.presupuesto_desglose?.total || ''}</p>
+    </div>
+
+    <div style="background:#FF6332;border-radius:12px;padding:20px;text-align:center;margin-bottom:24px;">
+      <p style="color:#fff;font-size:14px;margin:0 0 8px;">Tu itinerario completo está adjunto como PDF en este correo.</p>
+      <p style="color:#fff;font-size:13px;font-style:italic;margin:0;">¿Problemas? Escribinos a <a href="mailto:vive.vivante.ch@gmail.com" style="color:#FFE0D0;">vive.vivante.ch@gmail.com</a></p>
+    </div>
+
+    ${(itinerario.dias || []).slice(0, 3).map(dia => `
+    <div style="border-left:4px solid #FF6332;padding:12px 16px;margin-bottom:16px;background:#FFF8F5;border-radius:0 8px 8px 0;">
+      <p style="font-weight:700;color:#FF6332;margin:0 0 6px;">Día ${dia.numero}: ${dia.titulo}</p>
+      <p style="margin:0 0 4px;color:#212529;font-size:14px;">🌅 ${dia.manana?.actividad || ''}</p>
+      <p style="margin:0 0 4px;color:#212529;font-size:14px;">🌞 ${dia.tarde?.almuerzo || ''}</p>
+      <p style="margin:0;color:#6F42C1;font-size:12px;font-style:italic;">💰 ${dia.gasto_dia || ''}</p>
+    </div>`).join('')}
+    ${(itinerario.dias || []).length > 3 ? `<p style="text-align:center;color:#888;font-size:13px;">... y ${itinerario.dias.length - 3} días más en tu itinerario completo (ver PDF adjunto)</p>` : ''}
+
+  </div>
+
+  <div style="background:#FF6332;padding:32px;text-align:center;">
+    <p style="color:#fff;font-size:22px;font-weight:800;margin:0 0 8px;">VIVANTE</p>
+    <p style="color:rgba(255,255,255,0.9);font-size:14px;margin:0 0 16px;">
+      ${itinerario.subtitulo || `Solo falta hacer la maleta, ${formData.nombre}. ✈️`}
+    </p>
+    <p style="color:rgba(255,255,255,0.7);font-size:12px;margin:0;">
+      <a href="https://vivevivante.com" style="color:rgba(255,255,255,0.85);">vivevivante.com</a> ·
+      <a href="https://instagram.com/vive.vivante" style="color:rgba(255,255,255,0.85);">@vive.vivante</a>
+    </p>
+  </div>
+
+</div>
+</body>
+</html>`;
+}
+
+// ─── Helper: Generar PDF del itinerario con pdfmake ───────────────────────────
+async function generateItinerarioPdf(itinerario, formData, planLabel) {
+  try {
+    const { default: PdfPrinter } = await import('pdfmake');
+    const vfsModule = await import('pdfmake/build/vfs_fonts.js');
+    const vfsData = vfsModule.default || vfsModule;
+    const vfs = vfsData?.pdfMake?.vfs || vfsData?.vfs || {};
+
+    const fonts = {
+      Roboto: {
+        normal:      Buffer.from(vfs['Roboto-Regular.ttf'],       'base64'),
+        bold:        Buffer.from(vfs['Roboto-Medium.ttf'],        'base64'),
+        italics:     Buffer.from(vfs['Roboto-Italic.ttf'],        'base64'),
+        bolditalics: Buffer.from(vfs['Roboto-MediumItalic.ttf'],  'base64'),
+      },
+    };
+
+    const printer = new PdfPrinter(fonts);
+    const coral   = '#FF6332';
+    const carbon  = '#212529';
+    const purple  = '#6F42C1';
+    const content = [];
+
+    // ── Encabezado ──
+    content.push({ text: 'VIVANTE', fontSize: 28, bold: true, color: coral, alignment: 'center', margin: [0, 0, 0, 2] });
+    content.push({ text: 'VIAJÁ MÁS. PLANIFICÁ MENOS.', fontSize: 9, color: '#888', alignment: 'center', margin: [0, 0, 0, 6] });
+    content.push({ text: planLabel, fontSize: 10, bold: true, color: coral, alignment: 'center', margin: [0, 0, 0, 8] });
+    if (itinerario.titulo)    content.push({ text: itinerario.titulo,    fontSize: 18, bold: true,   color: carbon, margin: [0, 0, 0, 4] });
+    if (itinerario.subtitulo) content.push({ text: itinerario.subtitulo, fontSize: 13, italics: true, color: '#555', margin: [0, 0, 0, 14] });
+    content.push({ canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 2, lineColor: coral }], margin: [0, 0, 0, 14] });
+
+    // ── Resumen ──
+    const resumen = itinerario.resumen || {};
+    content.push({ text: 'RESUMEN', fontSize: 13, bold: true, color: coral, margin: [0, 0, 0, 8] });
+    const resumenRows = [
+      resumen.destino || formData.destino   ? ['Destino',              resumen.destino || formData.destino]               : null,
+      resumen.origen  || formData.origen    ? ['Origen',               resumen.origen  || formData.origen]                : null,
+      resumen.fecha_salida                  ? ['Fecha de ida',         resumen.fecha_salida]                              : null,
+      resumen.fecha_regreso                 ? ['Fecha de vuelta',      resumen.fecha_regreso]                             : null,
+      formData.dias                         ? ['Duración',             `${formData.dias} días`]                          : null,
+      formData.numViajeros                  ? ['Viajeros',             String(formData.numViajeros)]                      : null,
+      resumen.fecha_optima_texto            ? ['Mejor época',          resumen.fecha_optima_texto]                        : null,
+      itinerario.presupuesto_desglose?.total? ['Presupuesto estimado', itinerario.presupuesto_desglose.total]             : null,
+    ].filter(Boolean);
+    if (resumenRows.length) {
+      content.push({
+        table: { widths: [140, '*'], body: resumenRows.map(([k, v]) => [{ text: k, bold: true, fontSize: 10 }, { text: v, fontSize: 10 }]) },
+        layout: 'lightHorizontalLines', margin: [0, 0, 0, 18],
+      });
+    }
+
+    // ── Días ──
+    if (itinerario.dias?.length) {
+      content.push({ canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 1, lineColor: '#ddd' }], margin: [0, 0, 0, 14] });
+      content.push({ text: 'ITINERARIO DÍA A DÍA', fontSize: 13, bold: true, color: coral, margin: [0, 0, 0, 10] });
+      itinerario.dias.forEach(dia => {
+        content.push({ text: `Día ${dia.numero}: ${dia.titulo || ''}`, fontSize: 12, bold: true, color: coral, margin: [0, 0, 0, 5] });
+        const rows = [
+          dia.manana?.actividad  ? `🌅 Mañana: ${dia.manana.actividad}`     : null,
+          dia.manana?.desayuno   ? `☕ Desayuno: ${dia.manana.desayuno}`    : null,
+          dia.tarde?.actividad   ? `🌞 Tarde: ${dia.tarde.actividad}`       : null,
+          dia.tarde?.almuerzo    ? `🍽 Almuerzo: ${dia.tarde.almuerzo}`    : null,
+          dia.noche?.actividad   ? `🌙 Noche: ${dia.noche.actividad}`      : null,
+          dia.noche?.cena        ? `🍷 Cena: ${dia.noche.cena}`            : null,
+        ].filter(Boolean);
+        rows.forEach(r => content.push({ text: r, fontSize: 10, margin: [10, 0, 0, 2] }));
+        if (dia.alojamiento?.nombre) {
+          const al = dia.alojamiento;
+          content.push({ text: `🏨 Alojamiento: ${al.nombre}${al.tipo ? ` (${al.tipo})` : ''}${al.precio ? ` – ${al.precio}` : ''}`, fontSize: 10, color: purple, margin: [10, 0, 0, 2] });
+        }
+        if (dia.gasto_dia) content.push({ text: `💰 Gasto del día: ${dia.gasto_dia}`, fontSize: 10, color: '#777', italics: true, margin: [10, 0, 0, 2] });
+        if (dia.tip_local)  content.push({ text: `💡 Tip local: ${dia.tip_local}`, fontSize: 10, color: purple, italics: true, margin: [10, 0, 0, 2] });
+        content.push({ text: '', margin: [0, 0, 0, 8] });
+      });
+    }
+
+    // ── Secciones Pro ──
+    const sep = () => ({ canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 1, lineColor: '#ddd' }], margin: [0, 6, 0, 10] });
+
+    if (itinerario.bares_vida_nocturna?.length) {
+      content.push(sep());
+      content.push({ text: '🍺 BARES Y VIDA NOCTURNA', fontSize: 13, bold: true, color: coral, margin: [0, 0, 0, 8] });
+      itinerario.bares_vida_nocturna.forEach(b => content.push({ text: `• ${b.nombre || ''}${b.tipo ? ` (${b.tipo})` : ''}${b.descripcion ? ` – ${b.descripcion}` : ''}`, fontSize: 10, margin: [8, 0, 0, 3] }));
+    }
+    if (itinerario.transporte_local) {
+      content.push(sep());
+      content.push({ text: '🚌 TRANSPORTE LOCAL', fontSize: 13, bold: true, color: coral, margin: [0, 0, 0, 8] });
+      const tl = itinerario.transporte_local;
+      if (tl.opciones?.length) tl.opciones.forEach(o => content.push({ text: `• ${o.tipo || ''}: ${o.descripcion || ''}${o.costo_aprox ? ` (${o.costo_aprox})` : ''}`, fontSize: 10, margin: [8, 0, 0, 3] }));
+      if (tl.consejo) content.push({ text: `💡 ${tl.consejo}`, fontSize: 10, italics: true, color: purple, margin: [8, 4, 0, 0] });
+    }
+    if (itinerario.conectividad) {
+      content.push(sep());
+      content.push({ text: '📱 CONECTIVIDAD', fontSize: 13, bold: true, color: coral, margin: [0, 0, 0, 8] });
+      const co = itinerario.conectividad;
+      if (co.esim_recomendada) content.push({ text: `📡 eSIM recomendada: ${co.esim_recomendada}${co.esim_precio ? ` – ${co.esim_precio}` : ''}`, fontSize: 10, margin: [8, 0, 0, 3] });
+      if (co.operador_local)   content.push({ text: `📞 Operador local: ${co.operador_local}`,    fontSize: 10, margin: [8, 0, 0, 3] });
+    }
+    if (itinerario.festivos_horarios) {
+      content.push(sep());
+      content.push({ text: '📅 FESTIVOS Y HORARIOS', fontSize: 13, bold: true, color: coral, margin: [0, 0, 0, 8] });
+      const fh = itinerario.festivos_horarios;
+      if (fh.advertencia) content.push({ text: fh.advertencia, fontSize: 10, margin: [8, 0, 0, 3] });
+      if (fh.horario_comercios) content.push({ text: `Horario comercios: ${fh.horario_comercios}`, fontSize: 10, margin: [8, 0, 0, 3] });
+    }
+    if (itinerario.salud_seguridad) {
+      content.push(sep());
+      content.push({ text: '🏥 SALUD Y SEGURIDAD', fontSize: 13, bold: true, color: coral, margin: [0, 0, 0, 8] });
+      const ss = itinerario.salud_seguridad;
+      if (ss.vacunas_recomendadas?.length) content.push({ text: `Vacunas: ${ss.vacunas_recomendadas.join(', ')}`, fontSize: 10, margin: [8, 0, 0, 3] });
+      if (ss.zonas_evitar?.length)         content.push({ text: `Zonas a evitar: ${ss.zonas_evitar.join(', ')}`, fontSize: 10, color: '#c0392b', margin: [8, 0, 0, 3] });
+      if (ss.emergencias) {
+        const em = ss.emergencias;
+        const emTxt = [em.policia && `Policía: ${em.policia}`, em.ambulancia && `Ambulancia: ${em.ambulancia}`, em.bomberos && `Bomberos: ${em.bomberos}`].filter(Boolean).join(' · ');
+        if (emTxt) content.push({ text: `Emergencias: ${emTxt}`, fontSize: 10, margin: [8, 0, 0, 3] });
+      }
+    }
+    if (itinerario.idioma_cultura?.frases_utiles?.length) {
+      content.push(sep());
+      content.push({ text: '🗣 IDIOMA Y CULTURA', fontSize: 13, bold: true, color: coral, margin: [0, 0, 0, 8] });
+      itinerario.idioma_cultura.frases_utiles.slice(0, 8).forEach(f => content.push({ text: `• "${f.frase || ''}" → ${f.traduccion || ''}`, fontSize: 10, margin: [8, 0, 0, 3] }));
+    }
+    if (itinerario.que_empacar) {
+      content.push(sep());
+      content.push({ text: '🧳 QUÉ EMPACAR', fontSize: 13, bold: true, color: coral, margin: [0, 0, 0, 8] });
+      const qe = itinerario.que_empacar;
+      if (qe.esencial?.length)    content.push({ text: `Esencial: ${qe.esencial.join(', ')}`,       fontSize: 10, margin: [8, 0, 0, 3] });
+      if (qe.recomendado?.length) content.push({ text: `Recomendado: ${qe.recomendado.join(', ')}`, fontSize: 10, margin: [8, 0, 0, 3] });
+    }
+    if (itinerario.presupuesto_desglose) {
+      content.push(sep());
+      content.push({ text: '💰 PRESUPUESTO ESTIMADO', fontSize: 13, bold: true, color: coral, margin: [0, 0, 0, 8] });
+      const pd = itinerario.presupuesto_desglose;
+      const budgetRows = [
+        pd.alojamiento ? ['Alojamiento', pd.alojamiento] : null,
+        pd.comidas     ? ['Comidas',     pd.comidas]     : null,
+        pd.transporte  ? ['Transporte',  pd.transporte]  : null,
+        pd.actividades ? ['Actividades', pd.actividades] : null,
+        pd.extras      ? ['Extras',      pd.extras]      : null,
+        pd.total       ? ['TOTAL',       pd.total]       : null,
+      ].filter(Boolean);
+      if (budgetRows.length) {
+        content.push({
+          table: { widths: [150, '*'], body: budgetRows.map(([k, v]) => [{ text: k, bold: k === 'TOTAL', fontSize: 10, color: k === 'TOTAL' ? coral : carbon }, { text: v, bold: k === 'TOTAL', fontSize: 10, color: k === 'TOTAL' ? coral : carbon }]) },
+          layout: 'lightHorizontalLines', margin: [0, 0, 0, 16],
+        });
+      }
+    }
+
+    // ── Pie ──
+    content.push({ canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 2, lineColor: coral }], margin: [0, 6, 0, 10] });
+    content.push({ text: 'VIVANTE · vivevivante.com · @vive.vivante', fontSize: 9, color: '#888', alignment: 'center' });
+
+    const docDefinition = {
+      content,
+      defaultStyle: { font: 'Roboto', fontSize: 11, color: carbon },
+      pageMargins: [40, 50, 40, 50],
+      info: { title: itinerario.titulo || 'Itinerario VIVANTE', author: 'VIVANTE' },
+    };
+
+    const pdfDoc = printer.createPdfKitDocument(docDefinition);
+    return await new Promise((resolve, reject) => {
+      const chunks = [];
+      pdfDoc.on('data', chunk => chunks.push(chunk));
+      pdfDoc.on('end', () => resolve(Buffer.concat(chunks).toString('base64')));
+      pdfDoc.on('error', reject);
+      pdfDoc.end();
+    });
+  } catch (e) {
+    console.error('PDF generation error:', e.message);
+    return null;
+  }
+}
+
 export async function POST(request) {
   try {
     const body = await request.json();
@@ -328,15 +569,19 @@ GENERA JSON puro (sin markdown, sin \`\`\`):
 }`;
 
     // ─── PROMPT PRO ────────────────────────────────────────────────────────────
-    // ── Basic→Pro continuity context ────────────────────────────────────────
+    // ── Basic→Pro continuity: si existe itinerario básico, solo generar secciones Pro exclusivas ──
+    // ESTRATEGIA: en lugar de pedirle al AI que "recuerde" el contenido básico,
+    // generamos SOLO las secciones Pro y las fusionamos con el básico en el servidor.
+    // Esto garantiza que vuelos, alojamiento, días, restaurantes y experiencias sean 100% idénticos.
     const basicCtx = basicItinerary ? `
-CONTEXTO DEL PLAN BÁSICO PREVIO (el cliente ya lo tiene):
-El cliente ya tiene un itinerario Básico con estas fechas y vuelos:
-- Fecha salida: ${basicItinerary.resumen?.fecha_salida || ''}
-- Fecha regreso: ${basicItinerary.resumen?.fecha_regreso || ''}
-- Vuelos básicos sugeridos: ${(basicItinerary.vuelos || []).map(v => v.aerolinea + ' (' + v.ruta + ')').join(', ')}
-- Destinos cubiertos: ${basicItinerary.resumen?.distribucion || ''}
-INSTRUCCIÓN: MANTÉN las mismas fechas (fecha_salida y fecha_regreso), los mismos destinos y la misma distribución de días que el plan básico. AGREGA las secciones exclusivas Pro (bares_vida_nocturna, transporte_local, conectividad, salud_seguridad, idioma_cultura, que_empacar, extras, festivos_horarios) con contenido más rico y detallado. El día a día puede ampliarse con más detalle (plan_b, ruta_optimizada, tips insider exclusivos).
+CONTEXTO: El cliente ya tiene su plan Básico. Tu tarea es generar ÚNICAMENTE las secciones EXCLUSIVAS del plan Pro.
+Datos del itinerario básico existente (para contexto de coherencia):
+- Destino: ${basicItinerary.resumen?.destino || formData.destino}
+- Fecha salida: ${basicItinerary.resumen?.fecha_salida || ''} / Regreso: ${basicItinerary.resumen?.fecha_regreso || ''}
+- Distribución de días: ${basicItinerary.resumen?.distribucion || ''}
+- Vuelos ya sugeridos: ${(basicItinerary.vuelos || []).map(v => v.aerolinea + ' (' + v.ruta + ')').join('; ')}
+
+INSTRUCCIÓN CRÍTICA: El JSON que debes generar contiene ÚNICAMENTE las siguientes secciones Pro (NO repitas vuelos, alojamiento, dias, restaurantes, experiencias ni ninguna sección básica — esas ya las tiene el cliente y se fusionarán automáticamente):
 ` : '';
 
     const promptPro = `Eres el planificador PRO de VIVANTE. Itinerario PREMIUM ultra-detallado, con el tono cálido y experto VIVANTE. Precios realistas para ${currentYear}.
@@ -520,6 +765,166 @@ GENERA JSON puro (sin markdown, sin \`\`\`):
   ]
 }`;
 
+    // ── RUTA ESPECIAL: Basic→Pro upgrade con itinerario básico disponible ──────
+    // Si es Pro Y tenemos el itinerario básico, solo pedimos las secciones Pro exclusivas
+    // y las fusionamos con el básico en el servidor → 100% continuidad garantizada
+    if (isPro && basicItinerary) {
+      const promptProSolo = `${basicCtx}
+GENERA JSON puro (sin markdown, sin \`\`\`) con SOLO estas secciones Pro exclusivas, coherentes con el destino ${basicItinerary.resumen?.destino || formData.destino} y las fechas ${basicItinerary.resumen?.fecha_salida || ''} → ${basicItinerary.resumen?.fecha_regreso || ''}:
+${clienteCtx}
+${tipoViajeRule}
+
+{
+  "titulo": "string creativo para la versión Pro",
+  "subtitulo": "string tagline inspirador Pro",
+  "bares_vida_nocturna": {
+    "NOMBRE_REAL_CIUDAD_1": [
+      { "nombre": "string", "tipo_ambiente": "string", "precio_trago": "string", "mejor_dia": "string", "tip": "string" },
+      { "nombre": "string 2", "tipo_ambiente": "string", "precio_trago": "string", "mejor_dia": "string", "tip": "string" }
+    ]
+  },
+  "transporte_local": {
+    "como_moverse": "string",
+    "apps_recomendadas": ["string"],
+    "tarjeta_transporte": "string",
+    "opciones_aeropuerto_centro": [
+      { "medio": "string", "costo": "string", "duracion": "string", "tip": "string o null" }
+    ],
+    "conviene_auto": "string"
+  },
+  "conectividad": {
+    "roaming": "string",
+    "esim_recomendada": "string (Airalo o Holafly con precio aprox)",
+    "sim_local": "string",
+    "wifi_destino": "string",
+    "apps_descargar": ["string"]
+  },
+  "festivos_horarios": {
+    "feriados_en_fechas": "string",
+    "horario_comercial": "string",
+    "horarios_comida": "string",
+    "museos": "string"
+  },
+  "salud_seguridad": {
+    "vacunas": "string",
+    "agua_potable": "string",
+    "nivel_seguridad": "string",
+    "zonas_evitar": "string",
+    "estafas_comunes": "string"
+  },
+  "idioma_cultura": {
+    "idioma": "string",
+    "frases_utiles": [
+      { "frase_local": "string", "pronunciacion": "string", "significado": "string" }
+    ],
+    "costumbres": "string",
+    "vestimenta": "string",
+    "mala_educacion": "string"
+  },
+  "que_empacar": {
+    "clima_esperado": "string",
+    "ropa": ["string"],
+    "adaptador_enchufe": "string",
+    "botiquin": ["string"],
+    "power_bank": "string"
+  },
+  "extras": [
+    { "categoria": "string basado en intereses del cliente", "actividades": ["string", "string", "string"] },
+    { "categoria": "string segunda categoría", "actividades": ["string", "string", "string"] },
+    { "categoria": "Para días de lluvia o descanso", "actividades": ["string", "string", "string"] }
+  ],
+  "dias_pro": [
+    { "numero": 1, "plan_b": "string si llueve o cierra", "ruta_optimizada": "string" }
+  ]
+}
+IMPORTANTE sobre dias_pro: para CADA día del viaje (${formData.dias} días), incluye su número, un plan_b y una ruta_optimizada. NO repitas las actividades del día — solo plan_b y ruta_optimizada.`;
+
+      const groqResProSolo = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${groqApiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          messages: [{ role: 'user', content: promptProSolo }],
+          temperature: 0.7,
+          max_tokens: 6000,
+        }),
+      });
+
+      if (groqResProSolo.ok) {
+        const groqDataProSolo = await groqResProSolo.json();
+        const rawProSolo = groqDataProSolo.choices[0]?.message?.content || '';
+        let proSections = null;
+        try {
+          const cleaned = rawProSolo.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+          const start = cleaned.indexOf('{');
+          const str = start >= 0 ? cleaned.substring(start) : cleaned;
+          try { proSections = JSON.parse(str); } catch {}
+          if (!proSections) {
+            let pos = str.lastIndexOf('}');
+            while (pos > 0 && !proSections) {
+              try { proSections = JSON.parse(str.substring(0, pos + 1)); }
+              catch { pos = str.lastIndexOf('}', pos - 1); }
+            }
+          }
+        } catch (e) { console.error('Pro-solo parse error:', e.message); }
+
+        if (proSections) {
+          // Fusionar: básico + secciones Pro exclusivas
+          const diasEnriquecidos = (basicItinerary.dias || []).map(dia => {
+            const proDay = (proSections.dias_pro || []).find(d => d.numero === dia.numero);
+            return {
+              ...dia,
+              manana: { ...dia.manana, plan_b: proDay?.plan_b || dia.manana?.plan_b },
+              ruta_optimizada: proDay?.ruta_optimizada || dia.ruta_optimizada,
+            };
+          });
+
+          const mergedItinerary = {
+            ...basicItinerary,
+            titulo:              proSections.titulo     || basicItinerary.titulo,
+            subtitulo:           proSections.subtitulo  || basicItinerary.subtitulo,
+            dias:                diasEnriquecidos,
+            bares_vida_nocturna: proSections.bares_vida_nocturna,
+            transporte_local:    proSections.transporte_local,
+            conectividad:        proSections.conectividad,
+            festivos_horarios:   proSections.festivos_horarios,
+            salud_seguridad:     proSections.salud_seguridad,
+            idioma_cultura:      proSections.idioma_cultura,
+            que_empacar:         proSections.que_empacar,
+            extras:              proSections.extras,
+          };
+
+          console.log('Basic→Pro merge exitoso. Secciones Pro añadidas:', Object.keys(proSections).join(', '));
+
+          // Guardar itinerario básico para posible uso futuro (ya existe, no sobreescribir)
+          // Enviar email de confirmación Pro
+          const planLabel = 'Vivante Pro ⭐';
+          const fechaTexto = mergedItinerary.resumen?.fecha_optima_texto || '';
+          const resendKey = process.env.RESEND_API_KEY;
+          if (resendKey) {
+            const emailHtmlPro = buildConfirmationEmail(formData, mergedItinerary, planLabel, fechaTexto);
+            const pdfBase64Pro  = await generateItinerarioPdf(mergedItinerary, formData, planLabel);
+            const emailRes = await fetch('https://api.resend.com/emails', {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                from: 'VIVANTE <onboarding@resend.dev>',
+                to: [formData.email],
+                subject: `⭐ Tu itinerario VIVANTE Pro está listo — ${mergedItinerary.titulo || 'Tu aventura'}`,
+                html: emailHtmlPro,
+                ...(pdfBase64Pro && { attachments: [{ filename: 'itinerario-vivante-pro.pdf', content: pdfBase64Pro }] }),
+              }),
+            });
+            if (!emailRes.ok) console.error('Resend Pro email error:', await emailRes.text());
+          }
+
+          return NextResponse.json({ itinerario: mergedItinerary, planId });
+        }
+      }
+      // Si falla el merge, continuar con el flujo normal de Pro completo
+      console.log('Basic→Pro merge falló, generando Pro completo...');
+    }
+
     const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -621,73 +1026,11 @@ GENERA JSON puro (sin markdown, sin \`\`\`):
     const planLabel = isPro ? 'Vivante Pro ⭐' : 'Vivante Básico';
     const fechaTexto = itinerario.resumen?.fecha_optima_texto || '';
 
-    const emailHtml = `
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Tu itinerario VIVANTE</title>
-</head>
-<body style="margin:0;padding:0;background:#FCF8F4;font-family:Arial,sans-serif;color:#212529;">
-<div style="max-width:640px;margin:0 auto;background:#FCF8F4;">
-
-  <div style="background:#FF6332;padding:28px;text-align:center;">
-    <img src="https://vivevivante.com/images/vivante_logo.svg" alt="VIVANTE" style="height:52px;width:auto;" onerror="this.style.display='none'"/>
-    <p style="color:#fff;font-size:13px;margin:6px 0 0;letter-spacing:2px;">VIAJA MÁS. PLANIFICA MENOS.</p>
-  </div>
-
-  <div style="padding:32px;">
-    <h1 style="font-size:24px;color:#212529;margin:0 0 8px;">
-      ¡Hola, ${formData.nombre}! ✈️
-    </h1>
-    <p style="color:#555;font-size:15px;line-height:1.6;margin:0 0 6px;">
-      Tu plan <strong style="color:#FF6332;">${planLabel}</strong> está listo.
-    </p>
-    ${fechaTexto ? `<p style="color:#6F42C1;font-style:italic;font-size:14px;margin:0 0 20px;">📅 ${fechaTexto}</p>` : ''}
-
-    <div style="background:#FFF0EB;border-radius:12px;padding:20px;margin-bottom:24px;">
-      <h2 style="color:#FF6332;font-size:18px;margin:0 0 12px;">📊 Resumen</h2>
-      <p style="margin:4px 0;"><strong>Destino:</strong> ${itinerario.resumen?.destino || formData.destino}</p>
-      <p style="margin:4px 0;"><strong>Duración:</strong> ${formData.dias} días · ${formData.numViajeros} viajero${formData.numViajeros > 1 ? 's' : ''}</p>
-      <p style="margin:4px 0;"><strong>Fecha de ida:</strong> ${itinerario.resumen?.fecha_salida || 'Ver en el itinerario'}</p>
-      <p style="margin:4px 0;"><strong>Fecha de vuelta:</strong> ${itinerario.resumen?.fecha_regreso || 'Ver en el itinerario'}</p>
-      <p style="margin:4px 0;"><strong>Presupuesto estimado:</strong> ${itinerario.presupuesto_desglose?.total || ''}</p>
-    </div>
-
-    <div style="background:#FF6332;border-radius:12px;padding:20px;text-align:center;margin-bottom:24px;">
-      <p style="color:#fff;font-size:14px;margin:0 0 8px;">Este itinerario completo con día a día, alojamiento, restaurantes y más lo encontrás en:</p>
-      <p style="color:#fff;font-size:13px;font-style:italic;margin:0;">Revisá tu pantalla de confirmación de pago o solicitalo a <a href="mailto:vive.vivante.ch@gmail.com" style="color:#FFE0D0;">vive.vivante.ch@gmail.com</a></p>
-    </div>
-
-    ${(itinerario.dias || []).slice(0, 3).map(dia => `
-    <div style="border-left:4px solid #FF6332;padding:12px 16px;margin-bottom:16px;background:#FFF8F5;border-radius:0 8px 8px 0;">
-      <p style="font-weight:700;color:#FF6332;margin:0 0 6px;">Día ${dia.numero}: ${dia.titulo}</p>
-      <p style="margin:0 0 4px;color:#212529;font-size:14px;">🌅 ${dia.manana?.actividad || ''}</p>
-      <p style="margin:0 0 4px;color:#212529;font-size:14px;">🌞 ${dia.tarde?.almuerzo || ''}</p>
-      <p style="margin:0;color:#6F42C1;font-size:12px;font-style:italic;">💰 ${dia.gasto_dia || ''}</p>
-    </div>`).join('')}
-    ${(itinerario.dias || []).length > 3 ? `<p style="text-align:center;color:#888;font-size:13px;">... y ${itinerario.dias.length - 3} días más en tu itinerario completo</p>` : ''}
-
-  </div>
-
-  <div style="background:#FF6332;padding:32px;text-align:center;">
-    <p style="color:#fff;font-size:22px;font-weight:800;margin:0 0 8px;">VIVANTE</p>
-    <p style="color:rgba(255,255,255,0.9);font-size:14px;margin:0 0 16px;">
-      ${itinerario.subtitulo || `Solo falta hacer la maleta, ${formData.nombre}. ✈️`}
-    </p>
-    <p style="color:rgba(255,255,255,0.7);font-size:12px;margin:0;">
-      <a href="https://www.vivante.com" style="color:rgba(255,255,255,0.85);">www.vivante.com</a> ·
-      <a href="https://instagram.com/vive.vivante" style="color:rgba(255,255,255,0.85);">@vive.vivante</a>
-    </p>
-  </div>
-
-</div>
-</body>
-</html>`;
+    const emailHtml = buildConfirmationEmail(formData, itinerario, planLabel, fechaTexto);
 
     const resendKey = process.env.RESEND_API_KEY;
     if (resendKey) {
+      const pdfBase64 = await generateItinerarioPdf(itinerario, formData, planLabel);
       const emailRes = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
@@ -699,12 +1042,13 @@ GENERA JSON puro (sin markdown, sin \`\`\`):
           to: [formData.email],
           subject: `✈️ ${itinerario.titulo || 'Tu itinerario VIVANTE está listo'} — ${planLabel}`,
           html: emailHtml,
+          ...(pdfBase64 && { attachments: [{ filename: `itinerario-vivante-${isPro ? 'pro' : 'basico'}.pdf`, content: pdfBase64 }] }),
         }),
       });
       if (!emailRes.ok) console.error('Resend error:', await emailRes.text());
     }
 
-    // ── Brevo: enviar email upsell Pro (solo para plan básico) ───────────────
+    // ── Brevo: email upsell Pro vía template (solo para plan básico) ─────────
     if (!isPro) {
       const brevoKey = process.env.BREVO_API_KEY;
       if (brevoKey) {
@@ -726,73 +1070,14 @@ GENERA JSON puro (sin markdown, sin \`\`\`):
         });
         const upgradeUrl = `https://vivevivante.com/upgrade-pro?${upgradeParams.toString()}`;
 
-        // HTML email-safe: usa background-color sólido (NO linear-gradient → no compatible con clientes de email)
-        const diasPreview = (itinerario.dias || []).slice(0, 3).map(dia => `
-          <div style="border-left:4px solid #FF6332;padding:12px 16px;margin-bottom:12px;background:#FFF8F5;border-radius:0 8px 8px 0;">
-            <p style="font-weight:700;color:#FF6332;margin:0 0 4px;font-size:14px;">D&iacute;a ${dia.numero}: ${(dia.titulo||'').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</p>
-            <p style="margin:0 0 3px;color:#212529;font-size:13px;">${(dia.manana?.actividad||'').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</p>
-          </div>`).join('');
-
-        const upsellHtml = `<!DOCTYPE html>
-<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background-color:#FCF8F4;font-family:Arial,Helvetica,sans-serif;color:#212529;">
-<div style="max-width:600px;margin:0 auto;background-color:#FCF8F4;">
-
-  <div style="background-color:#FF6332;padding:24px;text-align:center;">
-    <p style="color:#fff;font-size:26px;font-weight:800;margin:0;letter-spacing:-1px;">VIVANTE</p>
-    <p style="color:rgba(255,255,255,0.85);font-size:11px;letter-spacing:2px;margin:4px 0 0;">VIAJ&Aacute; M&Aacute;S. PLANIFIC&Aacute; MENOS.</p>
-  </div>
-
-  <div style="padding:28px 24px;">
-    <h1 style="font-size:22px;font-weight:700;color:#212529;margin:0 0 8px;">&iexcl;Hola, ${formData.nombre}! &#x2708;&#xFE0F;</h1>
-    <p style="color:#555;font-size:15px;line-height:1.6;margin:0 0 20px;">
-      Tu plan <strong style="color:#FF6332;">Vivante B&aacute;sico</strong> est&aacute; listo.
-      ${itinerario.resumen?.fecha_optima_texto ? `<br><span style="color:#6F42C1;font-style:italic;font-size:13px;">&#128197; ${itinerario.resumen.fecha_optima_texto}</span>` : ''}
-    </p>
-
-    <div style="background-color:#FFF0EB;border-radius:10px;padding:20px;margin-bottom:24px;">
-      <p style="color:#FF6332;font-size:16px;font-weight:700;margin:0 0 12px;">&#128202; Resumen de tu viaje</p>
-      <p style="margin:4px 0;font-size:14px;"><strong>Destino:</strong> ${itinerario.resumen?.destino || formData.destino || ''}</p>
-      <p style="margin:4px 0;font-size:14px;"><strong>Duraci&oacute;n:</strong> ${formData.dias} d&iacute;as &middot; ${formData.numViajeros} viajero${formData.numViajeros > 1 ? 's' : ''}</p>
-      <p style="margin:4px 0;font-size:14px;"><strong>Presupuesto estimado:</strong> ${itinerario.presupuesto_desglose?.total || ''}</p>
-    </div>
-
-    <div style="background-color:#E83E8C;border-radius:10px;padding:24px;text-align:center;margin-bottom:24px;">
-      <p style="color:#fff;font-size:18px;font-weight:800;margin:0 0 10px;">&#128640; &iquest;Quer&eacute;s m&aacute;s detalle de tu viaje?</p>
-      <p style="color:#fff;font-size:14px;line-height:1.6;margin:0 0 18px;">
-        Mejor&aacute; a <strong>Vivante Pro</strong> por solo <strong>$7 m&aacute;s</strong> y agreg&aacute; bares y vida nocturna, recomendaciones de RRSS, tips de seguridad, eSIM recomendada, frases en el idioma local y presupuesto detallado d&iacute;a a d&iacute;a.
-      </p>
-      <a href="${upgradeUrl}" style="display:inline-block;background-color:#fff;color:#E83E8C;padding:12px 32px;border-radius:24px;font-weight:800;font-size:14px;text-decoration:none;">
-        Mejorar a Pro por $7 &rarr;
-      </a>
-    </div>
-
-    ${diasPreview}
-    ${(itinerario.dias||[]).length > 3 ? `<p style="text-align:center;color:#888;font-size:13px;">&hellip; y ${itinerario.dias.length - 3} d&iacute;as m&aacute;s en tu itinerario completo</p>` : ''}
-  </div>
-
-  <div style="background-color:#212529;padding:24px;text-align:center;">
-    <p style="color:#fff;font-size:20px;font-weight:800;margin:0 0 6px;">VIVANTE</p>
-    <p style="color:rgba(255,255,255,0.6);font-size:12px;margin:0;">
-      <a href="https://vivevivante.com" style="color:rgba(255,255,255,0.7);text-decoration:none;">vivevivante.com</a>
-      &nbsp;&middot;&nbsp;
-      <a href="https://instagram.com/vive.vivante" style="color:rgba(255,255,255,0.7);text-decoration:none;">@vive.vivante</a>
-    </p>
-  </div>
-
-</div></body></html>`;
-
         await fetch('https://api.brevo.com/v3/smtp/email', {
           method: 'POST',
-          headers: {
-            'api-key': brevoKey,
-            'Content-Type': 'application/json',
-          },
+          headers: { 'api-key': brevoKey, 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            sender:      { name: 'VIVANTE', email: 'vive.vivante.ch@gmail.com' },
-            to:          [{ email: formData.email, name: formData.nombre }],
-            subject:     `🚀 ¿Querés más detalle de tu viaje a ${formData.destino || 'tu destino'}? — Vivante Pro`,
-            htmlContent: upsellHtml,
+            sender:     { name: 'VIVANTE', email: 'vive.vivante.ch@gmail.com' },
+            to:         [{ email: formData.email, name: formData.nombre }],
+            templateId: 1,
+            params:     { FIRSTNAME: formData.nombre, UPGRADE_URL: upgradeUrl },
           }),
         }).catch(e => console.error('Brevo upsell error:', e));
       }
