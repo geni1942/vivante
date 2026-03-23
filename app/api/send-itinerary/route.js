@@ -86,7 +86,7 @@ async function generateItinerarioPdf(itinerario, formData, planLabel) {
     const content = [];
 
     // ── Encabezado ──
-    content.push({ text: 'VIVANTE', fontSize: 28, bold: true, color: coral, alignment: 'center', margin: [0, 0, 0, 2] });
+    content.push({ text: 'VIVANTE', fontSize: 38, bold: true, color: carbon, alignment: 'center', margin: [0, 0, 0, 2] });
     content.push({ text: 'VIAJÁ MÁS. PLANIFICÁ MENOS.', fontSize: 9, color: '#888', alignment: 'center', margin: [0, 0, 0, 6] });
     content.push({ text: planLabel, fontSize: 10, bold: true, color: coral, alignment: 'center', margin: [0, 0, 0, 8] });
     if (itinerario.titulo)    content.push({ text: itinerario.titulo,    fontSize: 18, bold: true,   color: carbon, margin: [0, 0, 0, 4] });
@@ -108,7 +108,7 @@ async function generateItinerarioPdf(itinerario, formData, planLabel) {
     ].filter(Boolean);
     if (resumenRows.length) {
       content.push({
-        table: { widths: [140, '*'], body: resumenRows.map(([k, v]) => [{ text: k, bold: true, fontSize: 10 }, { text: v, fontSize: 10 }]) },
+        table: { widths: [130, 365], body: resumenRows.map(([k, v]) => [{ text: k, bold: true, fontSize: 10 }, { text: String(v), fontSize: 10 }]) },
         layout: 'lightHorizontalLines', margin: [0, 0, 0, 18],
       });
     }
@@ -205,7 +205,7 @@ async function generateItinerarioPdf(itinerario, formData, planLabel) {
       ].filter(Boolean);
       if (budgetRows.length) {
         content.push({
-          table: { widths: [150, '*'], body: budgetRows.map(([k, v]) => [{ text: k, bold: k === 'TOTAL', fontSize: 10, color: k === 'TOTAL' ? coral : carbon }, { text: v, bold: k === 'TOTAL', fontSize: 10, color: k === 'TOTAL' ? coral : carbon }]) },
+          table: { widths: [150, 345], body: budgetRows.map(([k, v]) => [{ text: k, bold: k === 'TOTAL', fontSize: 10, color: k === 'TOTAL' ? coral : carbon }, { text: String(v), bold: k === 'TOTAL', fontSize: 10, color: k === 'TOTAL' ? coral : carbon }]) },
           layout: 'lightHorizontalLines', margin: [0, 0, 0, 16],
         });
       }
@@ -683,6 +683,9 @@ export async function POST(request) {
 
     if (!formData?.email || !formData?.nombre) {
       return NextResponse.json({ error: 'Faltan datos del formulario' }, { status: 400 });
+    }
+    if (!formData?.destino?.trim()) {
+      return NextResponse.json({ error: 'Falta el destino del viaje' }, { status: 400 });
     }
 
     const isPro = planId === 'pro';
