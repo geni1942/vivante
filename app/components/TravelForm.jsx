@@ -37,8 +37,8 @@ export default function TravelForm({ onClose, initialDestino = '' }) {
     {
       id: 'basico',
       nombre: 'Vivante Básico',
-      precio: 17,        // USD (mostrado al usuario)
-      precioClp: 16990,  // CLP (usado en MercadoPago Chile)
+      precio: 10,        // USD (mostrado al usuario)
+      precioClp: 9990,   // CLP (usado en MercadoPago Chile)
       descripcion: 'Itinerario personalizado día a día',
       incluye: [
         'Itinerario completo en PDF',
@@ -51,8 +51,8 @@ export default function TravelForm({ onClose, initialDestino = '' }) {
     {
       id: 'pro',
       nombre: 'Vivante Pro',
-      precio: 25,        // USD (mostrado al usuario)
-      precioClp: 24990,  // CLP (usado en MercadoPago Chile)
+      precio: 17,        // USD (mostrado al usuario)
+      precioClp: 16990,  // CLP (usado en MercadoPago Chile)
       descripcion: 'Experiencia premium con todos los detalles',
       incluye: [
         'Todo lo del Vivante Básico',
