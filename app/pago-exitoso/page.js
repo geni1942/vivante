@@ -37,7 +37,7 @@ function buildHostelworldUrl(destino, checkin, checkout, adults, nombre) {
   return `https://www.hostelworld.com/search?search_keywords=${dest}&dateFrom=${fmtHW(checkin)}&dateTo=${fmtHW(checkout)}&numberOfGuests=${adults || 2}`;
 }
 
-function alojamientoLink(op, destino, checkin, checkout, adults) {
+function alojamientoLink(op, destino, checkin, checkout, adults, alojPref) {
   // Siempre ignoramos el link del AI (suelen ser genéricos o inválidos).
   // Construimos un link de búsqueda con el NOMBRE del hotel para que match sea específico.
   const plat = (op.plataforma || '').toLowerCase();
@@ -62,6 +62,8 @@ function alojamientoLink(op, destino, checkin, checkout, adults) {
     no_rooms: 1,
     selected_currency: 'USD',
   });
+  // Si la preferencia es Bed & Breakfast, aplicar filtro de tipo de propiedad (pt=11)
+  if (alojPref === 'bnb') p.append('nflt', 'pt%3D11');
   return `https://www.booking.com/searchresults.html?${p}`;
 }
 
@@ -206,9 +208,28 @@ function ItinerarioContent() {
     if (!data) { setEstado('error'); return; }
     setFormData(data);
     // Basic→Pro continuity: si es upgrade Pro, pasar el itinerario básico como base
+    // ⚠️ IMPORTANTE: verificar que el basicItinerary corresponde al MISMO destino actual
+    // para evitar mezclar itinerarios de distintos viajes almacenados en localStorage
     let basicItinerary = null;
     if (plan === 'pro') {
-      try { basicItinerary = JSON.parse(localStorage.getItem('vivante_basic_itinerary') || 'null'); } catch {}
+      try {
+        const storedBasic = JSON.parse(localStorage.getItem('vivante_basic_itinerary') || 'null');
+        if (storedBasic) {
+          const basicDest  = (storedBasic.resumen?.destino || '').toLowerCase().split(/[,(-]/)[0].trim();
+          const currentDest = (data.destino || '').toLowerCase().split(/[,(-]/)[0].trim();
+          // Solo usar el basicItinerary si el destino coincide razonablemente
+          const destinosCoinciden = basicDest && currentDest && (
+            basicDest.includes(currentDest) || currentDest.includes(basicDest)
+          );
+          if (destinosCoinciden) {
+            basicItinerary = storedBasic;
+          } else {
+            console.log('basicItinerary ignorado: destino diferente (' + basicDest + ' vs ' + currentDest + ')');
+            // Limpiar el básico obsoleto para evitar confusiones futuras
+            try { localStorage.removeItem('vivante_basic_itinerary'); } catch {}
+          }
+        }
+      } catch {}
     }
     fetch('/api/send-itinerary', {
       method: 'POST',
@@ -378,7 +399,7 @@ function ItinerarioContent() {
 
       {/* HEADER */}
       <div style={{ background: C.coral, padding: '20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <img src="/images/vivante_logo.svg" alt="VIVANTE" style={{ height: 72, width: 'auto' }}
+        <img src="/images/vivante_logo.svg" alt="VIVANTE" style={{ height: 92, width: 'auto' }}
           onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }} />
         <span style={{ display: 'none', color: '#fff', fontFamily: 'Syne, sans-serif', fontSize: 36, fontWeight: 800, letterSpacing: -1 }}>VIVANTE</span>
       </div>
@@ -456,7 +477,7 @@ function ItinerarioContent() {
         {/* CABECERA PDF: solo visible en el PDF generado con html2pdf.js */}
         {printAll && (
           <div style={{ background: '#FCF8F4', textAlign: 'center', padding: '28px 0 24px', borderBottom: `3px solid ${C.coral}`, marginBottom: 24 }}>
-            <img src="/images/vivante_logo.svg" alt="VIVANTE" style={{ height: 80, width: 'auto', marginBottom: 10 }}
+            <img src="/images/vivante_logo.svg" alt="VIVANTE" style={{ height: 110, width: 'auto', marginBottom: 10 }}
               onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }} />
             <div style={{ display: 'none', color: C.coral, fontFamily: 'Syne, sans-serif', fontSize: 38, fontWeight: 800, letterSpacing: -1, marginBottom: 8 }}>VIVANTE</div>
             <div style={{ color: C.carbon, fontSize: 18, fontWeight: 700, marginTop: 6 }}>{itinerario?.titulo || `Itinerario: ${formData?.destino}`}</div>
@@ -636,7 +657,7 @@ function ItinerarioContent() {
                         </td>
                         <td style={{ padding: '12px 12px' }}>
                           <BtnLink
-                            href={alojamientoLink(op, zona.destino, res.fecha_salida, res.fecha_regreso, formData?.numViajeros)}
+                            href={alojamientoLink(op, zona.destino, res.fecha_salida, res.fecha_regreso, formData?.numViajeros, formData?.alojamiento)}
                             color={C.violeta}
                             small>
                             Ver alojamiento →
