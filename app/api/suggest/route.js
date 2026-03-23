@@ -22,7 +22,21 @@ export async function POST(request) {
       .join(', ');
     
     const ritmoTexto = data.ritmo <= 2 ? 'relajado' : data.ritmo <= 3 ? 'moderado' : 'intenso';
-    
+
+    const alojamientoMap = {
+      'hotel':  'Hotel (mid-range a premium)',
+      'airbnb': 'Airbnb / apartamento privado',
+      'hostal': 'Hostal (económico, social)',
+      'bnb':    'Bed & Breakfast (pequeño, familiar)',
+    };
+    const alojTexto = alojamientoMap[data.alojamiento] || 'Hotel';
+
+    const familiaCtx = data.tipoViaje === 'familia' && data.numViajeros > 2
+      ? `\n- Viaje familiar con ${data.numViajeros} personas (probablemente con niños): prioriza destinos seguros con actividades para todas las edades. EVITA destinos de fiesta, vida nocturna o aventura extrema.`
+      : data.tipoViaje === 'familia'
+        ? `\n- Viaje familiar: prioriza destinos seguros con atracciones para niños y familias.`
+        : '';
+
     const tipoViajeMap = {
       'solo': 'viajero solo',
       'pareja': 'pareja',
@@ -42,6 +56,7 @@ PERFIL DEL VIAJERO:
 - Tipo de viajero: ${tipoViajero} (${data.numViajeros} personas)
 - Intereses: ${interesesTexto}
 - Ritmo preferido: ${ritmoTexto}
+- Alojamiento preferido: ${alojTexto}${familiaCtx}
 
 REGLAS PARA LAS OPCIONES:
 1. OPCIÓN 1: Multidestino (2 países o 2 ciudades en países diferentes). Ejemplo: "Roma + París"
@@ -49,7 +64,10 @@ REGLAS PARA LAS OPCIONES:
 3. OPCIÓN 3: ${data.dias <= 7 ? 'Destino único (una sola ciudad, ideal para viajes cortos)' : 'Otra combinación multidestino o monopaís diferente a las anteriores'}
 
 IMPORTANTE:
-- El precio estimado debe ser REALISTA considerando vuelos desde ${data.origen}, hoteles de categoría media y actividades
+- El precio estimado debe ser REALISTA considerando vuelos desde ${data.origen} y el tipo de alojamiento preferido (${alojTexto})
+- Si el alojamiento es "Hostal": prioriza destinos populares en la ruta mochilera (Bangkok, Lisboa, Medellín, Berlín, etc.)
+- Si el alojamiento es "B&B": prioriza pueblos y ciudades medianas con encanto (Toscana, Provence, Alentejo, etc.) sobre megalópolis
+- Si el alojamiento es "Airbnb": ciudades con barrios residenciales vivibles y buena conectividad al centro
 - Considera la temporada actual y costos de vida del destino
 - Los destinos deben coincidir con los intereses del viajero
 - El presupuesto es por persona
@@ -151,3 +169,4 @@ Responde ÚNICAMENTE en este formato JSON exacto, sin texto adicional:
     );
   }
 }
+
