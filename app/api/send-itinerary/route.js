@@ -754,12 +754,15 @@ Para origen_iata y destino_iata: código IATA de 3 letras del aeropuerto princip
       ? `- CHECKLIST PERSONALIZADO: Para los ítems del checklist, usa OBLIGATORIAMENTE esta información verificada sobre los requisitos del viaje desde ${formData.origen || 'Chile'} hacia ${formData.destino}:\n${travelContext}\nEstos ítems DEBEN aparecer literalmente en el checklist (no los parafrasees ni inventes información diferente). Completa el resto con ítems prácticos de preparativos: contratar seguro de viaje, llevar efectivo en la moneda local, confirmar reservas de vuelo y alojamiento, descargar apps útiles (Google Maps offline, Uber, traductor), ropa adecuada al clima del destino. Total: 8-10 ítems concisos y accionables.`
       : '';
 
+    // ── Regla OPTIMIZACIÓN GEOGRÁFICA ────────────────────────────────────────
+    const geoRule = `- OPTIMIZACIÓN GEOGRÁFICA DE RUTA: (1) Para viajes MULTI-DESTINO: ordena las ciudades/países de forma geográficamente lógica para minimizar distancias y tiempos de traslado. Nunca plantees rutas que obliguen a retroceder innecesariamente (ej: si visitas Madrid, Barcelona y Lisboa, no vayas Madrid→Lisboa→Barcelona). (2) Para el día a día de CADA CIUDAD: agrupa las actividades por zona geográfica. Mañana: zona norte o centro. Tarde: zona sur o cercana. Nunca propongas en el mismo día visitar atracciones en extremos opuestos de la ciudad sin lógica de desplazamiento. Siempre incluye en "ruta_optimizada" el orden sugerido para minimizar traslados. (3) Para vuelos: prioriza conexiones lógicas (no escalas en dirección contraria al destino).`;
+
     // ── Regla DÍAS: siempre generar los N días completos ─────────────────────
     const diasRule = `- DÍAS COMPLETOS: El array "dias" del JSON DEBE contener EXACTAMENTE ${dias} objetos (uno por cada día del viaje). NUNCA generes menos días aunque el presupuesto sea ajustado. Si el presupuesto es bajo, adapta con actividades gratuitas (parques, iglesias, miradores, mercados), comida callejera y alojamiento económico — pero SIEMPRE genera los ${dias} días completos. Un presupuesto ajustado NO es excusa para recortar el itinerario.`;
 
     // ── Regla viaje doméstico ────────────────────────────────────────────────
     const domesticRule = isDomestic
-      ? `- VIAJE DOMÉSTICO: Origen (${formData.origen}) y destino (${formData.destino}) están en el MISMO PAÍS. Reglas ESTRICTAS: (1) "checklist": NO incluyas pasaporte internacional, visa de turismo, adaptador de enchufe extranjero ni seguro de viaje internacional. (2) "dinero.tipo_cambio": pon "No aplica — misma moneda"; "dinero.donde_cambiar": pon "No aplica — no se necesita cambiar divisas". (3) "seguro": solo asistencia médica nacional, sin mención a cobertura internacional. (4) "que_empacar.adaptador_enchufe": pon "No necesario — mismo país, mismo voltaje y tipo de enchufes". (5) "emergencias.embajada": pon "No aplica — viaje doméstico". (6) tips_culturales: NO menciones tipo de cambio, casas de cambio, conversión de divisas, adaptador de corriente ni seguro de viaje internacional.`
+      ? `- VIAJE DOMÉSTICO: Origen (${formData.origen}) y destino (${formData.destino}) están en el MISMO PAÍS. Reglas ESTRICTAS: (1) "checklist": ESTÁ ABSOLUTAMENTE PROHIBIDO incluir la palabra "pasaporte" en cualquier ítem del checklist. El viajero solo necesita su cédula de identidad / DNI nacional. NO incluyas visa de turismo, adaptador de enchufe extranjero ni seguro de viaje internacional. Nunca menciones pasaporte en el checklist de un viaje doméstico. (2) "dinero.tipo_cambio": pon "No aplica — misma moneda"; "dinero.donde_cambiar": pon "No aplica — no se necesita cambiar divisas". (3) "seguro": solo asistencia médica nacional, sin mención a cobertura internacional. (4) "que_empacar.adaptador_enchufe": pon "No necesario — mismo país, mismo voltaje y tipo de enchufes". (5) "emergencias.embajada": pon "No aplica — viaje doméstico". (6) tips_culturales: NO menciones tipo de cambio, casas de cambio, conversión de divisas, adaptador de corriente ni seguro de viaje internacional.`
       : '';
 
     // Plataformas según preferencia del cliente
@@ -786,7 +789,7 @@ Para origen_iata y destino_iata: código IATA de 3 letras del aeropuerto princip
       : alojPref === 'airbnb'
         ? `- ALOJAMIENTO: El cliente eligió AIRBNB. Las 3 opciones deben ser propiedades reales en Airbnb (apartamentos, casas, estudios). SIEMPRE incluye EXACTAMENTE 3 opciones por ciudad: Económico, Confort y Premium. Nunca menos de 3.`
         : alojPref === 'bnb'
-          ? `- ALOJAMIENTO: El cliente eligió B&B / Booking.com. Las 3 opciones deben ser B&B o hoteles boutique reales en Booking.com. SIEMPRE incluye EXACTAMENTE 3 opciones por ciudad.`
+          ? `- ALOJAMIENTO: El cliente eligió BED & BREAKFAST. Las 3 opciones DEBEN ser Bed & Breakfast o casas de huéspedes reales con ese formato (pequeño, familiar, desayuno incluido). Búscalas en Booking.com usando el filtro "Bed and breakfast" (tipo de propiedad). SIEMPRE incluye EXACTAMENTE 3 opciones por ciudad. La plataforma de todas las opciones es "Booking.com".`
           : `- ALOJAMIENTO: Recomienda SOLO hoteles con nombre REAL y verificable. Prioriza cadenas conocidas (Hilton, Marriott, NH, Ibis, Radisson, Hyatt, etc.) o boutiques con alta presencia online. NUNCA inventes nombres. SIEMPRE incluye EXACTAMENTE 3 opciones por ciudad: Económico, Confort y Premium. Nunca menos de 3.`;
     const platEco  = alojPref === 'hostal'  ? 'Hostelworld'
                    : alojPref === 'airbnb'  ? 'Airbnb'
@@ -905,7 +908,8 @@ ${diasRule}
 - RITMO: El cliente eligió ritmo ${formData.ritmo || 3}/5. DEBES respetar ESTRICTAMENTE el número de actividades por día: ritmo 1-2 = máximo 2 actividades por día (días relajados, pausas largas, tiempo libre); ritmo 3 = exactamente 2-3 actividades por día con tiempo libre entre ellas; ritmo 4-5 = 3-4 actividades por día, días aprovechados al máximo. NO incluyas más actividades de las correspondientes aunque el destino lo permita. El ritmo también afecta el tono: ritmo bajo = más descripción contemplativa, ritmo alto = más dinámico y energético.
 - INTERESES: El cliente eligió: ${interesStr}. TODAS las actividades del día a día DEBEN relacionarse con estos intereses. Mapeo obligatorio → "gastronomia": mercados de comida, clases de cocina, tours gastronómicos, degustaciones; "aventura": senderismo, deportes extremos, escalada, kayak, rafting, zipline; "playa": playas, snorkeling, surf, buceo, paseos en barco; "cultura": museos, sitios históricos, arquitectura, arte local, barrios históricos; "naturaleza": parques nacionales, cascadas, reservas naturales, avistamiento de fauna; "vida nocturna": bares de moda, rooftops, tours nocturnos, clubes. Las actividades del día a día NO pueden contradecir los intereses elegidos (ej: si eligió gastronomía, no pongas excursiones a montañas si no hay relación gastronómica).
 ${tipoViajeRule}
-- AEROLÍNEAS: SOLO recomienda aerolíneas de esta lista verificada: LATAM, JetSmart, Sky Airline, Avianca, Copa Airlines, Aerolíneas Argentinas, Aeroméxico, GOL, Azul, American Airlines, United Airlines, Delta, Air Canada, WestJet, Iberia, Iberia Express, Air Europa, Turkish Airlines, Air France, KLM, Lufthansa, Swiss, Austrian Airlines, British Airways, TAP Portugal, Norwegian, EasyJet, Ryanair, Finnair, ITA Airways, Qatar Airways, Emirates, Ethiopian Airlines, Japan Airlines, ANA, Singapore Airlines, Cathay Pacific, Korean Air, Asiana, Thai Airways, Malaysia Airlines, Air New Zealand, EVA Air, China Airlines. NO recomiendes aerolíneas que no estén en esta lista.${domesticRule ? '\n' + domesticRule : ''}${checklistRule ? '\n' + checklistRule : ''}
+- AEROLÍNEAS: SOLO recomienda aerolíneas de esta lista verificada: LATAM, JetSmart, Sky Airline, Avianca, Copa Airlines, Aerolíneas Argentinas, Aeroméxico, GOL, Azul, American Airlines, United Airlines, Delta, Air Canada, WestJet, Iberia, Iberia Express, Air Europa, Turkish Airlines, Air France, KLM, Lufthansa, Swiss, Austrian Airlines, British Airways, TAP Portugal, Norwegian, EasyJet, Ryanair, Finnair, ITA Airways, Qatar Airways, Emirates, Ethiopian Airlines, Japan Airlines, ANA, Singapore Airlines, Cathay Pacific, Korean Air, Asiana, Thai Airways, Malaysia Airlines, Air New Zealand, EVA Air, China Airlines. NO recomiendes aerolíneas que no estén en esta lista.
+${geoRule}${domesticRule ? '\n' + domesticRule : ''}${checklistRule ? '\n' + checklistRule : ''}
 
 GENERA JSON puro (sin markdown, sin \`\`\`):
 {
@@ -966,6 +970,7 @@ GENERA JSON puro (sin markdown, sin \`\`\`):
         "cena": "string (restaurante + precio)",
         "actividad": "string"
       },
+      "ruta_optimizada": "string con orden lógico de las zonas del día para minimizar desplazamientos",
       "gasto_dia": "string USD"
     }
   ],
@@ -1035,6 +1040,7 @@ ${diasRule}
 - INTERESES: El cliente eligió: ${interesStr}. TODAS las actividades del día a día DEBEN relacionarse con estos intereses. Mapeo obligatorio → "gastronomia": mercados de comida, clases de cocina, tours gastronómicos, degustaciones; "aventura": senderismo, deportes extremos, escalada, kayak, rafting, zipline; "playa": playas, snorkeling, surf, buceo, paseos en barco; "cultura": museos, sitios históricos, arquitectura, arte local, barrios históricos; "naturaleza": parques nacionales, cascadas, reservas naturales, avistamiento de fauna; "vida nocturna": bares de moda, rooftops, tours nocturnos, clubes. Las actividades del día a día NO pueden contradecir los intereses elegidos.
 ${tipoViajeRule}
 - AEROLÍNEAS: SOLO recomienda aerolíneas de esta lista verificada: LATAM, JetSmart, Sky Airline, Avianca, Copa Airlines, Aerolíneas Argentinas, Aeroméxico, GOL, Azul, American Airlines, United Airlines, Delta, Air Canada, WestJet, Iberia, Iberia Express, Air Europa, Turkish Airlines, Air France, KLM, Lufthansa, Swiss, Austrian Airlines, British Airways, TAP Portugal, Norwegian, EasyJet, Ryanair, Finnair, ITA Airways, Qatar Airways, Emirates, Ethiopian Airlines, Japan Airlines, ANA, Singapore Airlines, Cathay Pacific, Korean Air, Asiana, Thai Airways, Malaysia Airlines, Air New Zealand, EVA Air, China Airlines. NO recomiendes aerolíneas fuera de esta lista.
+${geoRule}
 - TRANSPORTE aeropuerto→centro: lista TODAS las opciones disponibles (Uber, Taxi, Metro, Bus express, Tren, etc.) con costo estimado y duración en el array opciones_aeropuerto_centro.
 - BARES: en bares_vida_nocturna usa un objeto cuyas claves son los nombres REALES de las ciudades visitadas. Si el viaje es de UNA SOLA ciudad y más de 7 días, incluye 5 bares/lugares para esa ciudad. Para el resto, incluye EXACTAMENTE 2 bares por ciudad.
 - EXTRAS: las categorías deben relacionarse directamente con los intereses del cliente (${interesStr}). Ejemplo: si tiene 'gastronomia' → categoría gastronómica; si tiene 'aventura' → actividades de adrenalina. Siempre incluir una categoría "Para días de lluvia o descanso".
@@ -1205,6 +1211,16 @@ GENERA JSON puro (sin markdown, sin \`\`\`):
     // ── RUTA ESPECIAL: Basic→Pro upgrade con itinerario básico disponible ──────
     // Si es Pro Y tenemos el itinerario básico, solo pedimos las secciones Pro exclusivas
     // y las fusionamos con el básico en el servidor → 100% continuidad garantizada
+    // ⚠️ Validación de destino: el basicItinerary DEBE corresponder al mismo destino actual
+    if (basicItinerary) {
+      const basicDest   = (basicItinerary.resumen?.destino || '').toLowerCase().split(/[,(-]/)[0].trim();
+      const currentDest = (formData.destino || '').toLowerCase().split(/[,(-]/)[0].trim();
+      const coinciden   = basicDest && currentDest && (basicDest.includes(currentDest) || currentDest.includes(basicDest));
+      if (!coinciden) {
+        console.log(`⚠️ Server: basicItinerary ignorado (destino "${basicDest}" ≠ "${currentDest}"). Generando Pro completo.`);
+        basicItinerary = null; // forzar generación completa
+      }
+    }
     if (isPro && basicItinerary) {
       const promptProSolo = `${basicCtx}
 GENERA JSON puro (sin markdown, sin \`\`\`) con SOLO estas secciones Pro exclusivas, coherentes con el destino ${basicItinerary.resumen?.destino || formData.destino} y las fechas ${basicItinerary.resumen?.fecha_salida || ''} → ${basicItinerary.resumen?.fecha_regreso || ''}:
