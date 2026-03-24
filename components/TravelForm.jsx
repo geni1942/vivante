@@ -1030,7 +1030,7 @@ export default function TravelForm({ onClose, initialDestino = '' }) {
             <div className="fade-in">
               <div className="text-center mb-8">
                 <div className="w-16 h-16 bg-gradient-to-br from-orange-100 to-pink-100 rounded-2xl flex items-center justify-center mx-auto mb-4"><Users className="w-8 h-8 text-orange-500" /></div>
-                <h2 className="text-2xl font-bold text-gray-800 mb-2">Cuéntanos sobre vos</h2>
+                <h2 className="text-2xl font-bold text-gray-800 mb-2">Cuéntanos sobre ti</h2>
                 <p className="text-gray-500">Personalizamos el itinerario a tu medida</p>
               </div>
               <div className="space-y-6">
