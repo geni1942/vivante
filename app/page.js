@@ -476,7 +476,6 @@ export default function Home() {
                     'Itinerario completo en PDF',
                     'Links de vuelos y alojamientos',
                     'Puntos de interés',
-                    'Tips culturales, de conectividad y dinero',
                     'Tips locales básicos para viajeros',
                   ].map((item, i) => (
                     <li key={i} className="flex items-start gap-3">
@@ -512,7 +511,7 @@ export default function Home() {
                     'Restaurantes recomendados por zona y RRSS',
                     'Opciones de tours y actividades',
                     'Tips de seguridad y transporte',
-                    'Presupuesto detallado por día',
+                    'Tips culturales, de conectividad y dinero',
                   ].map((item, i) => (
                     <li key={i} className="flex items-start gap-3">
                       <span className="text-orange-400 mt-0.5 flex-shrink-0">✓</span>
