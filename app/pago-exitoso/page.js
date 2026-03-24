@@ -641,6 +641,16 @@ function ItinerarioContent() {
                 </tbody>
               </table>
             </div>
+            {itinerario?._vuelos_links?.google_flights && (
+              <div style={{ textAlign: 'center', marginTop: 20, paddingTop: 16, borderTop: '1px solid ' + C.bg1 }}>
+                <BtnLink href={itinerario._vuelos_links.google_flights} color={C.coral}>
+                  Ver precios reales en Google Flights
+                </BtnLink>
+                <p style={{ color: '#aaa', fontSize: 11, marginTop: 6 }}>
+                  Los precios son estimados. Google Flights mostrara precios reales para tus fechas.
+                </p>
+              </div>
+            )}
           </Sec>
         </div>
 
