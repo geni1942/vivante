@@ -94,7 +94,7 @@ export default function Home() {
               width={180}
               height={130}
               priority
-              style={{ height: '80px', width: 'auto' }}
+              style={{ height: '100px', width: 'auto' }}
             />
           </div>
           <button
@@ -106,9 +106,9 @@ export default function Home() {
         </nav>
 
         {/* Hero content */}
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 flex flex-col justify-center h-[calc(100vh-100px)]">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 flex flex-col justify-center h-[calc(100vh-120px)]">
           <div className="max-w-3xl">
-            <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold text-white mb-6 leading-tight">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-3 leading-tight">
               Viaja más.<br />
               <span className="bg-gradient-to-r from-orange-400 via-pink-400 to-purple-400 bg-clip-text text-transparent">
                 Planifica menos.
@@ -116,7 +116,7 @@ export default function Home() {
             </h1>
             
             {/* ✅ CAMBIO 1: Nuevo texto del hero */}
-            <p className="text-lg sm:text-xl text-white/80 mb-10 leading-relaxed max-w-xl">
+            <p className="text-lg sm:text-xl text-white/80 mb-6 leading-relaxed max-w-xl">
               ¿40 horas planificando? ¡No gastes más tu tiempo! Cuéntanos tus preferencias de viaje y nosotros te diseñamos el itinerario para que tu experiencia sea inolvidable - todo listo para reservar
             </p>
             
@@ -129,7 +129,7 @@ export default function Home() {
             </button>
 
             {/* Destino indicator */}
-            <div className="mt-3 flex flex-wrap items-center gap-4">
+            <div className="mt-2 flex flex-wrap items-center gap-4">
               <span className="text-white/50 text-sm">Ahora viendo:</span>
               <span className="text-white font-medium">{destinosHero[currentDestino].nombre}, {destinosHero[currentDestino].pais}</span>
               <div className="flex gap-1.5">
