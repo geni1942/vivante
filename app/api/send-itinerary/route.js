@@ -164,6 +164,31 @@ async function generateItinerarioPdf(itinerario, formData, planLabel) {
       }
     }
 
+
+    // ALOJAMIENTO RECOMENDADO
+    if (Array.isArray(itinerario.alojamiento) && itinerario.alojamiento.length) {
+      content.push({ canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 1, lineColor: '#ddd' }], margin: [0, 0, 0, 14] });
+      content.push({ text: 'ALOJAMIENTO RECOMENDADO', fontSize: 13, bold: true, color: coral, margin: [0, 0, 0, 8] });
+      itinerario.alojamiento.forEach(zona => {
+        const zonaNights = zona.noches ? ' (' + zona.noches + ' noches)' : '';
+        content.push({ text: (zona.destino || 'Destino') + zonaNights, fontSize: 11, bold: true, color: carbon, margin: [0, 6, 0, 6] });
+        (zona.opciones || []).forEach(op => {
+          const catColor = op.categoria === 'Premium' ? purple : op.categoria === 'Confort' ? coral : '#888';
+          content.push({
+            columns: [
+              { text: (op.categoria || '').toUpperCase(), fontSize: 9, bold: true, color: catColor, width: 65 },
+              { text: op.plataforma || '', fontSize: 9, color: '#888', width: 80 },
+              { text: op.nombre || '', fontSize: 10, bold: true, color: carbon, width: '*' },
+              { text: op.precio_noche || '', fontSize: 10, color: coral, bold: true, width: 55, alignment: 'right' },
+            ],
+            margin: [0, 2, 0, 1],
+          });
+          if (op.por_que) content.push({ text: op.por_que, fontSize: 9, italics: true, color: purple, margin: [0, 0, 0, 1] });
+          if (op.link)    content.push({ text: 'Buscar disponibilidad en ' + (op.plataforma || 'plataforma'), link: op.link, color: coral, decoration: 'underline', fontSize: 9, margin: [0, 0, 0, 7] });
+        });
+      });
+    }
+
     if (itinerario.dias?.length) {
       content.push({ canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 1, lineColor: '#ddd' }], margin: [0, 0, 0, 14] });
       content.push({ text: 'ITINERARIO DÍA A DÍA', fontSize: 13, bold: true, color: coral, margin: [0, 0, 0, 10] });
