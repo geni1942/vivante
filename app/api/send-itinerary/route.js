@@ -38,6 +38,24 @@ function buildConfirmationEmail(formData, itinerario, planLabel, fechaTexto) {
       <p style="margin:4px 0;"><strong>Presupuesto estimado:</strong> ${itinerario.presupuesto_desglose?.total || ''}</p>
     </div>
 
+    ${Array.isArray(itinerario.vuelos) && itinerario.vuelos.length ? `
+    <div style="background:#fff;border:1px solid #FFE0D0;border-radius:12px;padding:20px;margin-bottom:24px;">
+      <h2 style="color:#FF6332;font-size:16px;margin:0 0 12px;">Vuelos recomendados</h2>
+      ${(itinerario.vuelos || []).slice(0, 3).map(v => `
+        <div style="padding:8px 0;border-bottom:1px solid #f5ede8;">
+          <p style="margin:0 0 2px;font-weight:700;font-size:14px;color:#212529;">${v.aerolinea || ''} &mdash; ${v.ruta || ''}</p>
+          <p style="margin:0;color:#888;font-size:12px;">${v.precio_estimado || ''} &nbsp;&middot;&nbsp; ${v.duracion || ''} &nbsp;&middot;&nbsp; ${v.escala || ''}</p>
+        </div>`).join('')}
+      ${itinerario._vuelos_links && itinerario._vuelos_links.google_flights ? `
+      <div style="text-align:center;margin-top:16px;">
+        <a href="${itinerario._vuelos_links.google_flights}"
+           style="display:inline-block;background:#FF6332;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;">
+          Ver precios reales en Google Flights
+        </a>
+        <p style="margin:8px 0 0;color:#aaa;font-size:11px;">Precio en el PDF es una estimacion. Al hacer clic veras el precio real para tus fechas.</p>
+      </div>` : ''}
+    </div>` : ''}
+
     <div style="background:#FF6332;border-radius:12px;padding:20px;text-align:center;margin-bottom:24px;">
       <p style="color:#fff;font-size:14px;margin:0 0 8px;">Tu itinerario completo está adjunto como PDF en este correo.</p>
       <p style="color:#fff;font-size:13px;font-style:italic;margin:0;">¿Problemas? Escribinos a <a href="mailto:vive.vivante.ch@gmail.com" style="color:#FFE0D0;">vive.vivante.ch@gmail.com</a></p>
@@ -114,6 +132,38 @@ async function generateItinerarioPdf(itinerario, formData, planLabel) {
     }
 
     // ── Días ──
+
+    // VUELOS RECOMENDADOS
+    if (Array.isArray(itinerario.vuelos) && itinerario.vuelos.length) {
+      content.push({ canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 1, lineColor: '#ddd' }], margin: [0, 0, 0, 14] });
+      content.push({ text: 'VUELOS RECOMENDADOS', fontSize: 13, bold: true, color: coral, margin: [0, 0, 0, 8] });
+      itinerario.vuelos.forEach(vuelo => {
+        const aeroParts = [
+          { text: (vuelo.aerolinea || '') + '   ', bold: true, fontSize: 11, color: carbon },
+          { text: vuelo.ruta || '', fontSize: 11, color: '#555' },
+        ];
+        content.push({ columns: aeroParts, columnGap: 0, margin: [0, 4, 0, 2] });
+        const detalles = [
+          vuelo.precio_estimado ? 'Est.: ' + vuelo.precio_estimado : null,
+          vuelo.duracion        ? vuelo.duracion                   : null,
+          vuelo.escala          ? vuelo.escala                     : null,
+        ].filter(Boolean).join('   |   ');
+        if (detalles) content.push({ text: detalles, fontSize: 10, color: '#777', margin: [0, 0, 0, 2] });
+        if (vuelo.tip) content.push({ text: 'Tip: ' + vuelo.tip, fontSize: 9, italics: true, color: purple, margin: [0, 0, 0, 6] });
+      });
+      if (itinerario._vuelos_links && itinerario._vuelos_links.google_flights) {
+        content.push({
+          text: 'Ver precios y disponibilidad reales en Google Flights',
+          link: itinerario._vuelos_links.google_flights,
+          color: coral,
+          decoration: 'underline',
+          bold: true,
+          fontSize: 10,
+          margin: [0, 4, 0, 16],
+        });
+      }
+    }
+
     if (itinerario.dias?.length) {
       content.push({ canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 1, lineColor: '#ddd' }], margin: [0, 0, 0, 14] });
       content.push({ text: 'ITINERARIO DÍA A DÍA', fontSize: 13, bold: true, color: coral, margin: [0, 0, 0, 10] });
