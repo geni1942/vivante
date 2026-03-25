@@ -291,6 +291,7 @@ export default function TravelForm({ onClose, initialDestino = '' }) {
                         email: snapFormData.email,
                         nombre: snapFormData.nombre,
                         destino: snapFormData.destino,
+                        formData: snapFormData,
                       }),
                     });
                     const data = await res.json();

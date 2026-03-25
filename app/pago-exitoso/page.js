@@ -199,79 +199,86 @@ function ItinerarioContent() {
   const [printAll, setPrintAll] = useState(false);
 
   useEffect(() => {
-    const plan = searchParams.get('plan') || localStorage.getItem('vivante_planId') || 'basico';
-    setPlanId(plan);
-    // Persistir planId en localStorage para que sobreviva recargas
-    try { localStorage.setItem('vivante_planId', plan); } catch {}
+    (async () => {
+      const plan = searchParams.get('plan') || localStorage.getItem('vivante_planId') || 'basico';
+      setPlanId(plan);
+      try { localStorage.setItem('vivante_planId', plan); } catch {}
 
-    // ── Leer formData: intentar con preference_id (más seguro) y luego fallback genérico ──
-    let data = null;
-    const prefId = searchParams.get('preference_id');
-    if (prefId) {
-      try { data = JSON.parse(localStorage.getItem(`vivante_pref_${prefId}`) || 'null'); } catch {}
-    }
-    if (!data) {
-      try {
-        const raw = localStorage.getItem('vivante_formData');
-        const ts  = parseInt(localStorage.getItem('vivante_formData_ts') || '0');
-        // Aceptar datos recientes (últimas 4 horas) o sin timestamp (compatibilidad hacia atrás)
-        if (raw && (ts === 0 || Date.now() - ts < 4 * 60 * 60 * 1000)) {
-          data = JSON.parse(raw);
-        }
-      } catch {}
-    }
-    // ── Override destino desde URL si está disponible (más confiable que localStorage stale) ──
-    const destinoFromUrl = searchParams.get('d');
-    if (destinoFromUrl && data) {
-      data = { ...data, destino: decodeURIComponent(destinoFromUrl) };
-    }
-    if (!data || !data.destino?.trim()) { setEstado('error'); return; }
-    setFormData(data);
-    // Basic→Pro continuity: si es upgrade Pro, pasar el itinerario básico como base
-    // ⚠️ IMPORTANTE: verificar que el basicItinerary corresponde al MISMO destino actual
-    // para evitar mezclar itinerarios de distintos viajes almacenados en localStorage
-    let basicItinerary = null;
-    if (plan === 'pro') {
-      try {
-        const storedBasic = JSON.parse(localStorage.getItem('vivante_basic_itinerary') || 'null');
-        if (storedBasic) {
-          const basicDest  = (storedBasic.resumen?.destino || '').toLowerCase().split(/[,(-]/)[0].trim();
-          const currentDest = (data.destino || '').toLowerCase().split(/[,(-]/)[0].trim();
-          // Solo usar el basicItinerary si el destino coincide razonablemente
-          const destinosCoinciden = basicDest && currentDest && (
-            basicDest.includes(currentDest) || currentDest.includes(basicDest)
-          );
-          if (destinosCoinciden) {
-            basicItinerary = storedBasic;
-          } else {
-            console.log('basicItinerary ignorado: destino diferente (' + basicDest + ' vs ' + currentDest + ')');
-            // Limpiar el básico obsoleto para evitar confusiones futuras
-            try { localStorage.removeItem('vivante_basic_itinerary'); } catch {}
-          }
-        }
-      } catch {}
-    }
-    fetch('/api/send-itinerary', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ formData: data, planId: plan, basicItinerary }),
-    }).then(r => r.json()).then(res => {
-      if (res.itinerario) {
-        setItinerario(res.itinerario);
-        setEstado('listo');
-        // Guardar itinerario básico para futura continuidad en upgrade Pro
-        if (plan !== 'pro') {
-          try { localStorage.setItem('vivante_basic_itinerary', JSON.stringify(res.itinerario)); } catch {}
-        }
-        // ✅ Limpiar datos de sesión para evitar que una compra anterior contamine la próxima
+      // ── Leer formData: 1) preference_id en localStorage, 2) vivante_formData genérico ──
+      let data = null;
+      const prefId = searchParams.get('preference_id');
+      if (prefId) {
+        try { data = JSON.parse(localStorage.getItem(`vivante_pref_${prefId}`) || 'null'); } catch {}
+      }
+      if (!data) {
         try {
-          localStorage.removeItem('vivante_formData');
-          localStorage.removeItem('vivante_formData_ts');
-          if (prefId) localStorage.removeItem(`vivante_pref_${prefId}`);
+          const raw = localStorage.getItem('vivante_formData');
+          const ts  = parseInt(localStorage.getItem('vivante_formData_ts') || '0');
+          if (raw && (ts === 0 || Date.now() - ts < 4 * 60 * 60 * 1000)) {
+            data = JSON.parse(raw);
+          }
         } catch {}
       }
-      else setEstado('error');
-    }).catch(() => setEstado('error'));
+      // ── Fallback cross-device: recuperar formData desde metadata de MercadoPago ──
+      // Se activa cuando localStorage está vacío (p.ej. usuario cambió de dispositivo)
+      if (!data && prefId) {
+        try {
+          const r = await fetch(`/api/payment/recover-session?preference_id=${prefId}`);
+          const j = await r.json();
+          if (j.formData) data = j.formData;
+        } catch {}
+      }
+
+      // ── Override destino desde URL si está disponible (más confiable que localStorage stale) ──
+      const destinoFromUrl = searchParams.get('d');
+      if (destinoFromUrl && data) {
+        data = { ...data, destino: decodeURIComponent(destinoFromUrl) };
+      }
+      if (!data || !data.destino?.trim()) { setEstado('error'); return; }
+      setFormData(data);
+
+      // Basic→Pro continuity: si es upgrade Pro, pasar el itinerario básico como base
+      let basicItinerary = null;
+      if (plan === 'pro') {
+        try {
+          const storedBasic = JSON.parse(localStorage.getItem('vivante_basic_itinerary') || 'null');
+          if (storedBasic) {
+            const basicDest   = (storedBasic.resumen?.destino || '').toLowerCase().split(/[,(-]/)[0].trim();
+            const currentDest = (data.destino || '').toLowerCase().split(/[,(-]/)[0].trim();
+            const destinosCoinciden = basicDest && currentDest && (
+              basicDest.includes(currentDest) || currentDest.includes(basicDest)
+            );
+            if (destinosCoinciden) {
+              basicItinerary = storedBasic;
+            } else {
+              console.log('basicItinerary ignorado: destino diferente (' + basicDest + ' vs ' + currentDest + ')');
+              try { localStorage.removeItem('vivante_basic_itinerary'); } catch {}
+            }
+          }
+        } catch {}
+      }
+
+      try {
+        const r = await fetch('/api/send-itinerary', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ formData: data, planId: plan, basicItinerary }),
+        });
+        const res = await r.json();
+        if (res.itinerario) {
+          setItinerario(res.itinerario);
+          setEstado('listo');
+          if (plan !== 'pro') {
+            try { localStorage.setItem('vivante_basic_itinerary', JSON.stringify(res.itinerario)); } catch {}
+          }
+          try {
+            localStorage.removeItem('vivante_formData');
+            localStorage.removeItem('vivante_formData_ts');
+            if (prefId) localStorage.removeItem(`vivante_pref_${prefId}`);
+          } catch {}
+        } else setEstado('error');
+      } catch { setEstado('error'); }
+    })();
   }, [searchParams]);
 
   // ─── CARGANDO ───────────────────────────────────────────────────────────────

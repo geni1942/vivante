@@ -906,6 +906,8 @@ Para origen_iata y destino_iata: código IATA de 3 letras del aeropuerto princip
       prioridadCtx ? `- PRIORIDAD DE GASTO: ${prioridadDescMap[formData.prioridadGasto]}` : '',
       // Primera visita
       primeraVisitaCtx ? primeraVisitaCtx.replace('\n- ', '- ') : '',
+      // Nombre del viajero — usado 1 vez por día en un momento clave
+      formData.nombre ? `- PERSONALIZACIÓN NOMBRE: El viajero se llama ${formData.nombre}. Usa su nombre de forma natural exactamente 1 vez por día dentro de la descripción de una actividad en el campo "descripcion", en un momento emotivo o clave del itinerario. No lo uses en cada párrafo ni de forma repetitiva. Debe sonar humano y cálido. Ejemplos válidos: "Esta tarde, ${formData.nombre}, es el momento perfecto para perderte en el barrio histórico..." o "Esta noche es especial, ${formData.nombre} — reserva mesa con vista al mar en..."` : '',
     ].filter(Boolean).join('\n');
 
     // ── Regla ALOJAMIENTO según preferencia ─────────────────────────────────

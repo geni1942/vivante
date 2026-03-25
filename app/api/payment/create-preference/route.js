@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 export async function POST(req) {
   try {
-    const { planId, planNombre, precio, email, nombre, destino } = await req.json();
+    const { planId, planNombre, precio, email, nombre, destino, formData } = await req.json();
 
     if (!planId || !precio || !email) {
       return NextResponse.json({ error: 'Faltan datos del plan' }, { status: 400 });
@@ -41,6 +41,7 @@ export async function POST(req) {
       auto_return: 'approved',
       external_reference: email,
       statement_descriptor: 'VIVANTE TRAVEL',
+      metadata: formData ? { vivante_form: JSON.stringify(formData) } : undefined,
     };
 
     const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
