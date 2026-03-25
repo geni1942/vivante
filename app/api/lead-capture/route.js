@@ -2,10 +2,10 @@ import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
-// ─── POST /api/lead-capture ───────────────────────────────────────────────────
+// ─── POST /api/lead-capture ────────────────────────────────────────────────
 // Captura nombre + email cuando el usuario avanza del Paso 1 del formulario.
 // Guarda el contacto en Brevo para remarketing de abandono del funnel.
-// Silencioso: no bloquea el flujo del usuario — se llama en fire-and-forget.
+// Silencioso: no bloquea el flujo del usuario - se llama en fire-and-forget.
 export async function POST(req) {
   try {
     const { nombre, email } = await req.json();
@@ -32,14 +32,14 @@ export async function POST(req) {
           FIRSTNAME: nombre || '',
           SOURCE: 'form_step1',
         },
-        listIds: [2],           // Lista de leads (ajustar ID según tu cuenta Brevo)
+        listIds: [3],           // Lista "clientes_vivante" (ID 3, 7 suscriptores)
         updateEnabled: true,    // Si ya existe, actualiza en vez de dar error
       }),
     });
 
     if (!res.ok) {
       const errBody = await res.text();
-      // Error 400 con "Contact already exist" no es un error real — ignorar
+      // Error 400 con "Contact already exist" no es un error real - ignorar
       if (!errBody.includes('Contact already exist')) {
         console.error('Brevo lead-capture error:', res.status, errBody);
       }
@@ -49,6 +49,6 @@ export async function POST(req) {
   } catch (error) {
     // Nunca rompemos el flujo del usuario por esto
     console.error('lead-capture unexpected error:', error);
-    return NextResponse.json({ ok: true }); // Respuesta positiva igual — fire-and-forget
+    return NextResponse.json({ ok: true }); // Respuesta positiva igual - fire-and-forget
   }
 }
