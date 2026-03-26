@@ -32,6 +32,38 @@ export default function Home() {
     return () => document.removeEventListener('mouseleave', handler);
   }, [showForm]);
 
+  // Mobile exit intent: detección de scroll-up (reemplaza mouseleave que no existe en touch)
+  useEffect(() => {
+    const alreadyShown = sessionStorage.getItem('vivante_exit_shown');
+    if (alreadyShown) return;
+    // Solo activar en pantallas táctiles / mobile
+    if (!('ontouchstart' in window) && !navigator.maxTouchPoints) return;
+
+    let lastY = window.scrollY;
+    let scrollUpStart = null;
+
+    const handleScroll = () => {
+      if (showForm) return;
+      const y = window.scrollY;
+      if (y < lastY) {
+        // Usuario scrollea hacia arriba
+        if (scrollUpStart === null) scrollUpStart = lastY;
+        const delta = scrollUpStart - y;
+        // Dispara si sube ≥80px mientras está en la mitad superior de la página
+        if (delta >= 80 && y < window.innerHeight * 0.6) {
+          sessionStorage.setItem('vivante_exit_shown', '1');
+          setShowExitIntent(true);
+        }
+      } else {
+        scrollUpStart = null;
+      }
+      lastY = y;
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [showForm]);
+
   const handleExitSubmit = async () => {
     if (!exitEmail.includes('@') || !exitEmail.includes('.')) return;
     setExitSubmitting(true);
@@ -473,10 +505,12 @@ export default function Home() {
                 </div>
                 <ul className="space-y-3 mb-8">
                   {[
-                    'Itinerario completo en PDF',
-                    'Links de vuelos y alojamientos',
-                    'Puntos de interés',
-                    'Tips locales básicos para viajeros',
+                    '✈️ Vuelos reales con precios y rutas',
+                    '🏨 3 opciones de hotel para reservar',
+                    '📅 Itinerario completo día a día',
+                    '🍽️ Restaurantes curados con precios',
+                    '💰 Presupuesto desglosado real',
+                    '📩 PDF en tu email, listo sin internet',
                   ].map((item, i) => (
                     <li key={i} className="flex items-start gap-3">
                       <span className="text-green-500 mt-0.5 flex-shrink-0">✓</span>
@@ -508,10 +542,12 @@ export default function Home() {
                 <ul className="space-y-3 mb-8">
                   {[
                     'Todo lo del Vivante Básico',
-                    'Restaurantes recomendados por zona y RRSS',
-                    'Opciones de tours y actividades',
-                    'Tips de seguridad y transporte',
-                    'Tips culturales, de conectividad y dinero',
+                    '☔ Plan B si llueve o algo cierra',
+                    '🍸 Bares con tip insider incluido',
+                    '🚕 Del aeropuerto al hotel: todas las opciones',
+                    '📱 Conectividad y eSIM resuelta antes de salir',
+                    '🔒 Zonas a evitar y estafas del destino',
+                    '🎒 Qué empacar según el clima',
                   ].map((item, i) => (
                     <li key={i} className="flex items-start gap-3">
                       <span className="text-orange-400 mt-0.5 flex-shrink-0">✓</span>
