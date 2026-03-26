@@ -780,7 +780,7 @@ DEBES:
       avianca:   'Avianca (LifeMiles)',
       copa:      'Copa Airlines (ConnectMiles)',
       american:  'American Airlines (AAdvantage)',
-      united:    'United Airlines (MileagePlus)',
+      iberia:    'Iberia / Air Europa (Iberia Plus)',
     };
     const aerolineaCtx = formData.aerolineaPreferida && aerolineaDescMap[formData.aerolineaPreferida]
       ? `\n- AEROL�NEA PREFERIDA/MILLAS: ${aerolineaDescMap[formData.aerolineaPreferida]} � si opera la ruta y tiene precio competitivo (m�x 20% m�s caro que la opci�n m�s barata), ponla como PRIMERA opci�n en el array de vuelos.`
@@ -1052,6 +1052,7 @@ REGLAS IMPORTANTES:
 ${alojRule}
 - RESTAURANTES: Si el viaje se concentra en UNA SOLA ciudad y dura m�s de 7 d�as, incluye 5 restaurantes para esa ciudad. Para viajes multi-ciudad o de 7 d�as o menos, incluye exactamente 3 restaurantes por ciudad visitada.
 - PRESUPUESTO: El presupuesto indicado ($${presupuesto} USD) es el TOTAL por persona para TODO el viaje. El campo presupuesto_desglose.total NO debe superar ese valor. Adapta vuelos, alojamiento y actividades a esa realidad. Si el presupuesto es insuficiente para el destino elegido, usa el campo resumen.ritmo para incluir una nota como "?? Presupuesto ajustado � hemos optimizado el itinerario para sacar el m�ximo con tu presupuesto."
+- PRECIOS "por persona": Cada vez que menciones un precio (vuelos, hotel, actividades, restaurantes, presupuesto desglosado, gasto_dia, costo) agrega siempre "/ persona" al final del valor. Ejemplo: "$120 / persona". Aplica a TODOS los campos de precio del JSON sin excepcion.
 ${diasRule}
 - RITMO: El cliente eligi� ritmo ${formData.ritmo || 3}/5. DEBES respetar ESTRICTAMENTE el n�mero de actividades por d�a: ritmo 1-2 = m�ximo 2 actividades por d�a (d�as relajados, pausas largas, tiempo libre); ritmo 3 = exactamente 2-3 actividades por d�a con tiempo libre entre ellas; ritmo 4-5 = 3-4 actividades por d�a, d�as aprovechados al m�ximo. El ritmo tambi�n afecta el tono: ritmo bajo = m�s descripci�n contemplativa, ritmo alto = m�s din�mico y energ�tico.
 ${reglasPersonalizacion}
@@ -1183,6 +1184,7 @@ REGLAS IMPORTANTES:
 ${alojRule}
 - RESTAURANTES: Si el viaje se concentra en UNA SOLA ciudad y dura m�s de 7 d�as, incluye 5 restaurantes para esa ciudad. Para viajes multi-ciudad o de 7 d�as o menos, incluye exactamente 3 restaurantes por ciudad visitada.
 - PRESUPUESTO: El presupuesto indicado ($${presupuesto} USD) es el TOTAL por persona para TODO el viaje. El campo presupuesto_desglose.total NO debe superar ese valor. Adapta todas las recomendaciones (vuelos, alojamiento, actividades, restaurantes) a esa realidad. Si el presupuesto es insuficiente para el destino elegido, usa resumen.ritmo para incluir una nota como "?? Presupuesto ajustado � optimizamos el itinerario para sacar el m�ximo con tu presupuesto."
+- PRECIOS "por persona": Cada vez que menciones un precio (vuelos, hotel, actividades, restaurantes, presupuesto desglosado, gasto_dia, costo) agrega siempre "/ persona" al final del valor. Ejemplo: "$120 / persona". Aplica a TODOS los campos de precio del JSON sin excepcion.
 ${diasRule}
 - RITMO: El cliente eligi� ritmo ${formData.ritmo || 3}/5. DEBES respetar ESTRICTAMENTE el n�mero de actividades por d�a: ritmo 1-2 = m�ximo 2 actividades por d�a (d�as relajados, pausas largas, tiempo libre); ritmo 3 = exactamente 2-3 actividades por d�a con tiempo libre entre ellas; ritmo 4-5 = 3-4 actividades por d�a, d�as aprovechados al m�ximo. El ritmo tambi�n afecta el tono: ritmo bajo = m�s descripci�n contemplativa, ritmo alto = m�s din�mico y energ�tico.
 ${reglasPersonalizacion}
@@ -1633,6 +1635,7 @@ IMPORTANTE sobre dias_pro: para CADA d�a del viaje (${formData.dias} d�as), 
     const resendKey = process.env.RESEND_API_KEY;
     if (resendKey) {
       const pdfBase64 = await generateItinerarioPdf(itinerario, formData, planLabel);
+      if (!pdfBase64) console.error('[VIVANTE] PDF generation failed — email will be sent WITHOUT attachment. Check pdfmake/vfs_fonts in Vercel logs.');
       const emailRes = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
