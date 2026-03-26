@@ -47,7 +47,6 @@ export default function TravelForm({ onClose, initialDestino = '' }) {
         '📅 Itinerario completo día a día',
         '🍽️ Restaurantes curados con precios',
         '💰 Presupuesto desglosado real',
-        '📩 PDF en tu email, listo sin internet',
       ]
     },
     {
@@ -76,7 +75,7 @@ export default function TravelForm({ onClose, initialDestino = '' }) {
     { id: 'gastronomia', label: 'Gastronomía', emoji: '🍽️' },
     { id: 'relax', label: 'Relax', emoji: '🧘' },
     { id: 'naturaleza', label: 'Naturaleza', emoji: '🌲' },
-    { id: 'nocturna', label: 'Vida Nocturna', emoji: '🎉' },
+    { id: 'nocturna', label: 'Vida nocturna', emoji: '🎉' },
     { id: 'deporte', label: 'Deporte', emoji: '⚽' },
     { id: 'shopping', label: 'Shopping', emoji: '🛍️' },
   ];
@@ -106,9 +105,9 @@ export default function TravelForm({ onClose, initialDestino = '' }) {
     switch (step) {
       case 1: return formData.tieneDestino !== null && (formData.tieneDestino === false || formData.destino.trim());
       case 2: return formData.origen.trim() && formData.presupuesto >= 500 && formData.dias >= 3;
-      case 3: return formData.tipoViaje !== '';
-      case 4: return formData.intereses.length > 0 && formData.alojamiento !== '';
-      case 5: return formData.nombre.trim() && formData.email.includes('@');
+      case 3: return formData.nombre.trim() && formData.email.includes('@');
+      case 4: return formData.tipoViaje !== '';
+      case 5: return formData.intereses.length > 0 && formData.alojamiento !== '';
       default: return true;
     }
   };
@@ -547,8 +546,8 @@ export default function TravelForm({ onClose, initialDestino = '' }) {
             </div>
           )}
 
-          {/* PASO 3: Viajeros */}
-          {step === 3 && (
+          {/* PASO 4: ¿Quiénes viajan? */}
+          {step === 4 && (
             <div className="fade-in">
               <div className="text-center mb-8">
                 <div className="w-16 h-16 bg-gradient-to-br from-orange-100 to-pink-100 rounded-2xl flex items-center justify-center mx-auto mb-4"><Users className="w-8 h-8 text-orange-500" /></div>
@@ -588,8 +587,8 @@ export default function TravelForm({ onClose, initialDestino = '' }) {
             </div>
           )}
 
-          {/* PASO 4: Preferencias (con alojamiento) */}
-          {step === 4 && (
+          {/* PASO 5: Preferencias (con alojamiento) */}
+          {step === 5 && (
             <div className="fade-in">
               <div className="text-center mb-8">
                 <div className="w-16 h-16 bg-gradient-to-br from-orange-100 to-pink-100 rounded-2xl flex items-center justify-center mx-auto mb-4"><Sparkles className="w-8 h-8 text-orange-500" /></div>
@@ -645,13 +644,13 @@ export default function TravelForm({ onClose, initialDestino = '' }) {
             </div>
           )}
 
-          {/* PASO 5: Contacto */}
-          {step === 5 && (
+          {/* PASO 3: Contacto (early lead capture) */}
+          {step === 3 && (
             <div className="fade-in">
               <div className="text-center mb-8">
                 <div className="w-16 h-16 bg-gradient-to-br from-orange-100 to-pink-100 rounded-2xl flex items-center justify-center mx-auto mb-4"><span className="text-3xl">📧</span></div>
-                <h2 className="text-2xl font-bold text-gray-800 mb-2">¡Último paso!</h2>
-                <p className="text-gray-500">¿Dónde te enviamos los detalles?</p>
+                <h2 className="text-2xl font-bold text-gray-800 mb-2">¿A quién le mandamos esto?</h2>
+                <p className="text-gray-500">Para enviarte tu itinerario cuando esté listo</p>
               </div>
               <div className="space-y-4">
                 <div>
@@ -659,8 +658,8 @@ export default function TravelForm({ onClose, initialDestino = '' }) {
                   <input type="text" placeholder="Tu nombre" value={formData.nombre} onChange={(e) => setFormData({ ...formData, nombre: e.target.value })} className="w-full p-4 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Tu email</label>
-                  <input type="email" placeholder="tu@email.com" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="w-full p-4 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none" />
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Tu correo</label>
+                  <input type="email" placeholder="tu@correo.com" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="w-full p-4 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none" />
                 </div>
                 {error && <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">{error}</div>}
               </div>
@@ -675,7 +674,13 @@ export default function TravelForm({ onClose, initialDestino = '' }) {
               </button>
             )}
             {step < 5 ? (
-              <button onClick={() => setStep(step + 1)} disabled={!canProceed()} className={`flex-1 py-4 rounded-xl font-medium flex items-center justify-center gap-2 transition-all ${canProceed() ? 'bg-gradient-to-r from-orange-500 to-pink-500 text-white hover:shadow-lg' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>
+              <button onClick={async () => {
+                  if (step === 3) {
+                    // Lead capture fire-and-forget al avanzar (captura email aunque abandone)
+                    try { fetch('/api/lead-capture', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre: formData.nombre, email: formData.email }) }).catch(() => {}); } catch {}
+                  }
+                  setStep(step + 1);
+                }} disabled={!canProceed()} className={`flex-1 py-4 rounded-xl font-medium flex items-center justify-center gap-2 transition-all ${canProceed() ? 'bg-gradient-to-r from-orange-500 to-pink-500 text-white hover:shadow-lg' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>
                 Continuar <ChevronRight className="w-5 h-5" />
               </button>
             ) : (
