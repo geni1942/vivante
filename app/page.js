@@ -510,7 +510,6 @@ export default function Home() {
                     '📅 Itinerario completo día a día',
                     '🍽️ Restaurantes curados con precios',
                     '💰 Presupuesto desglosado real',
-                    '📩 PDF en tu email, listo sin internet',
                   ].map((item, i) => (
                     <li key={i} className="flex items-start gap-3">
                       <span className="text-green-500 mt-0.5 flex-shrink-0">✓</span>
