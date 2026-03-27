@@ -855,7 +855,7 @@ export default function TravelForm({ onClose, initialDestino = '' }) {
 
                 {/* Horario preferido */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">¿Cómo arrancás el día?</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">¿Cómo arrancas el día?</label>
                   <div className="grid grid-cols-3 gap-2">
                     {[
                       { id: 'madrugador', label: 'Madrugador', emoji: '🌅', desc: 'Arranco a las 7' },
@@ -898,7 +898,7 @@ export default function TravelForm({ onClose, initialDestino = '' }) {
                     <span>⚙️</span> Preferencias avanzadas <span className="text-gray-400">(opcional)</span>
                   </summary>
                   <div className="p-4 border-t border-gray-100">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">¿Tenés aerolínea preferida o acumulás millas?</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">¿Tienes aerolínea preferida o acumulas millas?</label>
                     <div className="flex flex-wrap gap-2">
                       {[
                         { id: '', label: 'Sin preferencia' },
