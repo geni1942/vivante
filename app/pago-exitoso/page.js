@@ -372,60 +372,34 @@ function ItinerarioContent() {
   const isPro = planId === 'pro';
   const res   = itinerario?.resumen || {};
 
-  // ─── Descargar PDF con html2pdf.js (sin URL de navegador, sin página en blanco, logo en cada página) ──
+  // ─── Descargar PDF v\u00eda /api/generate-pdf (mismo PDF que llega por email) ──────
   const handleDownloadPdf = async () => {
     setPdfLoading(true);
-    setPrintAll(true);
-    // Esperar que React re-renderice con todas las secciones visibles
-    await new Promise(r => setTimeout(r, 500));
     try {
-      const html2pdfLib = await import('html2pdf.js');
-      const html2pdfFn = html2pdfLib.default || html2pdfLib;
-      const element = document.getElementById('vivante-print-content');
-      if (!element) { window.print(); return; }
-      const destName = ((itinerario?.resumen?.destino || formData?.destino || 'viaje')
-        .split(',')[0]).toLowerCase()
-        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-        .replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-
-      await html2pdfFn()
-        .set({
-          margin: [14, 8, 10, 8], // top 14mm: espacio para el encabezado en páginas 2+
-          filename: `itinerario-vivante-${destName}.pdf`,
-          image: { type: 'jpeg', quality: 0.92 },
-          html2canvas: { scale: 2, useCORS: true, logging: false, allowTaint: true, scrollY: 0 },
-          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-          // Sin forced page-breaks (evita página 2 vacía). Solo previene cortes internos.
-          pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
-        })
-        .from(element)
-        .toPdf()
-        .get('pdf')
-        .then(pdf => {
-          const totalPages = pdf.internal.getNumberOfPages();
-          for (let i = 2; i <= totalPages; i++) {
-            pdf.setPage(i);
-            // Franja beige de encabezado
-            pdf.setFillColor(252, 248, 244);
-            pdf.rect(0, 0, 210, 12, 'F');
-            // Línea coral separadora
-            pdf.setDrawColor(255, 99, 50);
-            pdf.setLineWidth(0.4);
-            pdf.line(0, 12, 210, 12);
-            // Texto VIVANTE alineado a la derecha
-            pdf.setFontSize(11);
-            pdf.setTextColor(255, 99, 50);
-            pdf.setFont('helvetica', 'bold');
-            pdf.text('VIVANTE', 202, 8, { align: 'right' });
-          }
-          return pdf;
-        })
-        .save();
+      const res = await fetch('/api/generate-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ formData, itinerario, planId }),
+      });
+      if (!res.ok) throw new Error('PDF generation failed');
+      const { pdf, filename } = await res.json();
+      // Convertir base64 a Blob y forzar descarga
+      const byteChars = atob(pdf);
+      const byteNums = new Uint8Array(byteChars.length);
+      for (let i = 0; i < byteChars.length; i++) byteNums[i] = byteChars.charCodeAt(i);
+      const blob = new Blob([byteNums], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename || 'itinerario-vivante.pdf';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     } catch (err) {
       console.error('PDF error:', err);
-      window.print();
+      alert('Error generando el PDF. Por favor intenta de nuevo.');
     } finally {
-      setPrintAll(false);
       setPdfLoading(false);
     }
   };
