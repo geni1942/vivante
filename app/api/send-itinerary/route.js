@@ -1235,6 +1235,26 @@ DEBES:
         }`
       : '';
 
+    // -- Ritmo efectivo: ocasión especial puede suavizar ritmo elegido ----------
+    // IMPORTANTE: debe definirse ANTES de clienteCtx que lo usa
+    const ritmoEfectivo = (() => {
+      const oc = formData.ocasionEspecial || '';
+      if ((oc === 'luna-de-miel' || oc === 'aniversario') && (formData.ritmo || 3) > 3) return 3;
+      return formData.ritmo || 3;
+    })();
+
+    // -- Presupuesto por día (también necesario antes de clienteCtx) -----------
+    const presupuestoDia = Math.round(presupuesto / dias);
+    const presupuestoDiaRule = `\n- PRESUPUESTO DIARIO: $${presupuestoDia} USD/persona/d\u00eda (= $${presupuesto} total / ${dias} d\u00edas). Adapta la calidad de CADA recomendaci\u00f3n a esta realidad:${
+      presupuestoDia < 80
+        ? ' Menos de $80/d\u00eda \u2192 alojamiento hostal o Airbnb econ\u00f3mico, comidas en mercados y callejero, tours gratuitos o grupales b\u00e1sicos, sin actividades premium.'
+        : presupuestoDia < 150
+        ? ' $80-150/d\u00eda \u2192 hotel 3\u2605 o Airbnb confort, mezcla callejero + restaurantes mid-range, tours grupales con alguna experiencia especial.'
+        : presupuestoDia < 250
+        ? ' $150-250/d\u00eda \u2192 hotel 4\u2605, cenas en restaurantes de calidad, tours privados opcionales, al menos 1 experiencia premium por viaje.'
+        : ' $250+/d\u00eda \u2192 hotel 4-5\u2605 o boutique, cenas selectas, experiencias premium y privadas como primera opci\u00f3n.'}
+    Aplica esta l\u00f3gica en alojamiento, restaurantes y actividades. Un presupuesto de $${presupuestoDia}/d\u00eda NO permite cenar en restaurante de $80/persona cada noche.`;
+
     // -- clienteCtx completo ---------------------------------------------------
     const clienteCtx = `
 DATOS DEL CLIENTE:
@@ -1270,24 +1290,6 @@ Para origen_iata y destino_iata: c�digo IATA de 3 letras del aeropuerto princi
       ? `- CHECKLIST PERSONALIZADO: Para los �tems del checklist, usa OBLIGATORIAMENTE esta informaci�n verificada sobre los requisitos del viaje desde ${formData.origen || 'Chile'} hacia ${formData.destino}:\n${travelContext}\nEstos �tems DEBEN aparecer literalmente en el checklist (no los parafrasees ni inventes informaci�n diferente). Completa el resto con �tems pr�cticos de preparativos: contratar seguro de viaje, llevar efectivo en la moneda local, confirmar reservas de vuelo y alojamiento, descargar apps �tiles (Google Maps offline, Uber, traductor), ropa adecuada al clima del destino. Total: 8-10 �tems concisos y accionables.`
       : '';
 
-    // -- Ritmo efectivo: ocasión especial puede suavizar ritmo elegido ----------
-    const ritmoEfectivo = (() => {
-      const oc = formData.ocasionEspecial || '';
-      if ((oc === 'luna-de-miel' || oc === 'aniversario') && (formData.ritmo || 3) > 3) return 3;
-      return formData.ritmo || 3;
-    })();
-
-    // -- Presupuesto por día ---------------------------------------------------
-    const presupuestoDia = Math.round(presupuesto / dias);
-    const presupuestoDiaRule = `\n- PRESUPUESTO DIARIO: $${presupuestoDia} USD/persona/día (= $${presupuesto} total / ${dias} días). Adapta la calidad de CADA recomendación a esta realidad:${
-      presupuestoDia < 80
-        ? ' Menos de $80/día → alojamiento hostal o Airbnb económico, comidas en mercados y callejero, tours gratuitos o grupales básicos, sin actividades premium.'
-        : presupuestoDia < 150
-        ? ' $80-150/día → hotel 3★ o Airbnb confort, mezcla callejero + restaurantes mid-range, tours grupales con alguna experiencia especial.'
-        : presupuestoDia < 250
-        ? ' $150-250/día → hotel 4★, cenas en restaurantes de calidad, tours privados opcionales, al menos 1 experiencia premium por viaje.'
-        : ' $250+/día → hotel 4-5★ o boutique, cenas selectas, experiencias premium y privadas como primera opción.'}
-    Aplica esta lógica en alojamiento, restaurantes y actividades. Un presupuesto de $${presupuestoDia}/día NO permite cenar en restaurante de $80/persona cada noche.`;
     // -- Regla OPTIMIZACI�N GEOGR�FICA ----------------------------------------
     const geoRule = `- OPTIMIZACI�N GEOGR�FICA DE RUTA: (1) Para viajes MULTI-DESTINO: ordena las ciudades/pa�ses de forma geogr�ficamente l�gica para minimizar distancias y tiempos de traslado. Nunca plantees rutas que obliguen a retroceder innecesariamente (ej: si visitas Madrid, Barcelona y Lisboa, no vayas Madrid?Lisboa?Barcelona). (2) Para el d�a a d�a de CADA CIUDAD: agrupa las actividades por zona geogr�fica. Ma�ana: zona norte o centro. Tarde: zona sur o cercana. Nunca propongas en el mismo d�a visitar atracciones en extremos opuestos de la ciudad sin l�gica de desplazamiento. Siempre incluye en "ruta_optimizada" el orden sugerido para minimizar traslados. (3) Para vuelos: prioriza conexiones l�gicas (no escalas en direcci�n contraria al destino).`;
 
