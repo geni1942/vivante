@@ -1,73 +1,61 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 
 export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
 
-// --- Helper: HTML del email de confirmaci�n -----------------------------------
+// --- Helper: HTML del email de confirmaci\u00f3n -----------------------------------
 function buildConfirmationEmail(formData, itinerario, planLabel, fechaTexto) {
+  const coral = '#FF6332';
+  const violeta = '#6F42C1';
+  const crema = '#FCF8F4';
+  const bg1 = '#FFF0EB';
+  const bg0 = '#FFF8F5';
   return `<!DOCTYPE html>
 <html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Tu itinerario VIVANTE</title>
-</head>
-<body style="margin:0;padding:0;background:#FCF8F4;font-family:Arial,sans-serif;color:#212529;">
-<div style="max-width:640px;margin:0 auto;background:#FCF8F4;">
-
-  <div style="background:#FF6332;padding:28px;text-align:center;">
-    <img src="https://vivevivante.com/images/vivante_logo.svg" alt="VIVANTE" style="height:52px;width:auto;" onerror="this.style.display='none'"/>
-    <p style="color:#fff;font-size:13px;margin:6px 0 0;letter-spacing:2px;">VIAJA M�S. PLANIFICA MENOS.</p>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tu itinerario VIVANTE</title></head>
+<body style="margin:0;padding:0;background:${crema};font-family:Arial,sans-serif;color:#212529;">
+<div style="max-width:640px;margin:0 auto;background:${crema};">
+  <div style="background:${coral};padding:28px;text-align:center;">
+    <p style="color:#fff;font-size:28px;font-weight:800;margin:0 0 4px;letter-spacing:-1px;">VIVANTE</p>
+    <p style="color:rgba(255,255,255,0.85);font-size:12px;margin:0;letter-spacing:2px;">VIAJA M\u00c1S. PLANIFICA MENOS.</p>
   </div>
-
   <div style="padding:32px;">
-    <h1 style="font-size:24px;color:#212529;margin:0 0 8px;">
-      �Hola, ${formData.nombre}! ??
-    </h1>
-    <p style="color:#555;font-size:15px;line-height:1.6;margin:0 0 6px;">
-      Tu plan <strong style="color:#FF6332;">${planLabel}</strong> est� listo.
-    </p>
-    ${fechaTexto ? `<p style="color:#6F42C1;font-style:italic;font-size:14px;margin:0 0 20px;">?? ${fechaTexto}</p>` : ''}
-
-    <div style="background:#FFF0EB;border-radius:12px;padding:20px;margin-bottom:24px;">
-      <h2 style="color:#FF6332;font-size:18px;margin:0 0 12px;">?? Resumen</h2>
+    <h1 style="font-size:22px;color:#212529;margin:0 0 8px;">\u00a1Hola, ${formData.nombre}! \u2708\ufe0f</h1>
+    <p style="color:#555;font-size:15px;line-height:1.6;margin:0 0 6px;">Tu plan <strong style="color:${coral};">${planLabel}</strong> est\u00e1 listo.</p>
+    ${fechaTexto ? `<p style="color:${violeta};font-style:italic;font-size:14px;margin:0 0 20px;">\ud83d\udcc5 ${fechaTexto}</p>` : ''}
+    <div style="background:${bg1};border-radius:12px;padding:20px;margin-bottom:24px;">
+      <h2 style="color:${coral};font-size:17px;margin:0 0 12px;">\ud83d\udcca Resumen</h2>
       <p style="margin:4px 0;"><strong>Destino:</strong> ${itinerario.resumen?.destino || formData.destino}</p>
-      <p style="margin:4px 0;"><strong>Duraci�n:</strong> ${formData.dias} d�as � ${formData.numViajeros} viajero${formData.numViajeros > 1 ? 's' : ''}</p>
+      <p style="margin:4px 0;"><strong>Duraci\u00f3n:</strong> ${formData.dias} d\u00edas &middot; ${formData.numViajeros} viajero${formData.numViajeros > 1 ? 's' : ''}</p>
       <p style="margin:4px 0;"><strong>Fecha de ida:</strong> ${itinerario.resumen?.fecha_salida || 'Ver en el itinerario'}</p>
       <p style="margin:4px 0;"><strong>Fecha de vuelta:</strong> ${itinerario.resumen?.fecha_regreso || 'Ver en el itinerario'}</p>
       <p style="margin:4px 0;"><strong>Presupuesto estimado:</strong> ${itinerario.presupuesto_desglose?.total || ''}</p>
     </div>
-
-    <div style="background:#FF6332;border-radius:12px;padding:20px;text-align:center;margin-bottom:24px;">
-      <p style="color:#fff;font-size:14px;margin:0 0 8px;">Tu itinerario completo est� adjunto como PDF en este correo.</p>
-      <p style="color:#fff;font-size:13px;font-style:italic;margin:0;">�Problemas? Escribinos a <a href="mailto:vive.vivante.ch@gmail.com" style="color:#FFE0D0;">vive.vivante.ch@gmail.com</a></p>
+    <div style="background:${coral};border-radius:12px;padding:20px;text-align:center;margin-bottom:24px;">
+      <p style="color:#fff;font-size:14px;margin:0 0 8px;">Tu itinerario completo est\u00e1 adjunto como PDF en este correo.</p>
+      <p style="color:#fff;font-size:13px;font-style:italic;margin:0;">\u00bfProblemas? Esc\u00edbenos a <a href="mailto:vive.vivante.ch@gmail.com" style="color:#FFE0D0;">vive.vivante.ch@gmail.com</a></p>
     </div>
-
     ${(itinerario.dias || []).slice(0, 3).map(dia => `
-    <div style="border-left:4px solid #FF6332;padding:12px 16px;margin-bottom:16px;background:#FFF8F5;border-radius:0 8px 8px 0;">
-      <p style="font-weight:700;color:#FF6332;margin:0 0 6px;">D�a ${dia.numero}: ${dia.titulo}</p>
-      <p style="margin:0 0 4px;color:#212529;font-size:14px;">?? ${dia.manana?.actividad || ''}</p>
-      <p style="margin:0 0 4px;color:#212529;font-size:14px;">?? ${dia.tarde?.almuerzo || ''}</p>
-      <p style="margin:0;color:#6F42C1;font-size:12px;font-style:italic;">?? ${dia.gasto_dia || ''}</p>
+    <div style="border-left:4px solid ${coral};padding:12px 16px;margin-bottom:16px;background:${bg0};border-radius:0 8px 8px 0;">
+      <p style="font-weight:700;color:${coral};margin:0 0 6px;">D\u00eda ${dia.numero}: ${dia.titulo}</p>
+      <p style="margin:0 0 4px;color:#212529;font-size:14px;">\ud83c\udf05 ${dia.manana?.actividad || ''}</p>
+      <p style="margin:0 0 4px;color:#212529;font-size:14px;">\ud83c\udf1e ${dia.tarde?.almuerzo || ''}</p>
+      <p style="margin:0;color:${violeta};font-size:12px;font-style:italic;">\ud83d\udcb0 ${dia.gasto_dia || ''}</p>
     </div>`).join('')}
-    ${(itinerario.dias || []).length > 3 ? `<p style="text-align:center;color:#888;font-size:13px;">... y ${itinerario.dias.length - 3} d�as m�s en tu itinerario completo (ver PDF adjunto)</p>` : ''}
-
+    ${(itinerario.dias || []).length > 3 ? `<p style="text-align:center;color:#888;font-size:13px;">... y ${itinerario.dias.length - 3} d\u00edas m\u00e1s en tu itinerario completo (ver PDF adjunto)</p>` : ''}
   </div>
-
-  <div style="background:#FF6332;padding:32px;text-align:center;">
+  <div style="background:${coral};padding:32px;text-align:center;">
     <p style="color:#fff;font-size:22px;font-weight:800;margin:0 0 8px;">VIVANTE</p>
     <p style="color:rgba(255,255,255,0.9);font-size:14px;margin:0 0 16px;">
-      ${itinerario.subtitulo || `Solo falta hacer la maleta, ${formData.nombre}. ??`}
+      ${itinerario.subtitulo || `\u00a1Solo falta hacer la maleta, ${formData.nombre}!`}
     </p>
     <p style="color:rgba(255,255,255,0.7);font-size:12px;margin:0;">
-      <a href="https://vivevivante.com" style="color:rgba(255,255,255,0.85);">vivevivante.com</a> �
+      <a href="https://vivevivante.com" style="color:rgba(255,255,255,0.85);">vivevivante.com</a> &middot;
       <a href="https://instagram.com/vive.vivante" style="color:rgba(255,255,255,0.85);">@vive.vivante</a>
     </p>
   </div>
-
 </div>
-</body>
-</html>`;
+</body></html>`;
 }
 
 
@@ -1295,7 +1283,7 @@ GENERA JSON puro (sin markdown, sin \`\`\`):
   "vuelos": [
     {
       "aerolinea": "string",
-      "ruta": "string (ej: SCL ? NRT directo, o SCL ? LIM ? NRT v�a Lima)",
+      "ruta": "string (ej: SCL \u2192 NRT directo, o SCL \u2192 LIM \u2192 NRT v\u00eda Lima)",
       "precio_estimado": "string",
       "duracion": "string (ej: 14h directo, 22h con 1 escala)",
       "escala": "string (Directo / 1 escala en CIUDAD / 2 escalas)",
@@ -1431,7 +1419,7 @@ GENERA JSON puro (sin markdown, sin \`\`\`):
   "vuelos": [
     {
       "aerolinea": "string",
-      "ruta": "string (ej: SCL ? NRT directo, o SCL ? LIM ? NRT v�a Lima)",
+      "ruta": "string (ej: SCL \u2192 NRT directo, o SCL \u2192 LIM \u2192 NRT v\u00eda Lima)",
       "precio_estimado": "string",
       "duracion": "string (ej: 14h directo, 22h con 1 escala)",
       "escala": "string (Directo / 1 escala en CIUDAD / 2 escalas)",
@@ -1705,7 +1693,7 @@ IMPORTANTE sobre dias_pro: para CADA d�a del viaje (${formData.dias} d�as), 
 
           // Guardar itinerario b�sico para posible uso futuro (ya existe, no sobreescribir)
           // Enviar email de confirmaci�n Pro
-          const planLabel = 'Vivante Pro ?';
+          const planLabel = 'Vivante Pro \u2728';
           const fechaTexto = mergedItinerary.resumen?.fecha_optima_texto || '';
           const resendKey = process.env.RESEND_API_KEY;
           if (resendKey) {
@@ -1718,7 +1706,7 @@ IMPORTANTE sobre dias_pro: para CADA d�a del viaje (${formData.dias} d�as), 
                 from: 'VIVANTE <noreply@vivevivante.com>',
                 reply_to: 'vive.vivante.ch@gmail.com',
                 to: [formData.email],
-                subject: `? Tu itinerario VIVANTE Pro est� listo � ${mergedItinerary.titulo || 'Tu aventura'}`,
+                subject: `\u2708\ufe0f Tu itinerario VIVANTE Pro est\u00e1 listo \u2014 ${mergedItinerary.titulo || 'Tu aventura'}`,
                 html: emailHtmlPro,
                 ...(pdfBase64Pro && { attachments: [{ filename: 'itinerario-vivante-pro.pdf', content: pdfBase64Pro }] }),
               }),
@@ -1823,6 +1811,15 @@ IMPORTANTE sobre dias_pro: para CADA d�a del viaje (${formData.dias} d�as), 
 
       if (!parsed) throw new Error('No valid JSON found');
       itinerario = parsed;
+
+      // Post-procesado: corregir separador de ruta "?" -> "→" (bug de encoding en el prompt)
+      if (itinerario.vuelos?.length) {
+        itinerario.vuelos = itinerario.vuelos.map(v => ({
+          ...v,
+          ruta: (v.ruta || '').replace(/ \? /g, ' \u2192 '),
+        }));
+      }
+
       console.log('Itinerario parseado OK. Secciones:', Object.keys(itinerario).join(', '));
     } catch (e) {
       console.error('JSON parse error:', e.message);
@@ -1831,7 +1828,7 @@ IMPORTANTE sobre dias_pro: para CADA d�a del viaje (${formData.dias} d�as), 
     }
 
     // --- EMAIL HTML (resumen simplificado para el correo) ----------------------
-    const planLabel = isPro ? 'Vivante Pro ?' : 'Vivante B�sico';
+    const planLabel = isPro ? 'Vivante Pro \u2728' : 'Vivante B\u00e1sico';
     const fechaTexto = itinerario.resumen?.fecha_optima_texto || '';
 
     const emailHtml = buildConfirmationEmail(formData, itinerario, planLabel, fechaTexto);
@@ -1850,7 +1847,7 @@ IMPORTANTE sobre dias_pro: para CADA d�a del viaje (${formData.dias} d�as), 
           from: 'VIVANTE <noreply@vivevivante.com>',
           reply_to: 'vive.vivante.ch@gmail.com',
           to: [formData.email],
-          subject: `?? ${itinerario.titulo || 'Tu itinerario VIVANTE est� listo'} � ${planLabel}`,
+          subject: `\u2708\ufe0f ${itinerario.titulo || 'Tu itinerario VIVANTE est\u00e1 listo'} \u2014 ${planLabel}`,
           html: emailHtml,
           ...(pdfBase64 && { attachments: [{ filename: `itinerario-vivante-${isPro ? 'pro' : 'basico'}.pdf`, content: pdfBase64 }] }),
         }),
