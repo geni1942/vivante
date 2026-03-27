@@ -59,6 +59,63 @@ function buildConfirmationEmail(formData, itinerario, planLabel, fechaTexto) {
 }
 
 
+// --- URL builder helpers ------------------------------------------------------
+function buildAirlineUrl(aerolinea) {
+  const a = (aerolinea || '').toLowerCase();
+  if (a.includes('latam')) return 'https://www.latam.com/';
+  if (a.includes('jetsmart')) return 'https://www.jetsmart.com/';
+  if (a.includes('sky') && !a.includes('scanner')) return 'https://www.skyairline.com/';
+  if (a.includes('avianca')) return 'https://www.avianca.com/';
+  if (a.includes('copa')) return 'https://www.copaair.com/';
+  if (a.includes('aerolineas') || a.includes('aerol\u00edneas') || a.includes('argentinas')) return 'https://www.aerolineas.com.ar/';
+  if (a.includes('aeromexico') || a.includes('aerom\u00e9xico')) return 'https://www.aeromexico.com/';
+  if (a.includes('iberia express') || (a.includes('iberia') && a.includes('express'))) return 'https://www.iberiaexpress.com/';
+  if (a.includes('iberia')) return 'https://www.iberia.com/';
+  if (a.includes('air europa') || a.includes('aireuropa')) return 'https://www.aireuropa.com/';
+  if (a.includes('turkish') || a.includes('thy')) return 'https://www.turkishairlines.com/';
+  if (a.includes('air france') || a.includes('airfrance')) return 'https://www.airfrance.com/';
+  if (a.includes('klm')) return 'https://www.klm.com/';
+  if (a.includes('lufthansa')) return 'https://www.lufthansa.com/';
+  if (a.includes('british')) return 'https://www.britishairways.com/';
+  if (a.includes('tap') || a.includes('portugal')) return 'https://www.flytap.com/';
+  if (a.includes('american')) return 'https://www.aa.com/';
+  if (a.includes('united')) return 'https://www.united.com/';
+  if (a.includes('delta')) return 'https://www.delta.com/';
+  if (a.includes('qatar')) return 'https://www.qatarairways.com/';
+  if (a.includes('emirates')) return 'https://www.emirates.com/';
+  if (a.includes('singapore')) return 'https://www.singaporeair.com/';
+  if (a.includes('japan airlines') || a.includes('jal')) return 'https://www.jal.co.jp/';
+  if (a.includes('gol')) return 'https://www.voegol.com.br/';
+  if (a.includes('azul')) return 'https://www.voeazul.com.br/';
+  return null;
+}
+
+function buildAlojamientoUrl(op, destino, checkin, checkout, adults, alojPref) {
+  const plat = (op.plataforma || '').toLowerCase();
+  const nombre = (op.nombre || '').trim();
+  if (plat.includes('hostel')) {
+    const fmtHW = (d) => { if (!d) return ''; const [y,m,dd]=d.split('-'); return `${dd}%2F${m}%2F${y}`; };
+    return `https://www.hostelworld.com/search?search_keywords=${encodeURIComponent(nombre+', '+(destino||''))}&dateFrom=${fmtHW(checkin)}&dateTo=${fmtHW(checkout)}&numberOfGuests=${adults||2}`;
+  }
+  if (plat.includes('airbnb')) {
+    const p = new URLSearchParams({ checkin: checkin||'', checkout: checkout||'', adults: adults||2, query: nombre });
+    return `https://www.airbnb.com/s/${encodeURIComponent(destino||'')}/homes?${p}`;
+  }
+  const searchTerm = nombre ? `${nombre}, ${destino}` : destino;
+  const p = new URLSearchParams({ ss: searchTerm, checkin: checkin||'', checkout: checkout||'', group_adults: adults||2, no_rooms:1, selected_currency:'USD' });
+  if (alojPref === 'bnb') p.append('nflt', 'pt%3D11');
+  return `https://www.booking.com/searchresults.html?${p}`;
+}
+
+function pdfBtn(label, url, color) {
+  if (!url) return { text: '' };
+  return {
+    table: { widths: ['auto'], body: [[{ text: [{ text: label, link: url, color: '#fff', fontSize: 7, bold: true }], border: [false,false,false,false], margin: [5,3,5,3] }]] },
+    layout: { fillColor: () => color, hLineWidth: ()=>0, vLineWidth: ()=>0 },
+    margin: [0,2,0,2]
+  };
+}
+
 // --- Helper: Generar PDF del itinerario con pdfmake ---------------------------
 async function generateItinerarioPdf(itinerario, formData, planLabel) {
   try {
@@ -67,6 +124,19 @@ async function generateItinerarioPdf(itinerario, formData, planLabel) {
     const vfsFontsModule = await import('pdfmake/build/vfs_fonts.js');
     const vfsFonts = vfsFontsModule.default || vfsFontsModule;
     pdfMake.vfs = vfsFonts?.pdfMake?.vfs || vfsFonts?.vfs || {};
+
+    // Read logo SVG from filesystem
+    let logoSvgCover = null;
+    let logoSvgBack = null;
+    try {
+      const fs = (await import('fs')).default;
+      const path = (await import('path')).default;
+      const logoPath = path.join(process.cwd(), 'public', 'images', 'vivante_logo.svg');
+      const rawSvg = fs.readFileSync(logoPath, 'utf-8');
+      logoSvgCover = rawSvg.replace(/fill="(?!none)[^"]*"/g, 'fill="#fff"').replace(/fill='(?!none)[^']*'/g, "fill='#fff'");
+      const CORAL_CONST = '#FF6332';
+      logoSvgBack = rawSvg.replace(/fill="(?!none)[^"]*"/g, `fill="${CORAL_CONST}"`).replace(/fill='(?!none)[^']*'/g, `fill='${CORAL_CONST}'`);
+    } catch(e) { /* fallback to text */ }
 
     const CORAL = '#FF6332';
     const FUCSIA = '#E83E8C';
@@ -77,34 +147,50 @@ async function generateItinerarioPdf(itinerario, formData, planLabel) {
     const isPro = planLabel.toLowerCase().includes('pro');
     const res = itinerario.resumen || {};
 
+    // pdfmake uses Roboto which has no emoji glyphs — strip them everywhere
+    const ce = (str) => {
+      if (!str && str !== 0) return '';
+      return String(str)
+        .replace(/\p{Emoji_Presentation}/gu, '')
+        .replace(/[\u{1F000}-\u{1FFFF}]/gu, '')
+        .replace(/[\u{2600}-\u{27BF}]/gu, '')
+        .replace(/[\uFE00-\uFE0F]/g, '')
+        .replace(/\u200D/g, '')
+        .replace(/\s{2,}/g, ' ')
+        .trim();
+    };
+
     const secHdr = (txt, col = CORAL) => ({
       table: { widths: ['*'], body: [[{ text: txt, bold: true, fontSize: 12, color: '#fff', margin: [10, 7, 10, 7], border: [false,false,false,false] }]] },
       layout: 'noBorders', fillColor: col, margin: [0, 14, 0, 6],
     });
-    const sep = () => ({ canvas: [{ type: 'line', x1: 0, y1: 0, x2: 523, y2: 0, lineWidth: 0.4, lineColor: '#e0e0e0' }], margin: [0, 6, 0, 6] });
 
     const content = [];
 
-    // -- PORTADA (pagina 1, fondo coral por `background`) --
+    // -- PORTADA --
     content.push({ text: '', margin: [0, 50, 0, 0] });
-    content.push({ text: 'VIVANTE', fontSize: 54, bold: true, color: '#fff', alignment: 'center', margin: [0, 0, 0, 6] });
-    content.push({ text: 'VIAJA MAS - PLANIFICA MENOS', fontSize: 9, color: 'rgba(255,255,255,0.75)', alignment: 'center', characterSpacing: 2, margin: [0, 0, 0, 20] });
+    if (logoSvgCover) {
+      content.push({ svg: logoSvgCover, width: 160, alignment: 'center', margin: [0, 0, 0, 10] });
+    } else {
+      content.push({ text: 'VIVANTE', fontSize: 54, bold: true, color: '#fff', alignment: 'center', margin: [0, 0, 0, 6] });
+    }
+    content.push({ text: 'VIAJA M\u00c1S \u00b7 PLANIFICA MENOS', fontSize: 9, color: 'rgba(255,255,255,0.75)', alignment: 'center', characterSpacing: 2, margin: [0, 0, 0, 20] });
     content.push({ canvas: [{ type: 'line', x1: 80, y1: 0, x2: 443, y2: 0, lineWidth: 0.5, lineColor: 'rgba(255,255,255,0.35)' }], margin: [0, 0, 0, 20] });
     content.push({
       table: { widths: ['auto'], body: [[{ text: planLabel.toUpperCase(), bold: true, fontSize: 9, color: CORAL, margin: [14, 5, 14, 5], border: [false,false,false,false] }]] },
       layout: 'noBorders', fillColor: '#fff', alignment: 'center', margin: [0, 0, 0, 22],
     });
-    content.push({ text: itinerario.titulo || `Itinerario: ${formData.destino}`, fontSize: 21, bold: true, color: '#fff', alignment: 'center', margin: [0, 0, 0, 8] });
-    if (itinerario.subtitulo) content.push({ text: itinerario.subtitulo, fontSize: 11, italics: true, color: 'rgba(255,255,255,0.9)', alignment: 'center', margin: [0, 0, 0, 28] });
+    content.push({ text: ce(itinerario.titulo) || `Itinerario: ${formData.destino}`, fontSize: 21, bold: true, color: '#fff', alignment: 'center', margin: [0, 0, 0, 8] });
+    if (itinerario.subtitulo) content.push({ text: ce(itinerario.subtitulo), fontSize: 11, italics: true, color: 'rgba(255,255,255,0.9)', alignment: 'center', margin: [0, 0, 0, 28] });
 
     const coverRows = [
-      res.destino || formData.destino ? ['\u{1F4CD} Destino', res.destino || formData.destino] : null,
-      formData.origen               ? ['\u{1F6EB} Origen', formData.origen]                 : null,
-      res.fecha_salida              ? ['\u{1F4C5} Ida', res.fecha_salida]                    : null,
-      res.fecha_regreso             ? ['\u{1F4C5} Vuelta', res.fecha_regreso]                : null,
-      formData.dias                 ? ['\u{23F1} Duraci\u{00F3}n', `${formData.dias} d\u{00ED}as`]         : null,
-      formData.numViajeros          ? ['\u{1F465} Viajeros', String(formData.numViajeros)]   : null,
-      itinerario.presupuesto_desglose?.total ? ['\u{1F4B0} Presupuesto', itinerario.presupuesto_desglose.total] : null,
+      res.destino || formData.destino ? ['Destino', res.destino || formData.destino] : null,
+      formData.origen               ? ['Origen', formData.origen]                 : null,
+      res.fecha_salida              ? ['Ida', res.fecha_salida]                    : null,
+      res.fecha_regreso             ? ['Vuelta', res.fecha_regreso]                : null,
+      formData.dias                 ? ['Duracion', `${formData.dias} d\u00edas`] : null,
+      formData.numViajeros          ? ['Viajeros', String(formData.numViajeros)]   : null,
+      itinerario.presupuesto_desglose?.total ? ['Presupuesto', itinerario.presupuesto_desglose.total] : null,
     ].filter(Boolean);
 
     if (coverRows.length) {
@@ -120,16 +206,22 @@ async function generateItinerarioPdf(itinerario, formData, planLabel) {
         margin: [40, 0, 40, 24],
       });
     }
-    content.push({ text: `vivevivante.com  \u{00B7}  @vive.vivante`, fontSize: 8, color: 'rgba(255,255,255,0.55)', alignment: 'center', margin: [0, 12, 0, 0] });
+    content.push({ text: 'vivevivante.com  \u00b7  @vive.vivante', fontSize: 8, color: 'rgba(255,255,255,0.55)', alignment: 'center', margin: [0, 12, 0, 0] });
     content.push({ text: '', pageBreak: 'after' });
 
     // -- RESUMEN --
     if (coverRows.length) {
-      content.push(secHdr('\u{1F4CA} RESUMEN DEL VIAJE'));
+      content.push(secHdr('RESUMEN DEL VIAJE'));
+      const resumenRows = [
+        ...coverRows,
+        res.fecha_optima_texto ? ['Mejor epoca', res.fecha_optima_texto] : null,
+        res.distribucion      ? ['Distribucion', res.distribucion]      : null,
+        res.ritmo             ? ['Ritmo', res.ritmo]                    : null,
+      ].filter(Boolean);
       content.push({
         table: {
           widths: [120, '*'],
-          body: coverRows.map(([k, v], i) => [
+          body: resumenRows.map(([k, v], i) => [
             { text: k, fontSize: 9, bold: true, color: CARBON, fillColor: i%2===0?BG1:'#fff', border:[false,false,false,false], margin:[8,6,4,6] },
             { text: String(v), fontSize: 9, color: CARBON, fillColor: i%2===0?BG1:'#fff', border:[false,false,false,false], margin:[4,6,8,6] },
           ])
@@ -141,16 +233,16 @@ async function generateItinerarioPdf(itinerario, formData, planLabel) {
 
     // -- PRESUPUESTO --
     if (itinerario.presupuesto_desglose) {
-      content.push(secHdr('\u{1F4B0} PRESUPUESTO ESTIMADO'));
+      content.push(secHdr('PRESUPUESTO ESTIMADO'));
       const pd = itinerario.presupuesto_desglose;
       const budRows = [
-        pd.vuelos      ? ['\u{2708}\u{FE0F} Vuelos', pd.vuelos]           : null,
-        pd.alojamiento ? ['\u{1F3E8} Alojamiento', pd.alojamiento] : null,
-        pd.comidas     ? ['\u{1F37D}\u{FE0F} Comidas', pd.comidas]         : null,
-        pd.transporte  ? ['\u{1F68C} Transporte', pd.transporte]   : null,
-        pd.actividades ? ['\u{1F3AB}\u{FE0F} Actividades', pd.actividades] : null,
-        pd.extras      ? ['\u{1F6CD}\u{FE0F} Extras', pd.extras]           : null,
-        pd.total       ? ['TOTAL ESTIMADO', pd.total]       : null,
+        pd.vuelos      ? ['Vuelos', pd.vuelos]           : null,
+        pd.alojamiento ? ['Alojamiento', pd.alojamiento] : null,
+        pd.comidas     ? ['Comidas', pd.comidas]         : null,
+        pd.transporte  ? ['Transporte', pd.transporte]   : null,
+        pd.actividades ? ['Actividades', pd.actividades] : null,
+        pd.extras      ? ['Extras', pd.extras]           : null,
+        pd.total       ? ['TOTAL ESTIMADO', pd.total]    : null,
       ].filter(Boolean);
       if (budRows.length) {
         content.push({
@@ -173,42 +265,54 @@ async function generateItinerarioPdf(itinerario, formData, planLabel) {
     // -- ITINERARIO DIA A DIA --
     if (itinerario.dias?.length) {
       content.push({ text:'', pageBreak:'before' });
-      content.push(secHdr('\u{1F4C5} ITINERARIO D\u{00CD}A A D\u{00CD}A'));
+      content.push(secHdr('ITINERARIO DIA A DIA'));
       itinerario.dias.forEach((dia, di) => {
         const dayRows = [];
         if (dia.manana?.actividad) {
           dayRows.push([
-            { text:'\u{1F305} Ma\u{00F1}ana', bold:true, fontSize:8, color:CORAL, border:[false,false,false,false], fillColor:'#fff', margin:[4,5,4,4] },
-            { text: dia.manana.actividad + (dia.manana.costo ? `  \u{1F4B0} ${dia.manana.costo}` : ''), fontSize:8, color:CARBON, border:[false,false,false,false], fillColor:'#fff', margin:[4,5,4,4] },
+            { text:'MANANA', bold:true, fontSize:8, color:CORAL, border:[false,false,false,false], fillColor:'#fff', margin:[4,5,4,4] },
+            { text: ce(dia.manana.actividad) + (dia.manana.costo ? `  ${dia.manana.costo}` : ''), fontSize:8, color:CARBON, border:[false,false,false,false], fillColor:'#fff', margin:[4,5,4,4] },
           ]);
           if (dia.manana.tip) dayRows.push([
             { text:'', border:[false,false,false,false], fillColor:'#fff' },
-            { text:`\u{1F4A1} ${dia.manana.tip}`, fontSize:7, color:VIOLETA, italics:true, border:[false,false,false,false], fillColor:'#fff', margin:[4,0,4,4] },
+            { text:`TIP: ${ce(dia.manana.tip)}`, fontSize:7, color:VIOLETA, italics:true, border:[false,false,false,false], fillColor:'#fff', margin:[4,0,4,4] },
           ]);
         }
         if (dia.tarde?.actividad) {
           dayRows.push([
-            { text:'\u{1F31E} Tarde', bold:true, fontSize:8, color:CORAL, border:[false,false,false,false], fillColor:BG0, margin:[4,5,4,4] },
-            { text:(dia.tarde.almuerzo?`\u{1F374} ${dia.tarde.almuerzo}  `:'') + dia.tarde.actividad, fontSize:8, color:CARBON, border:[false,false,false,false], fillColor:BG0, margin:[4,5,4,4] },
+            { text:'TARDE', bold:true, fontSize:8, color:CORAL, border:[false,false,false,false], fillColor:BG0, margin:[4,5,4,4] },
+            { text:(dia.tarde.almuerzo?`ALM.: ${ce(dia.tarde.almuerzo)}  `:'') + ce(dia.tarde.actividad), fontSize:8, color:CARBON, border:[false,false,false,false], fillColor:BG0, margin:[4,5,4,4] },
           ]);
         }
         if (dia.noche?.actividad || dia.noche?.cena) {
-          const nt = [dia.noche?.cena?`\u{1F377} ${dia.noche.cena}`:'', dia.noche?.actividad||''].filter(Boolean).join('  ');
+          const nt = [dia.noche?.cena?`CENA: ${ce(dia.noche.cena)}`:'', ce(dia.noche?.actividad||'')].filter(Boolean).join('  ');
           dayRows.push([
-            { text:'\u{1F319} Noche', bold:true, fontSize:8, color:CORAL, border:[false,false,false,false], fillColor:'#fff', margin:[4,5,4,4] },
+            { text:'NOCHE', bold:true, fontSize:8, color:CORAL, border:[false,false,false,false], fillColor:'#fff', margin:[4,5,4,4] },
             { text:nt, fontSize:8, color:CARBON, border:[false,false,false,false], fillColor:'#fff', margin:[4,5,4,4] },
           ]);
         }
         if (dia.gasto_dia) {
           dayRows.push([
-            { text:'\u{1F4B0} Gasto del d\u{00ED}a', bold:true, fontSize:8, color:VIOLETA, border:[false,false,false,false], fillColor:BG1, margin:[4,5,4,5] },
+            { text:'GASTO DEL DIA', bold:true, fontSize:8, color:VIOLETA, border:[false,false,false,false], fillColor:BG1, margin:[4,5,4,5] },
             { text:String(dia.gasto_dia), fontSize:8, bold:true, color:VIOLETA, alignment:'right', border:[false,false,false,false], fillColor:BG1, margin:[4,5,4,5] },
+          ]);
+        }
+        if (dia.ruta_optimizada) {
+          dayRows.push([
+            { text: 'RUTA', bold: true, fontSize: 7, color: '#666', border:[false,false,false,false], fillColor: BG1, margin:[4,4,4,4] },
+            { text: ce(dia.ruta_optimizada), fontSize: 7, color: '#666', border:[false,false,false,false], fillColor: BG1, margin:[4,4,4,4] },
+          ]);
+        }
+        if (dia.manana?.plan_b) {
+          dayRows.push([
+            { text: 'PLAN B', bold: true, fontSize: 7, color: '#aaa', border:[false,false,false,false], fillColor:'#fff', margin:[4,3,4,3] },
+            { text: ce(dia.manana.plan_b), fontSize: 7, color:'#aaa', italics:true, border:[false,false,false,false], fillColor:'#fff', margin:[4,3,4,3] },
           ]);
         }
         const colHdr = di % 2 === 0 ? CORAL : FUCSIA;
         const dayStack = [
           {
-            table:{ widths:['*'], body:[[{ text:`D\u{00ED}a ${dia.numero}: ${dia.titulo||''}`, bold:true, fontSize:11, color:'#fff', border:[false,false,false,false], margin:[10,7,10,7] }]] },
+            table:{ widths:['*'], body:[[{ text:`D\u00eda ${dia.numero}: ${ce(dia.titulo)||''}`, bold:true, fontSize:11, color:'#fff', border:[false,false,false,false], margin:[10,7,10,7] }]] },
             layout:'noBorders', fillColor:colHdr, margin:[0, di===0?0:10, 0, 0],
           }
         ];
@@ -220,7 +324,7 @@ async function generateItinerarioPdf(itinerario, formData, planLabel) {
           });
         }
         if (dia.tip_local) {
-          dayStack.push({ text:`\u{1F4A1} ${dia.tip_local}`, fontSize:8, color:VIOLETA, italics:true, margin:[8,3,8,3] });
+          dayStack.push({ text:`TIP: ${ce(dia.tip_local)}`, fontSize:8, color:VIOLETA, italics:true, margin:[8,3,8,3] });
         }
         content.push({ stack: dayStack, unbreakable: true });
       });
@@ -229,19 +333,20 @@ async function generateItinerarioPdf(itinerario, formData, planLabel) {
     // -- VUELOS --
     if (itinerario.vuelos?.length) {
       content.push({ text:'', pageBreak:'before' });
-      content.push(secHdr('\u{2708}\u{FE0F} VUELOS RECOMENDADOS'));
-      const fHdr = ['Aerol\u{00ED}nea','Ruta / Escala','Precio est.','Duraci\u{00F3}n','Tip'].map(t => ({
+      content.push(secHdr('VUELOS RECOMENDADOS'));
+      const fHdr = ['Aerol\u00ednea','Ruta / Escala','Precio est.','Duraci\u00f3n','Tip','Ver'].map(t => ({
         text:t, bold:true, fontSize:8, color:'#fff', fillColor:CORAL, border:[false,false,false,false], margin:[4,6,4,6]
       }));
       const fRows = itinerario.vuelos.map((v,i) => [
-        { text:v.aerolinea||'', fontSize:8, bold:true, color:CARBON, fillColor:i%2===0?BG0:'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
-        { text:(v.ruta||'')+(v.escala?`\n${v.escala}`:''), fontSize:8, color:CARBON, fillColor:i%2===0?BG0:'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
-        { text:v.precio_estimado||'\u{2014}', fontSize:8, bold:true, color:CORAL, fillColor:i%2===0?BG0:'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
-        { text:v.duracion||'\u{2014}', fontSize:8, color:'#666', fillColor:i%2===0?BG0:'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
-        { text:v.tip||'\u{2014}', fontSize:7, color:VIOLETA, italics:true, fillColor:i%2===0?BG0:'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
+        { text:ce(v.aerolinea)||'', fontSize:8, bold:true, color:CARBON, fillColor:i%2===0?BG0:'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
+        { text:(v.ruta||'').replace(/ \? /g, ' \u2192 ')+(v.escala?`\n${v.escala}`:''), fontSize:8, color:CARBON, fillColor:i%2===0?BG0:'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
+        { text:v.precio_estimado||'\u2014', fontSize:8, bold:true, color:CORAL, fillColor:i%2===0?BG0:'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
+        { text:v.duracion||'\u2014', fontSize:8, color:'#666', fillColor:i%2===0?BG0:'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
+        { text:ce(v.tip)||'\u2014', fontSize:7, color:VIOLETA, italics:true, fillColor:i%2===0?BG0:'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
+        pdfBtn('Ver vuelo \u2192', buildAirlineUrl(v.aerolinea), CORAL),
       ]);
       content.push({
-        table:{ widths:[90,110,65,52,'*'], body:[fHdr,...fRows] },
+        table:{ widths:[80,100,60,46,'*',60], body:[fHdr,...fRows] },
         layout:{ hLineWidth:()=>0.3, hLineColor:()=>'#eee', vLineWidth:()=>0.3, vLineColor:()=>'#eee' },
         margin:[0,0,0,10],
       });
@@ -249,20 +354,21 @@ async function generateItinerarioPdf(itinerario, formData, planLabel) {
 
     // -- ALOJAMIENTO --
     if (itinerario.alojamiento?.length) {
-      content.push(secHdr('\u{1F3E8} ALOJAMIENTO'));
-      itinerario.alojamiento.forEach((zona,zi) => {
-        if (zona.destino) content.push({ text:`\u{1F4CD} ${zona.destino}${zona.noches?` \u{2014} ${zona.noches} noches`:''}`, fontSize:9, bold:true, color:VIOLETA, margin:[0,4,0,5] });
-        const hHdr = ['Categor\u{00ED}a','Hotel / Puntuaci\u{00F3}n','Precio/noche','Por qu\u{00E9} elegirlo'].map(t=>({
+      content.push(secHdr('ALOJAMIENTO'));
+      itinerario.alojamiento.forEach((zona) => {
+        if (zona.destino) content.push({ text:`${zona.destino}${zona.noches?` \u2014 ${zona.noches} noches`:''}`, fontSize:9, bold:true, color:VIOLETA, margin:[0,4,0,5] });
+        const hHdr = ['Categor\u00eda','Hotel / Puntuaci\u00f3n','Precio/noche','Por qu\u00e9 elegirlo','Reservar'].map(t=>({
           text:t, bold:true, fontSize:8, color:'#fff', fillColor:VIOLETA, border:[false,false,false,false], margin:[4,6,4,6]
         }));
         const hRows = (zona.opciones||[]).map((op,i)=>[
-          { text:op.categoria||'\u{2014}', fontSize:8, bold:true, color:op.categoria==='Premium'?FUCSIA:CORAL, fillColor:i%2===0?'#F5F0FF':'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
-          { text:(op.nombre||'')+(op.puntuacion?`\n\u{2B50} ${op.puntuacion}`:''), fontSize:8, color:CARBON, fillColor:i%2===0?'#F5F0FF':'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
-          { text:op.precio_noche||'\u{2014}', fontSize:8, bold:true, color:VIOLETA, fillColor:i%2===0?'#F5F0FF':'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
-          { text:op.por_que||'\u{2014}', fontSize:7, color:'#555', italics:true, fillColor:i%2===0?'#F5F0FF':'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
+          { text:op.categoria||'\u2014', fontSize:8, bold:true, color:op.categoria==='Premium'?FUCSIA:CORAL, fillColor:i%2===0?'#F5F0FF':'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
+          { text:ce(op.nombre||'')+(op.puntuacion?`\n${op.puntuacion}`:'')+(op.cancelacion?.toLowerCase().includes('gratuita')?'\nCancelacion gratuita':''), fontSize:8, color:CARBON, fillColor:i%2===0?'#F5F0FF':'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
+          { text:op.precio_noche||'\u2014', fontSize:8, bold:true, color:VIOLETA, fillColor:i%2===0?'#F5F0FF':'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
+          { text:ce(op.por_que)||'\u2014', fontSize:7, color:'#555', italics:true, fillColor:i%2===0?'#F5F0FF':'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
+          pdfBtn('Ver \u2192', buildAlojamientoUrl(op, zona.destino, res.fecha_salida, res.fecha_regreso, formData?.numViajeros, formData?.alojamiento), VIOLETA),
         ]);
         content.push({
-          table:{ widths:[58,110,70,'*'], body:[hHdr,...hRows] },
+          table:{ widths:[55,100,65,'*',55], body:[hHdr,...hRows] },
           layout:{ hLineWidth:()=>0.3, hLineColor:()=>'#eee', vLineWidth:()=>0.3, vLineColor:()=>'#eee' },
           margin:[0,0,0,8], unbreakable: true,
         });
@@ -271,49 +377,68 @@ async function generateItinerarioPdf(itinerario, formData, planLabel) {
 
     // -- RESTAURANTES --
     if (itinerario.restaurantes) {
-      content.push(secHdr('\u{1F37D}\u{FE0F} RESTAURANTES RECOMENDADOS'));
+      content.push(secHdr('RESTAURANTES RECOMENDADOS'));
       const restData = Array.isArray(itinerario.restaurantes)
         ? { [(res.destino||formData.destino||'Destino').split(',')[0]]: itinerario.restaurantes }
         : itinerario.restaurantes;
       Object.entries(restData).forEach(([ciudad, lista]) => {
-        if (Object.keys(restData).length > 1) content.push({ text:`\u{1F4CD} ${ciudad}`, fontSize:9, bold:true, color:CORAL, margin:[0,5,0,4] });
-        const rHdr = ['Restaurante','Tipo','Precio/pers.','Reserva'].map(t=>({
+        if (Object.keys(restData).length > 1) content.push({ text:`${ciudad}`, fontSize:9, bold:true, color:CORAL, margin:[0,5,0,4] });
+        const rHdr = ['Restaurante','Ubicacion','Tipo','Precio','Reservar'].map(t=>({
           text:t, bold:true, fontSize:8, color:'#fff', fillColor:CORAL, border:[false,false,false,false], margin:[4,6,4,6]
         }));
         const rRows = (lista||[]).map((r,i)=>[
-          { text:r.nombre+(r.por_que?`\n${r.por_que}`:''), fontSize:8, bold:true, color:CARBON, fillColor:i%2===0?BG0:'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
-          { text:r.tipo||'\u{2014}', fontSize:8, color:'#555', fillColor:i%2===0?BG0:'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
-          { text:r.precio_promedio||'\u{2014}', fontSize:8, bold:true, color:CORAL, fillColor:i%2===0?BG0:'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
-          { text:r.requiere_reserva?'\u{2713} S\u{00ED}':'\u{2014}', fontSize:8, color:r.requiere_reserva?'#27ae60':'#aaa', fillColor:i%2===0?BG0:'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
+          { text:ce(r.nombre)+(r.por_que?`\n${ce(r.por_que)}`:''), fontSize:8, bold:true, color:CARBON, fillColor:i%2===0?BG0:'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
+          { text: ce(r.ubicacion||'\u2014'), fontSize:7, color:'#555', fillColor:i%2===0?BG0:'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
+          { text:r.tipo||'\u2014', fontSize:8, color:'#555', fillColor:i%2===0?BG0:'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
+          { text:r.precio_promedio||'\u2014', fontSize:8, bold:true, color:CORAL, fillColor:i%2===0?BG0:'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
+          r.link_reserva
+            ? pdfBtn(r.requiere_reserva ? 'Reservar \u2192' : 'Ver \u2192', r.link_reserva, r.requiere_reserva ? FUCSIA : CORAL)
+            : r.instagram
+            ? pdfBtn(r.instagram, 'https://instagram.com/' + (r.instagram||'').replace('@',''), '#E1306C')
+            : { text: r.requiere_reserva ? 'Si, reservar' : '\u2014', fontSize:7, color: r.requiere_reserva ? '#27ae60' : '#aaa', border:[false,false,false,false], margin:[4,5,4,5] },
         ]);
-        content.push({ table:{ widths:['*',75,70,42], body:[rHdr,...rRows] }, layout:{ hLineWidth:()=>0.3, hLineColor:()=>'#eee', vLineWidth:()=>0.3, vLineColor:()=>'#eee' }, margin:[0,0,0,8] });
+        content.push({ table:{ widths:['*',65,62,55,52], body:[rHdr,...rRows] }, layout:{ hLineWidth:()=>0.3, hLineColor:()=>'#eee', vLineWidth:()=>0.3, vLineColor:()=>'#eee' }, margin:[0,0,0,8] });
       });
     }
 
     // -- EXPERIENCIAS --
     if (itinerario.experiencias?.length) {
-      content.push(secHdr('\u{1F3AB}\u{FE0F} EXPERIENCIAS Y TOURS', FUCSIA));
-      const eHdr = ['Experiencia','Duraci\u{00F3}n','Precio','Por qu\u{00E9} vale'].map(t=>({
+      content.push(secHdr('EXPERIENCIAS Y TOURS', FUCSIA));
+      const eHdr = ['Experiencia','Duraci\u00f3n','Precio','Anticipacion','Reservar'].map(t=>({
         text:t, bold:true, fontSize:8, color:'#fff', fillColor:FUCSIA, border:[false,false,false,false], margin:[4,6,4,6]
       }));
       const eRows = itinerario.experiencias.map((e,i)=>[
-        { text:e.nombre||'\u{2014}', fontSize:8, bold:true, color:CARBON, fillColor:i%2===0?'#FFF0F7':'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
-        { text:e.duracion||'\u{2014}', fontSize:8, color:'#666', fillColor:i%2===0?'#FFF0F7':'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
-        { text:e.precio||'\u{2014}', fontSize:8, bold:true, color:FUCSIA, fillColor:i%2===0?'#FFF0F7':'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
-        { text:e.por_que_vale||'\u{2014}', fontSize:7, color:'#555', italics:true, fillColor:i%2===0?'#FFF0F7':'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
+        { text:ce(e.nombre||'\u2014')+(e.por_que_vale?'\n'+ce(e.por_que_vale):''), fontSize:8, bold:true, color:CARBON, fillColor:i%2===0?'#FFF0F7':'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
+        { text:ce(e.duracion||'\u2014'), fontSize:8, color:'#666', fillColor:i%2===0?'#FFF0F7':'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
+        { text:ce(e.precio||'\u2014'), fontSize:8, bold:true, color:FUCSIA, fillColor:i%2===0?'#FFF0F7':'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
+        { text: ce(e.anticipacion||'\u2014'), fontSize:7, color:'#666', fillColor:i%2===0?'#FFF0F7':'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
+        (() => {
+          const destRaw = (res.destino || (formData && formData.destino) || '').split(/[,(]/)[0].trim();
+          const qPlus = ((e.nombre||'') + ' ' + destRaw).trim().replace(/\s+/g, '+');
+          const gygUrl = `https://www.getyourguide.com/s/?q=${qPlus}&partner_id=UCJJVUD`;
+          const civiSlug = destRaw.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+          const civiUrl = `https://www.civitatis.com/es/${civiSlug}/?q=${encodeURIComponent(e.nombre||'')}`;
+          const plats = e.plataformas_disponibles;
+          const showGyg = !plats || plats.includes('GetYourGuide');
+          const showCivi = !plats || plats.includes('Civitatis') || plats.includes('Viator');
+          if (showGyg && showCivi) return { stack: [pdfBtn('GetYourGuide', gygUrl, '#FF6600'), pdfBtn('Civitatis', civiUrl, '#00A651')], border:[false,false,false,false], fillColor:i%2===0?'#FFF0F7':'#fff', margin:[4,3,4,3] };
+          if (showGyg) return pdfBtn('GetYourGuide', gygUrl, '#FF6600');
+          if (showCivi) return pdfBtn('Civitatis', civiUrl, '#00A651');
+          return { text:'Reservar local', fontSize:7, color:'#999', border:[false,false,false,false], margin:[4,5,4,5] };
+        })(),
       ]);
-      content.push({ table:{ widths:['*',60,65,'*'], body:[eHdr,...eRows] }, layout:{ hLineWidth:()=>0.3, hLineColor:()=>'#eee', vLineWidth:()=>0.3, vLineColor:()=>'#eee' }, margin:[0,0,0,8] });
+      content.push({ table:{ widths:['*',55,60,55,'*'], body:[eHdr,...eRows] }, layout:{ hLineWidth:()=>0.3, hLineColor:()=>'#eee', vLineWidth:()=>0.3, vLineColor:()=>'#eee' }, margin:[0,0,0,8] });
     }
 
     // -- TIPS --
     if (itinerario.tips?.length) {
-      content.push(secHdr('\u{1F4A1} TIPS CLAVE'));
+      content.push(secHdr('TIPS CLAVE'));
       itinerario.tips.forEach((tip, i) => {
         const tipText = typeof tip === 'string' ? tip : (tip.texto || tip.tip || JSON.stringify(tip));
         content.push({
           table:{ widths:[18,'*'], body:[[
             { text:`${i+1}.`, bold:true, fontSize:8, color:CORAL, border:[false,false,false,false], margin:[4,4,2,4] },
-            { text:tipText, fontSize:8, color:CARBON, border:[false,false,false,false], margin:[2,4,4,4] },
+            { text:ce(tipText), fontSize:8, color:CARBON, border:[false,false,false,false], margin:[2,4,4,4] },
           ]] },
           layout:'noBorders', fillColor: i%2===0?BG0:'#fff', margin:[0,0,0,0],
         });
@@ -321,12 +446,71 @@ async function generateItinerarioPdf(itinerario, formData, planLabel) {
       content.push({ text:'', margin:[0,0,0,8] });
     }
 
+    // Tips culturales (Pro)
+    if (itinerario.tips_culturales?.length) {
+      content.push(secHdr('TIPS CULTURALES', VIOLETA));
+      itinerario.tips_culturales.forEach((tip, i) => {
+        content.push({
+          table: { widths: [18,'*'], body: [[
+            { text:`${i+1}.`, bold:true, fontSize:8, color:VIOLETA, border:[false,false,false,false], margin:[4,4,2,4] },
+            { text: ce(typeof tip === 'string' ? tip : (tip.texto||JSON.stringify(tip))), fontSize:8, color:CARBON, border:[false,false,false,false], margin:[2,4,4,4] },
+          ]] },
+          layout:'noBorders', fillColor: i%2===0?'#F5F0FF':'#fff', margin:[0,0,0,0],
+        });
+      });
+      content.push({ text:'', margin:[0,0,0,8] });
+    }
+
+    // Dinero y pagos
+    if (itinerario.dinero) {
+      content.push(secHdr('DINERO Y PAGOS'));
+      const d = itinerario.dinero;
+      const dineroRows = [
+        d.moneda_local       ? ['Moneda local', ce(d.moneda_local)] : null,
+        d.tipo_cambio        ? ['Tipo de cambio', ce(d.tipo_cambio)] : null,
+        d.tarjeta_o_efectivo ? ['Tarjeta o efectivo', ce(d.tarjeta_o_efectivo)] : null,
+        d.donde_cambiar      ? ['Donde cambiar', ce(d.donde_cambiar)] : null,
+        d.cajeros            ? ['Cajeros', ce(d.cajeros)] : null,
+        d.propinas           ? ['Propinas', ce(d.propinas)] : null,
+      ].filter(Boolean);
+      content.push({
+        table: { widths: [110,'*'], body: dineroRows.map(([k,v],i) => [
+          { text:k, fontSize:9, bold:true, color:CARBON, fillColor: i%2===0?BG1:'#fff', border:[false,false,false,false], margin:[8,6,4,6] },
+          { text:v, fontSize:9, color:CARBON, fillColor: i%2===0?BG1:'#fff', border:[false,false,false,false], margin:[4,6,8,6] },
+        ]) },
+        layout: { hLineWidth:()=>0.3, hLineColor:()=>'#eee', vLineWidth:()=>0 },
+        margin:[0,0,0,8],
+      });
+      if (d.tip_extra) content.push({ text: `TIP: ${ce(d.tip_extra)}`, fontSize:8, color:VIOLETA, italics:true, margin:[0,0,0,8] });
+    }
+
+    // Seguro de viaje
+    if (itinerario.seguro?.length) {
+      content.push(secHdr('SEGURO DE VIAJE'));
+      const base = itinerario.seguro || [];
+      const hasIati = base.some(s => s.nombre?.toLowerCase().includes('iati'));
+      const seguros = hasIati ? base : [...base, { nombre:'IATI Seguros', cobertura:'Cancelacion, asistencia medica, equipaje y accidentes', precio_estimado:'Desde $50 USD', link:'https://www.iatiseguros.com/' }];
+      const sHdr = ['Seguro','Cobertura','Precio aprox.','Ver'].map(t=>({
+        text:t, bold:true, fontSize:8, color:'#fff', fillColor:CORAL, border:[false,false,false,false], margin:[4,6,4,6]
+      }));
+      const sRows = seguros.map((s,i) => {
+        const href = s.nombre?.toLowerCase().includes('iati') ? 'https://www.iatiseguros.com/' : (s.link||null);
+        return [
+          { text: ce(s.nombre||'\u2014'), fontSize:8, bold:true, color:CARBON, fillColor:i%2===0?BG0:'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
+          { text: ce(s.cobertura||'\u2014'), fontSize:7, color:'#555', fillColor:i%2===0?BG0:'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
+          { text: ce(s.precio_estimado||'\u2014'), fontSize:8, bold:true, color:CORAL, fillColor:i%2===0?BG0:'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
+          href ? pdfBtn('Ver \u2192', href, CORAL) : { text:'\u2014', fontSize:8, color:'#aaa', border:[false,false,false,false], margin:[4,5,4,5] },
+        ];
+      });
+      content.push({ table:{ widths:['*','*',70,55], body:[sHdr,...sRows] }, layout:{ hLineWidth:()=>0.3, hLineColor:()=>'#eee', vLineWidth:()=>0.3, vLineColor:()=>'#eee' }, margin:[0,0,0,8] });
+    }
+
     // -- LO IMPERDIBLE --
     if (itinerario.lo_imperdible?.length) {
-      content.push(secHdr('\u{2B50} LO IMPERDIBLE', FUCSIA));
+      content.push(secHdr('LO IMPERDIBLE', FUCSIA));
       itinerario.lo_imperdible.forEach((item, i) => {
-        content.push({ text:`${i+1}. ${item.nombre}`, fontSize:10, bold:true, color:CARBON, margin:[0,6,0,2] });
-        content.push({ text:item.descripcion||'', fontSize:8, color:'#555', margin:[0,0,0,6] });
+        content.push({ text:`${i+1}. ${ce(item.nombre)}`, fontSize:10, bold:true, color:CARBON, margin:[0,6,0,2] });
+        content.push({ text:ce(item.descripcion)||'', fontSize:8, color:'#555', margin:[0,0,0,6] });
         if (i < itinerario.lo_imperdible.length - 1) content.push({ canvas:[{ type:'line', x1:0, y1:0, x2:523, y2:0, lineWidth:0.4, lineColor:'#FFD0E8' }], margin:[0,0,0,6] });
       });
     }
@@ -335,44 +519,48 @@ async function generateItinerarioPdf(itinerario, formData, planLabel) {
     if (isPro) {
       const bares = Array.isArray(itinerario.bares_vida_nocturna) ? itinerario.bares_vida_nocturna : [];
       if (bares.length) {
-        content.push(secHdr('\u{1F378} BARES Y VIDA NOCTURNA'));
+        content.push(secHdr('BARES Y VIDA NOCTURNA'));
         bares.forEach(b => {
-          content.push({ text:`\u{2022} ${b.nombre||''}${b.tipo_ambiente?` \u{2014} ${b.tipo_ambiente}`:''}`, fontSize:9, color:CARBON, margin:[8,2,8,2] });
-          if (b.tip) content.push({ text:`  \u{1F4A1} ${b.tip}`, fontSize:8, color:VIOLETA, italics:true, margin:[16,0,8,4] });
+          content.push({ text:`\u2022 ${ce(b.nombre)||''}${b.tipo_ambiente?` \u2014 ${ce(b.tipo_ambiente)}`:''}`, fontSize:9, color:CARBON, margin:[8,2,8,2] });
+          if (b.tip) content.push({ text:`  TIP: ${ce(b.tip)}`, fontSize:8, color:VIOLETA, italics:true, margin:[16,0,8,4] });
         });
       }
       if (itinerario.transporte_local) {
-        content.push(secHdr('\u{1F687} TRANSPORTE LOCAL'));
+        content.push(secHdr('TRANSPORTE LOCAL'));
         const tl = itinerario.transporte_local;
-        if (tl.como_moverse) content.push({ text:`\u{2022} \u{00BF}C\u{00F3}mo moverse? ${tl.como_moverse}`, fontSize:9, color:CARBON, margin:[8,3,8,3] });
-        if (tl.apps_recomendadas?.length) content.push({ text:`\u{2022} Apps: ${tl.apps_recomendadas.join(', ')}`, fontSize:9, color:CARBON, margin:[8,3,8,3] });
-        if (tl.tarjeta_transporte) content.push({ text:`\u{2022} Tarjeta: ${tl.tarjeta_transporte}`, fontSize:9, color:CARBON, margin:[8,3,8,3] });
-        if (tl.conviene_auto) content.push({ text:`\u{2022} Auto: ${tl.conviene_auto}`, fontSize:9, color:CARBON, margin:[8,3,8,3] });
+        if (tl.como_moverse) content.push({ text:`\u2022 \u00bfC\u00f3mo moverse? ${tl.como_moverse}`, fontSize:9, color:CARBON, margin:[8,3,8,3] });
+        if (tl.apps_recomendadas?.length) content.push({ text:`\u2022 Apps: ${tl.apps_recomendadas.join(', ')}`, fontSize:9, color:CARBON, margin:[8,3,8,3] });
+        if (tl.tarjeta_transporte) content.push({ text:`\u2022 Tarjeta: ${tl.tarjeta_transporte}`, fontSize:9, color:CARBON, margin:[8,3,8,3] });
+        if (tl.conviene_auto) content.push({ text:`\u2022 Auto: ${tl.conviene_auto}`, fontSize:9, color:CARBON, margin:[8,3,8,3] });
       }
       if (itinerario.conectividad) {
-        content.push(secHdr('\u{1F4F1} CONECTIVIDAD'));
+        content.push(secHdr('CONECTIVIDAD'));
         const co = itinerario.conectividad;
-        if (co.esim_recomendada) content.push({ text:`\u{2022} eSIM: ${co.esim_recomendada}${co.esim_precio?` \u{2014} ${co.esim_precio}`:''}`, fontSize:9, color:CARBON, margin:[8,3,8,3] });
-        if (co.operador_local) content.push({ text:`\u{2022} Operador local: ${co.operador_local}`, fontSize:9, color:CARBON, margin:[8,3,8,3] });
+        if (co.esim_recomendada) content.push({ text:`\u2022 eSIM: ${co.esim_recomendada}${co.esim_precio?` \u2014 ${co.esim_precio}`:''}`, fontSize:9, color:CARBON, margin:[8,3,8,3] });
+        if (co.operador_local) content.push({ text:`\u2022 Operador local: ${co.operador_local}`, fontSize:9, color:CARBON, margin:[8,3,8,3] });
       }
       if (itinerario.que_empacar) {
-        content.push(secHdr('\u{1F392} QU\u{00C9} EMPACAR'));
+        content.push(secHdr('QUE EMPACAR'));
         const qe = itinerario.que_empacar;
-        if (qe.clima_esperado) content.push({ text:`\u{1F324} Clima: ${qe.clima_esperado}`, fontSize:9, color:CARBON, margin:[8,3,8,5] });
-        if (qe.esencial?.length) content.push({ text:`\u{2022} Esencial: ${qe.esencial.join(', ')}`, fontSize:9, color:CARBON, margin:[8,2,8,2] });
-        if (qe.recomendado?.length) content.push({ text:`\u{2022} Recomendado: ${qe.recomendado.join(', ')}`, fontSize:9, color:CARBON, margin:[8,2,8,2] });
-        if (qe.adaptador_enchufe) content.push({ text:`\u{2022} Adaptador: ${qe.adaptador_enchufe}`, fontSize:9, color:CARBON, margin:[8,2,8,2] });
+        if (qe.clima_esperado) content.push({ text:`Clima: ${qe.clima_esperado}`, fontSize:9, color:CARBON, margin:[8,3,8,5] });
+        if (qe.esencial?.length) content.push({ text:`\u2022 Esencial: ${qe.esencial.join(', ')}`, fontSize:9, color:CARBON, margin:[8,2,8,2] });
+        if (qe.recomendado?.length) content.push({ text:`\u2022 Recomendado: ${qe.recomendado.join(', ')}`, fontSize:9, color:CARBON, margin:[8,2,8,2] });
+        if (qe.adaptador_enchufe) content.push({ text:`\u2022 Adaptador: ${qe.adaptador_enchufe}`, fontSize:9, color:CARBON, margin:[8,2,8,2] });
       }
     }
 
     // -- BACK COVER --
     content.push({ text:'', pageBreak:'before' });
     content.push({ text:'', margin:[0,100,0,0] });
-    content.push({ text:'VIVANTE', fontSize:42, bold:true, color:CORAL, alignment:'center', margin:[0,0,0,8] });
-    content.push({ text:'VIAJA M\u{00C1}S \u{00B7} PLANIFICA MENOS', fontSize:9, color:'#888', alignment:'center', characterSpacing:2, margin:[0,0,0,16] });
+    if (logoSvgBack) {
+      content.push({ svg: logoSvgBack, width: 120, alignment: 'center', margin: [0, 0, 0, 10] });
+    } else {
+      content.push({ text:'VIVANTE', fontSize:42, bold:true, color:CORAL, alignment:'center', margin:[0,0,0,8] });
+    }
+    content.push({ text:'VIAJA M\u00c1S \u00b7 PLANIFICA MENOS', fontSize:9, color:'#888', alignment:'center', characterSpacing:2, margin:[0,0,0,16] });
     content.push({ canvas:[{ type:'line', x1:80, y1:0, x2:443, y2:0, lineWidth:1, lineColor:CORAL }], margin:[0,0,0,16] });
-    content.push({ text:`\u{00A1}Que tengas el viaje de tu vida${formData.nombre?', '+formData.nombre:''}! \u{2708}\u{FE0F}`, fontSize:13, italics:true, color:'#555', alignment:'center', margin:[0,0,0,20] });
-    content.push({ text:'vivevivante.com  \u{00B7}  @vive.vivante', fontSize:10, color:'#aaa', alignment:'center', margin:[0,0,0,0] });
+    content.push({ text:`\u00a1Que tengas el viaje de tu vida${formData.nombre?', '+formData.nombre:''}!`, fontSize:13, italics:true, color:'#555', alignment:'center', margin:[0,0,0,20] });
+    content.push({ text:'vivevivante.com  \u00b7  @vive.vivante', fontSize:10, color:'#aaa', alignment:'center', margin:[0,0,0,0] });
 
     const docDefinition = {
       content,
@@ -380,7 +568,7 @@ async function generateItinerarioPdf(itinerario, formData, planLabel) {
       pageMargins: [36, 58, 36, 42],
       info: {
         title: itinerario.titulo || 'Itinerario VIVANTE',
-        author: 'VIVANTE \u{2014} vivevivante.com',
+        author: 'VIVANTE \u2014 vivevivante.com',
         subject: `Itinerario ${formData.destino}`,
       },
       header: (currentPage, pageCount) => {
@@ -402,7 +590,7 @@ async function generateItinerarioPdf(itinerario, formData, planLabel) {
       footer: (currentPage, pageCount) => {
         if (currentPage === 1) return null;
         return {
-          text: `${currentPage} / ${pageCount}  \u{00B7}  vivevivante.com`,
+          text: `${currentPage} / ${pageCount}  \u00b7  vivevivante.com`,
           fontSize: 7, color: '#ccc', alignment: 'center', margin: [0, 0, 0, 10]
         };
       },
