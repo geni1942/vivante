@@ -78,9 +78,21 @@ async function generateItinerarioPdf(itinerario, formData, planLabel) {
       const path = (await import('path')).default;
       const logoPath = path.join(process.cwd(), 'public', 'images', 'vivante_logo.svg');
       const rawSvg = fs.readFileSync(logoPath, 'utf-8');
-      logoSvgCover = rawSvg.replace(/fill="(?!none)[^"]*"/g, 'fill="#fff"').replace(/fill='(?!none)[^']*'/g, "fill='#fff'");
+      // Remove Google Fonts import (not available in pdfmake) and clean for SVG renderer
+      const cleanSvg = rawSvg.replace(/<style>[^<]*<\/style>/gs, '');
+      // Cover (coral bg): all strokes + fills → white
+      logoSvgCover = cleanSvg
+        .replace(/fill="(?!none)[^"]*"/g, 'fill="#fff"')
+        .replace(/fill='(?!none)[^']*'/g, "fill='#fff'")
+        .replace(/stroke="[^"]*"/g, 'stroke="#fff"')
+        .replace(/stroke='[^']*'/g, "stroke='#fff'");
       const CORAL_CONST = '#FF6332';
-      logoSvgBack = rawSvg.replace(/fill="(?!none)[^"]*"/g, `fill="${CORAL_CONST}"`).replace(/fill='(?!none)[^']*'/g, `fill='${CORAL_CONST}'`);
+      // Back cover (white bg): all strokes + fills → coral
+      logoSvgBack = cleanSvg
+        .replace(/fill="(?!none)[^"]*"/g, `fill="${CORAL_CONST}"`)
+        .replace(/fill='(?!none)[^']*'/g, `fill='${CORAL_CONST}'`)
+        .replace(/stroke="[^"]*"/g, `stroke="${CORAL_CONST}"`)
+        .replace(/stroke='[^']*'/g, `stroke='${CORAL_CONST}'`);
     } catch(e) { /* fallback to text */ }
 
     const CORAL   = '#FF6332';
@@ -121,7 +133,7 @@ async function generateItinerarioPdf(itinerario, formData, planLabel) {
     content.push({ text: 'VIAJA M\u00c1S \u00b7 PLANIFICA MENOS', fontSize: 9, color: 'rgba(255,255,255,0.75)', alignment: 'center', characterSpacing: 2, margin: [0, 0, 0, 20] });
     content.push({ canvas: [{ type: 'line', x1: 80, y1: 0, x2: 443, y2: 0, lineWidth: 0.5, lineColor: 'rgba(255,255,255,0.35)' }], margin: [0, 0, 0, 20] });
     content.push({
-      table: { widths: ['auto'], body: [[{ text: planLabel.toUpperCase(), bold: true, fontSize: 9, color: CORAL, margin: [14, 5, 14, 5], border: [false,false,false,false] }]] },
+      table: { widths: ['auto'], body: [[{ text: ce(planLabel).toUpperCase(), bold: true, fontSize: 9, color: CORAL, margin: [14, 5, 14, 5], border: [false,false,false,false] }]] },
       layout: 'noBorders', fillColor: '#fff', alignment: 'center', margin: [0, 0, 0, 22],
     });
     content.push({ text: ce(itinerario.titulo) || `Itinerario: ${formData.destino}`, fontSize: 21, bold: true, color: '#fff', alignment: 'center', margin: [0, 0, 0, 8] });
@@ -283,20 +295,20 @@ async function generateItinerarioPdf(itinerario, formData, planLabel) {
       }));
       const fRows = itinerario.vuelos.map((v,i) => [
         { text:ce(v.aerolinea)||'', fontSize:8, bold:true, color:CARBON, fillColor:i%2===0?BG0:'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
-        { text:(v.ruta||'').replace(/ \? /g, ' \u2192 ')+(v.escala?`\n${v.escala}`:''), fontSize:8, color:CARBON, fillColor:i%2===0?BG0:'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
+        { text:(v.ruta||'').replace(/ \? /g, ' > ')+(v.escala?`\n${v.escala}`:''), fontSize:8, color:CARBON, fillColor:i%2===0?BG0:'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
         { text:v.precio_estimado||'\u2014', fontSize:8, bold:true, color:CORAL, fillColor:i%2===0?BG0:'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
         { text:v.duracion||'\u2014', fontSize:8, color:'#666', fillColor:i%2===0?BG0:'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
         { text:ce(v.tip)||'\u2014', fontSize:7, color:VIOLETA, italics:true, fillColor:i%2===0?BG0:'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
-        pdfBtn('Ver vuelo \u2192', buildAirlineUrl(v.aerolinea), CORAL),
+        pdfBtn('Ver vuelo >', buildAirlineUrl(v.aerolinea), CORAL),
       ]);
       content.push({
         table:{ widths:[80,100,60,46,'*',60], body:[fHdr,...fRows] },
         layout:{ hLineWidth:()=>0.3, hLineColor:()=>'#eee', vLineWidth:()=>0.3, vLineColor:()=>'#eee' },
-        margin:[0,0,0,6], unbreakable: true,
+        margin:[0,0,0,6], dontBreakRows: true,
       });
       if (itinerario._vuelos_links?.google_flights) {
         content.push({
-          columns:[{ width:'auto', stack:[pdfBtn('Buscar en Google Flights \u2192', itinerario._vuelos_links.google_flights, '#4285F4')] }],
+          columns:[{ width:'auto', stack:[pdfBtn('Buscar en Google Flights >', itinerario._vuelos_links.google_flights, '#4285F4')] }],
           margin:[0,4,0,8],
         });
       }
@@ -315,15 +327,16 @@ async function generateItinerarioPdf(itinerario, formData, planLabel) {
           { text:ce(op.nombre||'')+(op.puntuacion?`\n${op.puntuacion}`:'')+(op.cancelacion?.toLowerCase().includes('gratuita')?'\nCancelacion gratuita':''), fontSize:8, color:CARBON, fillColor:i%2===0?'#F5F0FF':'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
           { text:op.precio_noche||'\u2014', fontSize:8, bold:true, color:VIOLETA, fillColor:i%2===0?'#F5F0FF':'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
           { text:ce(op.por_que)||'\u2014', fontSize:7, color:'#555', italics:true, fillColor:i%2===0?'#F5F0FF':'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
-          pdfBtn('Ver \u2192', buildAlojamientoUrl(op, zona.destino, res.fecha_salida, res.fecha_regreso, formData?.numViajeros, formData?.alojamiento), VIOLETA),
+          pdfBtn('Ver >', buildAlojamientoUrl(op, zona.destino, res.fecha_salida, res.fecha_regreso, formData?.numViajeros, formData?.alojamiento), VIOLETA),
         ]);
         content.push({
           table:{ widths:[55,100,65,'*',55], body:[hHdr,...hRows] },
           layout:{ hLineWidth:()=>0.3, hLineColor:()=>'#eee', vLineWidth:()=>0.3, vLineColor:()=>'#eee' },
-          margin:[0,0,0,8], unbreakable: true,
+          margin:[0,0,0,8], dontBreakRows: true,
         });
       });
     }
+
 
     // ── RESTAURANTES ──────────────────────────────────────────────────────────
     if (itinerario.restaurantes) {
@@ -342,7 +355,7 @@ async function generateItinerarioPdf(itinerario, formData, planLabel) {
           { text:r.tipo||'\u2014', fontSize:8, color:'#555', fillColor:i%2===0?BG0:'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
           { text:r.precio_promedio||'\u2014', fontSize:8, bold:true, color:CORAL, fillColor:i%2===0?BG0:'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
           r.link_reserva
-            ? pdfBtn(r.requiere_reserva ? 'Reservar \u2192' : 'Ver \u2192', r.link_reserva, r.requiere_reserva ? FUCSIA : CORAL)
+            ? pdfBtn(r.requiere_reserva ? 'Reservar >' : 'Ver >', r.link_reserva, r.requiere_reserva ? FUCSIA : CORAL)
             : r.instagram
             ? pdfBtn(r.instagram, 'https://instagram.com/' + (r.instagram||'').replace('@',''), '#E1306C')
             : { text: r.requiere_reserva ? 'Si, reservar' : '\u2014', fontSize:7, color: r.requiere_reserva ? '#27ae60' : '#aaa', border:[false,false,false,false], margin:[4,5,4,5] },
@@ -350,42 +363,51 @@ async function generateItinerarioPdf(itinerario, formData, planLabel) {
         content.push({
           table:{ widths:['*',65,62,55,52], body:[rHdr,...rRows] },
           layout:{ hLineWidth:()=>0.3, hLineColor:()=>'#eee', vLineWidth:()=>0.3, vLineColor:()=>'#eee' },
-          margin:[0,0,0,8], unbreakable: true,
+          margin:[0,0,0,8], dontBreakRows: true,
         });
       });
     }
 
+
     // ── EXPERIENCIAS ──────────────────────────────────────────────────────────
     if (itinerario.experiencias?.length) {
       content.push(secHdr('EXPERIENCIAS Y TOURS', FUCSIA));
-      const eHdr = ['Experiencia','Por que vale','Duraci\u00f3n','Precio','Anticipacion','Reservar'].map(t=>({
+      // 5 cols (sin Anticipacion) para dar espacio suficiente a botones de reserva
+      const eHdr = ['Experiencia','Por que vale','Duracion','Precio','Reservar'].map(t=>({
         text:t, bold:true, fontSize:8, color:'#fff', fillColor:FUCSIA, border:[false,false,false,false], margin:[4,6,4,6]
       }));
-      const eRows = itinerario.experiencias.map((e,i)=>[
-        { text:ce(e.nombre||'\u2014'), fontSize:8, bold:true, color:CARBON, fillColor:i%2===0?'#FFF0F7':'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
-        { text:ce(e.por_que_vale||'\u2014'), fontSize:7, color:'#555', italics:true, fillColor:i%2===0?'#FFF0F7':'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
-        { text:ce(e.duracion||'\u2014'), fontSize:8, color:'#666', fillColor:i%2===0?'#FFF0F7':'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
-        { text:ce(e.precio||'\u2014'), fontSize:8, bold:true, color:FUCSIA, fillColor:i%2===0?'#FFF0F7':'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
-        { text: ce(e.anticipacion||'\u2014'), fontSize:7, color:'#666', fillColor:i%2===0?'#FFF0F7':'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
-        (() => {
-          const destRaw = (res.destino || (formData && formData.destino) || '').split(/[,(]/)[0].trim();
-          const qPlus = ((e.nombre||'') + ' ' + destRaw).trim().replace(/\s+/g, '+');
-          const gygUrl = `https://www.getyourguide.com/s/?q=${qPlus}&partner_id=UCJJVUD`;
-          const civiSlug = destRaw.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
-          const civiUrl = `https://www.civitatis.com/es/${civiSlug}/?q=${encodeURIComponent(e.nombre||'')}`;
-          const plats = e.plataformas_disponibles;
-          const showGyg = !plats || plats.includes('GetYourGuide');
-          const showCivi = !plats || plats.includes('Civitatis') || plats.includes('Viator');
-          if (showGyg && showCivi) return { stack: [pdfBtn('GetYourGuide', gygUrl, '#FF6600'), pdfBtn('Civitatis', civiUrl, '#00A651')], border:[false,false,false,false], fillColor:i%2===0?'#FFF0F7':'#fff', margin:[4,3,4,3] };
-          if (showGyg) return pdfBtn('GetYourGuide', gygUrl, '#FF6600');
-          if (showCivi) return pdfBtn('Civitatis', civiUrl, '#00A651');
-          return { text:'Reservar local', fontSize:7, color:'#999', border:[false,false,false,false], margin:[4,5,4,5] };
-        })(),
-      ]);
+      const eRows = itinerario.experiencias.map((e,i)=>{
+        const destRaw = (res.destino || (formData && formData.destino) || '').split(/[,(]/)[0].trim();
+        const qPlus = ((e.nombre||'') + ' ' + destRaw).trim().replace(/\s+/g, '+');
+        const gygUrl = `https://www.getyourguide.com/s/?q=${qPlus}&partner_id=UCJJVUD`;
+        const civiSlug = destRaw.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+        const civiUrl = `https://www.civitatis.com/es/${civiSlug}/?q=${encodeURIComponent(e.nombre||'')}`;
+        const plats = e.plataformas_disponibles;
+        const showGyg = !plats || plats.includes('GetYourGuide');
+        const showCivi = !plats || plats.includes('Civitatis') || plats.includes('Viator');
+        const bg = i%2===0?'#FFF0F7':'#fff';
+        let reservarCell;
+        if (showGyg && showCivi) {
+          reservarCell = { stack: [pdfBtn('GetYourGuide >', gygUrl, '#FF6600'), pdfBtn('Civitatis >', civiUrl, '#00A651')], border:[false,false,false,false], fillColor:bg, margin:[2,3,2,3] };
+        } else if (showGyg) {
+          reservarCell = { ...pdfBtn('GetYourGuide >', gygUrl, '#FF6600'), border:[false,false,false,false], fillColor:bg };
+        } else if (showCivi) {
+          reservarCell = { ...pdfBtn('Civitatis >', civiUrl, '#00A651'), border:[false,false,false,false], fillColor:bg };
+        } else {
+          reservarCell = { text:'Reservar local', fontSize:7, color:'#999', border:[false,false,false,false], margin:[4,5,4,5] };
+        }
+        return [
+          { text:ce(e.nombre||'-'), fontSize:8, bold:true, color:CARBON, fillColor:bg, border:[false,false,false,false], margin:[4,5,4,5] },
+          { text:ce(e.por_que_vale||'-'), fontSize:7, color:'#555', italics:true, fillColor:bg, border:[false,false,false,false], margin:[4,5,4,5] },
+          { text:ce(e.duracion||'-'), fontSize:8, color:'#666', fillColor:bg, border:[false,false,false,false], margin:[4,5,4,5] },
+          { text:ce(e.precio||'-'), fontSize:8, bold:true, color:FUCSIA, fillColor:bg, border:[false,false,false,false], margin:[4,5,4,5] },
+          reservarCell,
+        ];
+      });
       content.push({
-        table:{ widths:['*','*',46,50,46,55], body:[eHdr,...eRows] },
+        table:{ widths:['*','*',44,50,80], body:[eHdr,...eRows] },
         layout:{ hLineWidth:()=>0.3, hLineColor:()=>'#eee', vLineWidth:()=>0.3, vLineColor:()=>'#eee' },
-        margin:[0,0,0,8], unbreakable: true,
+        margin:[0,0,0,8], dontBreakRows: true,
       });
     }
 
@@ -458,13 +480,13 @@ async function generateItinerarioPdf(itinerario, formData, planLabel) {
           { text: ce(s.nombre||'\u2014'), fontSize:8, bold:true, color:CARBON, fillColor:i%2===0?BG0:'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
           { text: ce(s.cobertura||'\u2014'), fontSize:7, color:'#555', fillColor:i%2===0?BG0:'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
           { text: ce(s.precio_estimado||'\u2014'), fontSize:8, bold:true, color:CORAL, fillColor:i%2===0?BG0:'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
-          href ? pdfBtn('Cotizar \u2192', href, CORAL) : { text:'\u2014', fontSize:8, color:'#aaa', border:[false,false,false,false], margin:[4,5,4,5] },
+          href ? pdfBtn('Cotizar >', href, CORAL) : { text:'\u2014', fontSize:8, color:'#aaa', border:[false,false,false,false], margin:[4,5,4,5] },
         ];
       });
       content.push({
         table:{ widths:['*','*',70,60], body:[sHdr,...sRows] },
         layout:{ hLineWidth:()=>0.3, hLineColor:()=>'#eee', vLineWidth:()=>0.3, vLineColor:()=>'#eee' },
-        margin:[0,0,0,8], unbreakable: true,
+        margin:[0,0,0,8], dontBreakRows: true,
       });
     }
 
@@ -585,7 +607,7 @@ async function generateItinerarioPdf(itinerario, formData, planLabel) {
           content.push({
             table:{ widths:['*',80,60,'*'], body:[aoHdr,...aoRows] },
             layout:{ hLineWidth:()=>0.3, hLineColor:()=>'#eee', vLineWidth:()=>0.3, vLineColor:()=>'#eee' },
-            margin:[0,0,0,8], unbreakable: true,
+            margin:[0,0,0,8], dontBreakRows: true,
           });
         } else {
           content.push({ text: ce(fallback), fontSize:9, color:CARBON, margin:[0,0,0,8] });
@@ -669,7 +691,7 @@ async function generateItinerarioPdf(itinerario, formData, planLabel) {
       }
       if (co.esim_recomendada) {
         content.push({
-          columns:[{ width:'auto', stack:[pdfBtn('Comprar eSIM en Airalo \u2192', 'https://airalo.tpx.lt/UPNJmvRR', '#1a1a2e')] }],
+          columns:[{ width:'auto', stack:[pdfBtn('Comprar eSIM en Airalo >', 'https://airalo.tpx.lt/UPNJmvRR', '#1a1a2e')] }],
           margin:[0,4,0,8],
         });
       }
@@ -728,7 +750,7 @@ async function generateItinerarioPdf(itinerario, formData, planLabel) {
                 { text: 'VIVANTE', bold: true, fontSize: 11, color: CORAL, margin: [36, 13, 0, 0] },
                 { text: (itinerario.titulo || formData.destino || '').split(',')[0].trim().substring(0, 35),
                   fontSize: 8, color: '#999', margin: [8, 16, 0, 0] },
-                { text: planLabel, bold: true, fontSize: 8, color: CORAL, alignment: 'right', margin: [0, 13, 36, 0] },
+                { text: ce(planLabel), bold: true, fontSize: 8, color: CORAL, alignment: 'right', margin: [0, 13, 36, 0] },
               ]
             },
             { canvas: [{ type: 'line', x1: 36, y1: 0, x2: 559, y2: 0, lineWidth: 0.6, lineColor: CORAL }] }
