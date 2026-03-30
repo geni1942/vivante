@@ -1,4 +1,4 @@
-﻿import { NextResponse } from 'next/server';
+﻿﻿import { NextResponse } from 'next/server';
 
 export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
@@ -110,13 +110,13 @@ function buildAlojamientoUrl(op, destino, checkin, checkout, adults, alojPref) {
 function pdfBtn(label, url, color) {
   if (!url) return { text: '' };
   return {
-    table: { widths: ['auto'], body: [[{ text: [{ text: label, link: url, color: '#fff', fontSize: 7, bold: true }], border: [false,false,false,false], margin: [5,3,5,3] }]] },
+    table: { widths: ['auto'], body: [[{ text: [{ text: label, link: url, color: '#fff', fontSize: 8, bold: true }], border: [false,false,false,false], margin: [8,4,8,4] }]] },
     layout: { fillColor: () => color, hLineWidth: ()=>0, vLineWidth: ()=>0 },
     margin: [0,2,0,2]
   };
 }
 
-// --- Helper: Generar PDF del itinerario con pdfmake ---------------------------
+// ── PDF Generator (brand-compliant pdfmake) ───────────────────────────────────
 async function generateItinerarioPdf(itinerario, formData, planLabel) {
   try {
     const pdfMakeModule = await import('pdfmake/build/pdfmake.js');
@@ -133,21 +133,32 @@ async function generateItinerarioPdf(itinerario, formData, planLabel) {
       const path = (await import('path')).default;
       const logoPath = path.join(process.cwd(), 'public', 'images', 'vivante_logo.svg');
       const rawSvg = fs.readFileSync(logoPath, 'utf-8');
-      logoSvgCover = rawSvg.replace(/fill="(?!none)[^"]*"/g, 'fill="#fff"').replace(/fill='(?!none)[^']*'/g, "fill='#fff'");
+      // Remove Google Fonts import (not available in pdfmake) and clean for SVG renderer
+      const cleanSvg = rawSvg.replace(/<style>[^<]*<\/style>/gs, '');
+      // Cover (coral bg): all strokes + fills → white
+      logoSvgCover = cleanSvg
+        .replace(/fill="(?!none)[^"]*"/g, 'fill="#fff"')
+        .replace(/fill='(?!none)[^']*'/g, "fill='#fff'")
+        .replace(/stroke="[^"]*"/g, 'stroke="#fff"')
+        .replace(/stroke='[^']*'/g, "stroke='#fff'");
       const CORAL_CONST = '#FF6332';
-      logoSvgBack = rawSvg.replace(/fill="(?!none)[^"]*"/g, `fill="${CORAL_CONST}"`).replace(/fill='(?!none)[^']*'/g, `fill='${CORAL_CONST}'`);
+      // Back cover (white bg): all strokes + fills → coral
+      logoSvgBack = cleanSvg
+        .replace(/fill="(?!none)[^"]*"/g, `fill="${CORAL_CONST}"`)
+        .replace(/fill='(?!none)[^']*'/g, `fill='${CORAL_CONST}'`)
+        .replace(/stroke="[^"]*"/g, `stroke="${CORAL_CONST}"`)
+        .replace(/stroke='[^']*'/g, `stroke='${CORAL_CONST}'`);
     } catch(e) { /* fallback to text */ }
 
-    const CORAL = '#FF6332';
-    const FUCSIA = '#E83E8C';
+    const CORAL   = '#FF6332';
+    const FUCSIA  = '#E83E8C';
     const VIOLETA = '#6F42C1';
-    const CARBON = '#212529';
-    const BG0 = '#FFF8F5';
-    const BG1 = '#FFF0EB';
-    const isPro = planLabel.toLowerCase().includes('pro');
-    const res = itinerario.resumen || {};
+    const CARBON  = '#212529';
+    const BG0     = '#FFF8F5';
+    const BG1     = '#FFF0EB';
+    const isPro   = planLabel.toLowerCase().includes('pro');
+    const res     = itinerario.resumen || {};
 
-    // pdfmake uses Roboto which has no emoji glyphs — strip them everywhere
     const ce = (str) => {
       if (!str && str !== 0) return '';
       return String(str)
@@ -167,7 +178,7 @@ async function generateItinerarioPdf(itinerario, formData, planLabel) {
 
     const content = [];
 
-    // -- PORTADA --
+    // ── PORTADA ───────────────────────────────────────────────────────────────
     content.push({ text: '', margin: [0, 50, 0, 0] });
     if (logoSvgCover) {
       content.push({ svg: logoSvgCover, width: 160, alignment: 'center', margin: [0, 0, 0, 10] });
@@ -177,7 +188,7 @@ async function generateItinerarioPdf(itinerario, formData, planLabel) {
     content.push({ text: 'VIAJA M\u00c1S \u00b7 PLANIFICA MENOS', fontSize: 9, color: 'rgba(255,255,255,0.75)', alignment: 'center', characterSpacing: 2, margin: [0, 0, 0, 20] });
     content.push({ canvas: [{ type: 'line', x1: 80, y1: 0, x2: 443, y2: 0, lineWidth: 0.5, lineColor: 'rgba(255,255,255,0.35)' }], margin: [0, 0, 0, 20] });
     content.push({
-      table: { widths: ['auto'], body: [[{ text: planLabel.toUpperCase(), bold: true, fontSize: 9, color: CORAL, margin: [14, 5, 14, 5], border: [false,false,false,false] }]] },
+      table: { widths: ['auto'], body: [[{ text: ce(planLabel).toUpperCase(), bold: true, fontSize: 9, color: CORAL, margin: [14, 5, 14, 5], border: [false,false,false,false] }]] },
       layout: 'noBorders', fillColor: '#fff', alignment: 'center', margin: [0, 0, 0, 22],
     });
     content.push({ text: ce(itinerario.titulo) || `Itinerario: ${formData.destino}`, fontSize: 21, bold: true, color: '#fff', alignment: 'center', margin: [0, 0, 0, 8] });
@@ -209,7 +220,7 @@ async function generateItinerarioPdf(itinerario, formData, planLabel) {
     content.push({ text: 'vivevivante.com  \u00b7  @vive.vivante', fontSize: 8, color: 'rgba(255,255,255,0.55)', alignment: 'center', margin: [0, 12, 0, 0] });
     content.push({ text: '', pageBreak: 'after' });
 
-    // -- RESUMEN --
+    // ── RESUMEN ───────────────────────────────────────────────────────────────
     if (coverRows.length) {
       content.push(secHdr('RESUMEN DEL VIAJE'));
       const resumenRows = [
@@ -231,18 +242,18 @@ async function generateItinerarioPdf(itinerario, formData, planLabel) {
       });
     }
 
-    // -- PRESUPUESTO --
+    // ── PRESUPUESTO ───────────────────────────────────────────────────────────
     if (itinerario.presupuesto_desglose) {
       content.push(secHdr('PRESUPUESTO ESTIMADO'));
       const pd = itinerario.presupuesto_desglose;
       const budRows = [
         pd.vuelos      ? ['Vuelos', pd.vuelos]           : null,
-        pd.alojamiento ? ['Alojamiento', pd.alojamiento] : null,
-        pd.comidas     ? ['Comidas', pd.comidas]         : null,
-        pd.transporte  ? ['Transporte', pd.transporte]   : null,
+        pd.alojamiento ? ['Alojamiento', pd.alojamiento]    : null,
+        pd.comidas     ? ['Comidas', pd.comidas]      : null,
+        pd.transporte  ? ['Transporte', pd.transporte]      : null,
         pd.actividades ? ['Actividades', pd.actividades] : null,
-        pd.extras      ? ['Extras', pd.extras]           : null,
-        pd.total       ? ['TOTAL ESTIMADO', pd.total]    : null,
+        pd.extras      ? ['Extras', pd.extras]        : null,
+        pd.total       ? ['TOTAL ESTIMADO', pd.total]     : null,
       ].filter(Boolean);
       if (budRows.length) {
         content.push({
@@ -262,7 +273,7 @@ async function generateItinerarioPdf(itinerario, formData, planLabel) {
       }
     }
 
-    // -- ITINERARIO DIA A DIA --
+    // ── ITINERARIO DIA A DIA ──────────────────────────────────────────────────
     if (itinerario.dias?.length) {
       content.push({ text:'', pageBreak:'before' });
       content.push(secHdr('ITINERARIO DIA A DIA'));
@@ -330,29 +341,35 @@ async function generateItinerarioPdf(itinerario, formData, planLabel) {
       });
     }
 
-    // -- VUELOS --
+    // ── VUELOS ────────────────────────────────────────────────────────────────
     if (itinerario.vuelos?.length) {
       content.push({ text:'', pageBreak:'before' });
       content.push(secHdr('VUELOS RECOMENDADOS'));
-      const fHdr = ['Aerol\u00ednea','Ruta / Escala','Precio est.','Duraci\u00f3n','Tip','Ver'].map(t => ({
+      const fHdr = ['Aerol\u00ednea','Ruta / Escala','Precio est.','Duraci\u00f3n','Tip','Ver'].map((t) => ({
         text:t, bold:true, fontSize:8, color:'#fff', fillColor:CORAL, border:[false,false,false,false], margin:[4,6,4,6]
       }));
       const fRows = itinerario.vuelos.map((v,i) => [
         { text:ce(v.aerolinea)||'', fontSize:8, bold:true, color:CARBON, fillColor:i%2===0?BG0:'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
-        { text:(v.ruta||'').replace(/ \? /g, ' \u2192 ')+(v.escala?`\n${v.escala}`:''), fontSize:8, color:CARBON, fillColor:i%2===0?BG0:'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
+        { text:(v.ruta||'').replace(/ \? /g, ' > ')+(v.escala?`\n${v.escala}`:''), fontSize:8, color:CARBON, fillColor:i%2===0?BG0:'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
         { text:v.precio_estimado||'\u2014', fontSize:8, bold:true, color:CORAL, fillColor:i%2===0?BG0:'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
         { text:v.duracion||'\u2014', fontSize:8, color:'#666', fillColor:i%2===0?BG0:'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
         { text:ce(v.tip)||'\u2014', fontSize:7, color:VIOLETA, italics:true, fillColor:i%2===0?BG0:'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
-        pdfBtn('Ver vuelo \u2192', buildAirlineUrl(v.aerolinea), CORAL),
+        pdfBtn('Ver vuelo >', buildAirlineUrl(v.aerolinea), CORAL),
       ]);
       content.push({
         table:{ widths:[80,100,60,46,'*',60], body:[fHdr,...fRows] },
         layout:{ hLineWidth:()=>0.3, hLineColor:()=>'#eee', vLineWidth:()=>0.3, vLineColor:()=>'#eee' },
-        margin:[0,0,0,10],
+        margin:[0,0,0,6], dontBreakRows: true,
       });
+      if (itinerario._vuelos_links?.google_flights) {
+        content.push({
+          columns:[{ width:'auto', stack:[pdfBtn('Buscar en Google Flights >', itinerario._vuelos_links.google_flights, '#4285F4')] }],
+          margin:[0,4,0,8],
+        });
+      }
     }
 
-    // -- ALOJAMIENTO --
+    // ── ALOJAMIENTO ───────────────────────────────────────────────────────────
     if (itinerario.alojamiento?.length) {
       content.push(secHdr('ALOJAMIENTO'));
       itinerario.alojamiento.forEach((zona) => {
@@ -365,17 +382,18 @@ async function generateItinerarioPdf(itinerario, formData, planLabel) {
           { text:ce(op.nombre||'')+(op.puntuacion?`\n${op.puntuacion}`:'')+(op.cancelacion?.toLowerCase().includes('gratuita')?'\nCancelacion gratuita':''), fontSize:8, color:CARBON, fillColor:i%2===0?'#F5F0FF':'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
           { text:op.precio_noche||'\u2014', fontSize:8, bold:true, color:VIOLETA, fillColor:i%2===0?'#F5F0FF':'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
           { text:ce(op.por_que)||'\u2014', fontSize:7, color:'#555', italics:true, fillColor:i%2===0?'#F5F0FF':'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
-          pdfBtn('Ver \u2192', buildAlojamientoUrl(op, zona.destino, res.fecha_salida, res.fecha_regreso, formData?.numViajeros, formData?.alojamiento), VIOLETA),
+          pdfBtn('Ver >', buildAlojamientoUrl(op, zona.destino, res.fecha_salida, res.fecha_regreso, formData?.numViajeros, formData?.alojamiento), VIOLETA),
         ]);
         content.push({
           table:{ widths:[55,100,65,'*',55], body:[hHdr,...hRows] },
           layout:{ hLineWidth:()=>0.3, hLineColor:()=>'#eee', vLineWidth:()=>0.3, vLineColor:()=>'#eee' },
-          margin:[0,0,0,8], unbreakable: true,
+          margin:[0,0,0,8], dontBreakRows: true,
         });
       });
     }
 
-    // -- RESTAURANTES --
+
+    // ── RESTAURANTES ──────────────────────────────────────────────────────────
     if (itinerario.restaurantes) {
       content.push(secHdr('RESTAURANTES RECOMENDADOS'));
       const restData = Array.isArray(itinerario.restaurantes)
@@ -392,45 +410,78 @@ async function generateItinerarioPdf(itinerario, formData, planLabel) {
           { text:r.tipo||'\u2014', fontSize:8, color:'#555', fillColor:i%2===0?BG0:'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
           { text:r.precio_promedio||'\u2014', fontSize:8, bold:true, color:CORAL, fillColor:i%2===0?BG0:'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
           r.link_reserva
-            ? pdfBtn(r.requiere_reserva ? 'Reservar \u2192' : 'Ver \u2192', r.link_reserva, r.requiere_reserva ? FUCSIA : CORAL)
+            ? pdfBtn(r.requiere_reserva ? 'Reservar >' : 'Ver >', r.link_reserva, r.requiere_reserva ? FUCSIA : CORAL)
             : r.instagram
             ? pdfBtn(r.instagram, 'https://instagram.com/' + (r.instagram||'').replace('@',''), '#E1306C')
             : { text: r.requiere_reserva ? 'Si, reservar' : '\u2014', fontSize:7, color: r.requiere_reserva ? '#27ae60' : '#aaa', border:[false,false,false,false], margin:[4,5,4,5] },
         ]);
-        content.push({ table:{ widths:['*',65,62,55,52], body:[rHdr,...rRows] }, layout:{ hLineWidth:()=>0.3, hLineColor:()=>'#eee', vLineWidth:()=>0.3, vLineColor:()=>'#eee' }, margin:[0,0,0,8] });
+        content.push({
+          table:{ widths:['*',65,62,55,52], body:[rHdr,...rRows] },
+          layout:{ hLineWidth:()=>0.3, hLineColor:()=>'#eee', vLineWidth:()=>0.3, vLineColor:()=>'#eee' },
+          margin:[0,0,0,8], dontBreakRows: true,
+        });
       });
     }
 
-    // -- EXPERIENCIAS --
+
+    // ── EXPERIENCIAS ──────────────────────────────────────────────────────────
     if (itinerario.experiencias?.length) {
       content.push(secHdr('EXPERIENCIAS Y TOURS', FUCSIA));
-      const eHdr = ['Experiencia','Duraci\u00f3n','Precio','Anticipacion','Reservar'].map(t=>({
+      // 5 cols (sin Anticipacion) para dar espacio suficiente a botones de reserva
+      const eHdr = ['Experiencia','Por que vale','Duracion','Precio','Reservar'].map(t=>({
         text:t, bold:true, fontSize:8, color:'#fff', fillColor:FUCSIA, border:[false,false,false,false], margin:[4,6,4,6]
       }));
-      const eRows = itinerario.experiencias.map((e,i)=>[
-        { text:ce(e.nombre||'\u2014')+(e.por_que_vale?'\n'+ce(e.por_que_vale):''), fontSize:8, bold:true, color:CARBON, fillColor:i%2===0?'#FFF0F7':'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
-        { text:ce(e.duracion||'\u2014'), fontSize:8, color:'#666', fillColor:i%2===0?'#FFF0F7':'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
-        { text:ce(e.precio||'\u2014'), fontSize:8, bold:true, color:FUCSIA, fillColor:i%2===0?'#FFF0F7':'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
-        { text: ce(e.anticipacion||'\u2014'), fontSize:7, color:'#666', fillColor:i%2===0?'#FFF0F7':'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
-        (() => {
-          const destRaw = (res.destino || (formData && formData.destino) || '').split(/[,(]/)[0].trim();
-          const qPlus = ((e.nombre||'') + ' ' + destRaw).trim().replace(/\s+/g, '+');
-          const gygUrl = `https://www.getyourguide.com/s/?q=${qPlus}&partner_id=UCJJVUD`;
-          const civiSlug = destRaw.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
-          const civiUrl = `https://www.civitatis.com/es/${civiSlug}/?q=${encodeURIComponent(e.nombre||'')}`;
-          const plats = e.plataformas_disponibles;
-          const showGyg = !plats || plats.includes('GetYourGuide');
-          const showCivi = !plats || plats.includes('Civitatis') || plats.includes('Viator');
-          if (showGyg && showCivi) return { stack: [pdfBtn('GetYourGuide', gygUrl, '#FF6600'), pdfBtn('Civitatis', civiUrl, '#00A651')], border:[false,false,false,false], fillColor:i%2===0?'#FFF0F7':'#fff', margin:[4,3,4,3] };
-          if (showGyg) return pdfBtn('GetYourGuide', gygUrl, '#FF6600');
-          if (showCivi) return pdfBtn('Civitatis', civiUrl, '#00A651');
-          return { text:'Reservar local', fontSize:7, color:'#999', border:[false,false,false,false], margin:[4,5,4,5] };
-        })(),
-      ]);
-      content.push({ table:{ widths:['*',55,60,55,'*'], body:[eHdr,...eRows] }, layout:{ hLineWidth:()=>0.3, hLineColor:()=>'#eee', vLineWidth:()=>0.3, vLineColor:()=>'#eee' }, margin:[0,0,0,8] });
+      const eRows = itinerario.experiencias.map((e,i)=>{
+        const destRaw = (res.destino || (formData && formData.destino) || '').split(/[,(]/)[0].trim();
+        const qPlus = ((e.nombre||'') + ' ' + destRaw).trim().replace(/\s+/g, '+');
+        const gygUrl = `https://www.getyourguide.com/s/?q=${qPlus}&partner_id=UCJJVUD`;
+        const civiSlug = destRaw.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+        const civiUrl = `https://www.civitatis.com/es/${civiSlug}/?q=${encodeURIComponent(e.nombre||'')}`;
+        const plats = e.plataformas_disponibles;
+        const showGyg = !plats || plats.includes('GetYourGuide');
+        const showCivi = !plats || plats.includes('Civitatis') || plats.includes('Viator');
+        const bg = i%2===0?'#FFF0F7':'#fff';
+        let reservarCell;
+        if (showGyg && showCivi) {
+          reservarCell = { stack: [pdfBtn('GetYourGuide >', gygUrl, '#FF6600'), pdfBtn('Civitatis >', civiUrl, '#00A651')], border:[false,false,false,false], fillColor:bg, margin:[2,3,2,3] };
+        } else if (showGyg) {
+          reservarCell = { ...pdfBtn('GetYourGuide >', gygUrl, '#FF6600'), border:[false,false,false,false], fillColor:bg };
+        } else if (showCivi) {
+          reservarCell = { ...pdfBtn('Civitatis >', civiUrl, '#00A651'), border:[false,false,false,false], fillColor:bg };
+        } else {
+          reservarCell = { text:'Reservar local', fontSize:7, color:'#999', border:[false,false,false,false], margin:[4,5,4,5] };
+        }
+        return [
+          { text:ce(e.nombre||'-'), fontSize:8, bold:true, color:CARBON, fillColor:bg, border:[false,false,false,false], margin:[4,5,4,5] },
+          { text:ce(e.por_que_vale||'-'), fontSize:7, color:'#555', italics:true, fillColor:bg, border:[false,false,false,false], margin:[4,5,4,5] },
+          { text:ce(e.duracion||'-'), fontSize:8, color:'#666', fillColor:bg, border:[false,false,false,false], margin:[4,5,4,5] },
+          { text:ce(e.precio||'-'), fontSize:8, bold:true, color:FUCSIA, fillColor:bg, border:[false,false,false,false], margin:[4,5,4,5] },
+          reservarCell,
+        ];
+      });
+      content.push({
+        table:{ widths:['*','*',44,50,80], body:[eHdr,...eRows] },
+        layout:{ hLineWidth:()=>0.3, hLineColor:()=>'#eee', vLineWidth:()=>0.3, vLineColor:()=>'#eee' },
+        margin:[0,0,0,8], dontBreakRows: true,
+      });
     }
 
-    // -- TIPS --
+    // ── TIPS CULTURALES (Pro — mostrar primero como en la web) ────────────────
+    if (isPro && itinerario.tips_culturales?.length) {
+      content.push(secHdr('TIPS CULTURALES, CONECTIVIDAD Y DINERO', VIOLETA));
+      itinerario.tips_culturales.forEach((tip, i) => {
+        content.push({
+          table: { widths: [18,'*'], body: [[
+            { text:`${i+1}.`, bold:true, fontSize:8, color:VIOLETA, border:[false,false,false,false], margin:[4,4,2,4] },
+            { text: ce(typeof tip === 'string' ? tip : (tip.texto||JSON.stringify(tip))), fontSize:8, color:CARBON, border:[false,false,false,false], margin:[2,4,4,4] },
+          ]] },
+          layout:'noBorders', fillColor: i%2===0?'#F5F0FF':'#fff', margin:[0,0,0,0],
+        });
+      });
+      content.push({ text:'', margin:[0,0,0,8] });
+    }
+
+    // ── TIPS CLAVE ────────────────────────────────────────────────────────────
     if (itinerario.tips?.length) {
       content.push(secHdr('TIPS CLAVE'));
       itinerario.tips.forEach((tip, i) => {
@@ -446,22 +497,7 @@ async function generateItinerarioPdf(itinerario, formData, planLabel) {
       content.push({ text:'', margin:[0,0,0,8] });
     }
 
-    // Tips culturales (Pro)
-    if (itinerario.tips_culturales?.length) {
-      content.push(secHdr('TIPS CULTURALES', VIOLETA));
-      itinerario.tips_culturales.forEach((tip, i) => {
-        content.push({
-          table: { widths: [18,'*'], body: [[
-            { text:`${i+1}.`, bold:true, fontSize:8, color:VIOLETA, border:[false,false,false,false], margin:[4,4,2,4] },
-            { text: ce(typeof tip === 'string' ? tip : (tip.texto||JSON.stringify(tip))), fontSize:8, color:CARBON, border:[false,false,false,false], margin:[2,4,4,4] },
-          ]] },
-          layout:'noBorders', fillColor: i%2===0?'#F5F0FF':'#fff', margin:[0,0,0,0],
-        });
-      });
-      content.push({ text:'', margin:[0,0,0,8] });
-    }
-
-    // Dinero y pagos
+    // ── DINERO Y PAGOS ────────────────────────────────────────────────────────
     if (itinerario.dinero) {
       content.push(secHdr('DINERO Y PAGOS'));
       const d = itinerario.dinero;
@@ -484,7 +520,7 @@ async function generateItinerarioPdf(itinerario, formData, planLabel) {
       if (d.tip_extra) content.push({ text: `TIP: ${ce(d.tip_extra)}`, fontSize:8, color:VIOLETA, italics:true, margin:[0,0,0,8] });
     }
 
-    // Seguro de viaje
+    // ── SEGURO DE VIAJE ───────────────────────────────────────────────────────
     if (itinerario.seguro?.length) {
       content.push(secHdr('SEGURO DE VIAJE'));
       const base = itinerario.seguro || [];
@@ -499,13 +535,55 @@ async function generateItinerarioPdf(itinerario, formData, planLabel) {
           { text: ce(s.nombre||'\u2014'), fontSize:8, bold:true, color:CARBON, fillColor:i%2===0?BG0:'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
           { text: ce(s.cobertura||'\u2014'), fontSize:7, color:'#555', fillColor:i%2===0?BG0:'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
           { text: ce(s.precio_estimado||'\u2014'), fontSize:8, bold:true, color:CORAL, fillColor:i%2===0?BG0:'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
-          href ? pdfBtn('Ver \u2192', href, CORAL) : { text:'\u2014', fontSize:8, color:'#aaa', border:[false,false,false,false], margin:[4,5,4,5] },
+          href ? pdfBtn('Cotizar >', href, CORAL) : { text:'\u2014', fontSize:8, color:'#aaa', border:[false,false,false,false], margin:[4,5,4,5] },
         ];
       });
-      content.push({ table:{ widths:['*','*',70,55], body:[sHdr,...sRows] }, layout:{ hLineWidth:()=>0.3, hLineColor:()=>'#eee', vLineWidth:()=>0.3, vLineColor:()=>'#eee' }, margin:[0,0,0,8] });
+      content.push({
+        table:{ widths:['*','*',70,60], body:[sHdr,...sRows] },
+        layout:{ hLineWidth:()=>0.3, hLineColor:()=>'#eee', vLineWidth:()=>0.3, vLineColor:()=>'#eee' },
+        margin:[0,0,0,8], dontBreakRows: true,
+      });
     }
 
-    // -- LO IMPERDIBLE --
+    // ── CHECKLIST PRE-VIAJE ───────────────────────────────────────────────────
+    if (itinerario.checklist?.length) {
+      content.push(secHdr('CHECKLIST PRE-VIAJE'));
+      const checkPairs = [];
+      itinerario.checklist.forEach((item, i) => {
+        if (i % 2 === 0) checkPairs.push([item]);
+        else checkPairs[checkPairs.length - 1].push(item);
+      });
+      checkPairs.forEach((pair) => {
+        const cells = pair.map(item => ({
+          stack: [{
+            columns: [
+              { width: 10, canvas: [{ type: 'rect', x: 0, y: 2, w: 8, h: 8, lineWidth: 1, lineColor: CORAL }] },
+              { width: '*', text: ce(item), fontSize: 8, color: CARBON, margin: [4, 0, 0, 0] },
+            ]
+          }],
+          border:[false,false,false,false], margin:[4,4,4,4],
+        }));
+        if (cells.length === 1) cells.push({ text: '', border:[false,false,false,false] });
+        content.push({ table:{ widths:['*','*'], body:[cells] }, layout:'noBorders', margin:[0,0,0,2] });
+      });
+      content.push({ text:'', margin:[0,0,0,8] });
+    }
+
+    // ── CONTACTOS DE EMERGENCIA ───────────────────────────────────────────────
+    if (itinerario.emergencias) {
+      content.push(secHdr('CONTACTOS DE EMERGENCIA', '#c0392b'));
+      const em = itinerario.emergencias;
+      [
+        ['Embajada chilena', em.embajada],
+        ['Emergencias', em.emergencias_local],
+        ['Policia turistica', em.policia_turistica],
+      ].filter(r => r[1]).forEach(([l, v]) => {
+        content.push({ text:[{ text:`${l}: `, bold:true, fontSize:9, color:CARBON },{ text:ce(v), fontSize:9, color:CARBON }], margin:[0,3,0,3] });
+      });
+      content.push({ text:'', margin:[0,0,0,8] });
+    }
+
+    // ── LO IMPERDIBLE ─────────────────────────────────────────────────────────
     if (itinerario.lo_imperdible?.length) {
       content.push(secHdr('LO IMPERDIBLE', FUCSIA));
       itinerario.lo_imperdible.forEach((item, i) => {
@@ -515,41 +593,187 @@ async function generateItinerarioPdf(itinerario, formData, planLabel) {
       });
     }
 
-    // -- PRO: NOCHE --
-    if (isPro) {
-      const bares = Array.isArray(itinerario.bares_vida_nocturna) ? itinerario.bares_vida_nocturna : [];
-      if (bares.length) {
-        content.push(secHdr('BARES Y VIDA NOCTURNA'));
-        bares.forEach(b => {
-          content.push({ text:`\u2022 ${ce(b.nombre)||''}${b.tipo_ambiente?` \u2014 ${ce(b.tipo_ambiente)}`:''}`, fontSize:9, color:CARBON, margin:[8,2,8,2] });
-          if (b.tip) content.push({ text:`  TIP: ${ce(b.tip)}`, fontSize:8, color:VIOLETA, italics:true, margin:[16,0,8,4] });
+    // Mas cosas para hacer (Pro extras)
+    if (isPro && itinerario.extras?.length) {
+      content.push(secHdr('MAS COSAS PARA HACER', CORAL));
+      itinerario.extras.forEach((ex) => {
+        content.push({ text: ce(ex.categoria||''), fontSize: 9, bold: true, color: CORAL, margin:[0,4,0,2] });
+        (ex.actividades||[]).forEach((a) => {
+          content.push({ text: `\u2022 ${ce(a)}`, fontSize: 8, color: CARBON, margin:[8,1,0,1] });
         });
-      }
-      if (itinerario.transporte_local) {
-        content.push(secHdr('TRANSPORTE LOCAL'));
-        const tl = itinerario.transporte_local;
-        if (tl.como_moverse) content.push({ text:`\u2022 \u00bfC\u00f3mo moverse? ${tl.como_moverse}`, fontSize:9, color:CARBON, margin:[8,3,8,3] });
-        if (tl.apps_recomendadas?.length) content.push({ text:`\u2022 Apps: ${tl.apps_recomendadas.join(', ')}`, fontSize:9, color:CARBON, margin:[8,3,8,3] });
-        if (tl.tarjeta_transporte) content.push({ text:`\u2022 Tarjeta: ${tl.tarjeta_transporte}`, fontSize:9, color:CARBON, margin:[8,3,8,3] });
-        if (tl.conviene_auto) content.push({ text:`\u2022 Auto: ${tl.conviene_auto}`, fontSize:9, color:CARBON, margin:[8,3,8,3] });
-      }
-      if (itinerario.conectividad) {
-        content.push(secHdr('CONECTIVIDAD'));
-        const co = itinerario.conectividad;
-        if (co.esim_recomendada) content.push({ text:`\u2022 eSIM: ${co.esim_recomendada}${co.esim_precio?` \u2014 ${co.esim_precio}`:''}`, fontSize:9, color:CARBON, margin:[8,3,8,3] });
-        if (co.operador_local) content.push({ text:`\u2022 Operador local: ${co.operador_local}`, fontSize:9, color:CARBON, margin:[8,3,8,3] });
-      }
-      if (itinerario.que_empacar) {
-        content.push(secHdr('QUE EMPACAR'));
-        const qe = itinerario.que_empacar;
-        if (qe.clima_esperado) content.push({ text:`Clima: ${qe.clima_esperado}`, fontSize:9, color:CARBON, margin:[8,3,8,5] });
-        if (qe.esencial?.length) content.push({ text:`\u2022 Esencial: ${qe.esencial.join(', ')}`, fontSize:9, color:CARBON, margin:[8,2,8,2] });
-        if (qe.recomendado?.length) content.push({ text:`\u2022 Recomendado: ${qe.recomendado.join(', ')}`, fontSize:9, color:CARBON, margin:[8,2,8,2] });
-        if (qe.adaptador_enchufe) content.push({ text:`\u2022 Adaptador: ${qe.adaptador_enchufe}`, fontSize:9, color:CARBON, margin:[8,2,8,2] });
+      });
+      content.push({ text:'', margin:[0,0,0,8] });
+    }
+
+    // ── PRO: BARES Y VIDA NOCTURNA ────────────────────────────────────────────
+    if (isPro) {
+      const baresData = itinerario.bares_vida_nocturna;
+      const hasBares = baresData && (Array.isArray(baresData) ? baresData.length > 0 : Object.keys(baresData).length > 0);
+      if (hasBares) {
+        const baresByCiudad = (baresData && typeof baresData === 'object' && !Array.isArray(baresData))
+          ? baresData
+          : { [(res.destino||formData.destino||'Destino').split(',')[0]]: (Array.isArray(baresData) ? baresData : []) };
+        Object.entries(baresByCiudad).forEach(([ciudad, lista]) => {
+          content.push(secHdr(`BARES Y VIDA NOCTURNA \u2014 ${ciudad}`));
+          (lista||[]).forEach(b => {
+            content.push({ text:`\u2022 ${ce(b.nombre)||''}${b.tipo_ambiente?` \u2014 ${ce(b.tipo_ambiente)}`:''}`, fontSize:9, color:CARBON, margin:[8,2,8,2] });
+            if (b.precio_trago || b.mejor_dia) content.push({ text:`  ${b.precio_trago?ce(b.precio_trago):''}${b.precio_trago&&b.mejor_dia?' \u00b7 ':''}${b.mejor_dia?ce(b.mejor_dia):''}`, fontSize:8, color:'#666', margin:[16,0,8,2] });
+            if (b.tip) content.push({ text:`  TIP: ${ce(b.tip)}`, fontSize:8, color:VIOLETA, italics:true, margin:[16,0,8,4] });
+          });
+        });
       }
     }
 
-    // -- BACK COVER --
+    // ── PRO: TRANSPORTE LOCAL ─────────────────────────────────────────────────
+    if (isPro && itinerario.transporte_local) {
+      content.push(secHdr('TRANSPORTE LOCAL'));
+      const tl = itinerario.transporte_local;
+      const tlRows = [
+        tl.como_moverse          ? ['Como moverse', ce(tl.como_moverse)] : null,
+        tl.apps_recomendadas?.length ? ['Apps recomendadas', (tl.apps_recomendadas||[]).join(', ')] : null,
+        tl.tarjeta_transporte    ? ['Tarjeta de transporte', ce(tl.tarjeta_transporte)] : null,
+        tl.conviene_auto         ? ['Alquilar auto', ce(tl.conviene_auto)] : null,
+      ].filter(Boolean);
+      if (tlRows.length) {
+        content.push({
+          table:{ widths:[110,'*'], body:tlRows.map(([k,v],i)=>[
+            { text:k, fontSize:9, bold:true, color:CARBON, fillColor:i%2===0?BG1:'#fff', border:[false,false,false,false], margin:[8,6,4,6] },
+            { text:v, fontSize:9, color:CARBON, fillColor:i%2===0?BG1:'#fff', border:[false,false,false,false], margin:[4,6,8,6] },
+          ])},
+          layout:{ hLineWidth:()=>0.3, hLineColor:()=>'#eee', vLineWidth:()=>0 },
+          margin:[0,0,0,8],
+        });
+      }
+      const opciones = Array.isArray(tl.opciones_aeropuerto_centro) && tl.opciones_aeropuerto_centro.length > 0
+        ? tl.opciones_aeropuerto_centro : null;
+      const fallback = tl.costo_aeropuerto_centro;
+      if (opciones || fallback) {
+        content.push({ text: 'Aeropuerto  Centro:', fontSize:9, bold:true, color:CORAL, margin:[0,4,0,5] });
+        if (opciones) {
+          const aoHdr = ['Medio','Costo estimado','Duracion','Tip'].map(t=>({
+            text:t, bold:true, fontSize:8, color:'#fff', fillColor:CORAL, border:[false,false,false,false], margin:[4,5,4,5]
+          }));
+          const aoRows = opciones.map((op,i)=>[
+            { text:ce(op.medio||'\u2014'), fontSize:8, bold:true, color:CARBON, fillColor:i%2===0?BG0:'#fff', border:[false,false,false,false], margin:[4,4,4,4] },
+            { text:ce(op.costo||'\u2014'), fontSize:8, bold:true, color:CORAL, fillColor:i%2===0?BG0:'#fff', border:[false,false,false,false], margin:[4,4,4,4] },
+            { text:ce(op.duracion||'\u2014'), fontSize:8, color:'#666', fillColor:i%2===0?BG0:'#fff', border:[false,false,false,false], margin:[4,4,4,4] },
+            { text:ce(op.tip||'\u2014'), fontSize:7, color:VIOLETA, italics:true, fillColor:i%2===0?BG0:'#fff', border:[false,false,false,false], margin:[4,4,4,4] },
+          ]);
+          content.push({
+            table:{ widths:['*',80,60,'*'], body:[aoHdr,...aoRows] },
+            layout:{ hLineWidth:()=>0.3, hLineColor:()=>'#eee', vLineWidth:()=>0.3, vLineColor:()=>'#eee' },
+            margin:[0,0,0,8], dontBreakRows: true,
+          });
+        } else {
+          content.push({ text: ce(fallback), fontSize:9, color:CARBON, margin:[0,0,0,8] });
+        }
+      }
+      if (itinerario.festivos_horarios && Object.keys(itinerario.festivos_horarios).length) {
+        content.push(secHdr('FESTIVOS Y HORARIOS', VIOLETA));
+        Object.entries(itinerario.festivos_horarios).filter(([,v])=>v).forEach(([k,v],i)=>{
+          content.push({
+            table:{ widths:[110,'*'], body:[[
+              { text:ce(k.replace(/_/g,' ')), fontSize:9, bold:true, color:CARBON, fillColor:i%2===0?BG1:'#fff', border:[false,false,false,false], margin:[8,6,4,6] },
+              { text:ce(v), fontSize:9, color:CARBON, fillColor:i%2===0?BG1:'#fff', border:[false,false,false,false], margin:[4,6,8,6] },
+            ]]},
+            layout:{ hLineWidth:()=>0.3, hLineColor:()=>'#eee', vLineWidth:()=>0 },
+            margin:[0,0,0,2],
+          });
+        });
+        content.push({ text:'', margin:[0,0,0,8] });
+      }
+      if (itinerario.salud_seguridad) {
+        content.push(secHdr('SALUD Y SEGURIDAD', '#c0392b'));
+        const ss = itinerario.salud_seguridad;
+        [
+          ['Vacunas', ss.vacunas],
+          ['Agua potable', ss.agua_potable],
+          ['Nivel de seguridad', ss.nivel_seguridad],
+          ['Zonas a evitar', ss.zonas_evitar],
+          ['Estafas comunes', ss.estafas_comunes],
+        ].filter(r=>r[1]).forEach(([l,v],i)=>{
+          content.push({
+            table:{ widths:[110,'*'], body:[[
+              { text:ce(l), fontSize:9, bold:true, color:CARBON, fillColor:i%2===0?BG0:'#fff', border:[false,false,false,false], margin:[8,6,4,6] },
+              { text:ce(v), fontSize:9, color:CARBON, fillColor:i%2===0?BG0:'#fff', border:[false,false,false,false], margin:[4,6,8,6] },
+            ]]},
+            layout:{ hLineWidth:()=>0.3, hLineColor:()=>'#eee', vLineWidth:()=>0 },
+            margin:[0,0,0,2],
+          });
+        });
+        content.push({ text:'', margin:[0,0,0,8] });
+      }
+      if (itinerario.idioma_cultura) {
+        content.push(secHdr('IDIOMA Y CULTURA', VIOLETA));
+        const ic = itinerario.idioma_cultura;
+        if (ic.costumbres) content.push({ text:[{ text:'Costumbres: ', bold:true, fontSize:9, color:CARBON },{ text:ce(ic.costumbres), fontSize:9, color:CARBON }], margin:[0,3,0,3] });
+        if (ic.vestimenta) content.push({ text:[{ text:'Vestimenta: ', bold:true, fontSize:9, color:CARBON },{ text:ce(ic.vestimenta), fontSize:9, color:CARBON }], margin:[0,3,0,6] });
+        if (ic.frases_utiles?.length) {
+          content.push({ text:'Frases utiles:', fontSize:9, bold:true, color:CARBON, margin:[0,4,0,4] });
+          ic.frases_utiles.forEach((f,i)=>{
+            const fText = [
+              f.frase_local ? ce(f.frase_local) : '',
+              f.pronunciacion ? `(${ce(f.pronunciacion)})` : '',
+              f.significado ? `\u2192 ${ce(f.significado)}` : '',
+            ].filter(Boolean).join('  ');
+            content.push({ text:fText, fontSize:8, color:VIOLETA, fillColor:i%2===0?'#F5F0FF':'#fff', margin:[4,3,4,3] });
+          });
+        }
+        content.push({ text:'', margin:[0,0,0,8] });
+      }
+    }
+
+    // ── PRO: CONECTIVIDAD ─────────────────────────────────────────────────────
+    if (isPro && itinerario.conectividad) {
+      content.push(secHdr('CONECTIVIDAD'));
+      const co = itinerario.conectividad;
+      const coRows = [
+        co.esim_recomendada ? ['eSIM recomendada', ce(co.esim_recomendada)] : null,
+        co.sim_local        ? ['SIM local', ce(co.sim_local)] : null,
+        co.roaming          ? ['Roaming', ce(co.roaming)] : null,
+        co.wifi_destino     ? ['WiFi en destino', ce(co.wifi_destino)] : null,
+        co.apps_descargar?.length ? ['Apps a descargar', (co.apps_descargar||[]).join(', ')] : null,
+      ].filter(Boolean);
+      if (coRows.length) {
+        content.push({
+          table:{ widths:[110,'*'], body:coRows.map(([k,v],i)=>[
+            { text:k, fontSize:9, bold:true, color:CARBON, fillColor:i%2===0?BG1:'#fff', border:[false,false,false,false], margin:[8,6,4,6] },
+            { text:v, fontSize:9, color:CARBON, fillColor:i%2===0?BG1:'#fff', border:[false,false,false,false], margin:[4,6,8,6] },
+          ])},
+          layout:{ hLineWidth:()=>0.3, hLineColor:()=>'#eee', vLineWidth:()=>0 },
+          margin:[0,0,0,6],
+        });
+      }
+      if (co.esim_recomendada) {
+        content.push({
+          columns:[{ width:'auto', stack:[pdfBtn('Comprar eSIM en Airalo >', 'https://airalo.tpx.lt/UPNJmvRR', '#1a1a2e')] }],
+          margin:[0,4,0,8],
+        });
+      }
+    }
+
+    // ── PRO: QUE EMPACAR ──────────────────────────────────────────────────────
+    if (isPro && itinerario.que_empacar) {
+      content.push(secHdr('QUE EMPACAR'));
+      const qe = itinerario.que_empacar;
+      if (qe.clima_esperado) content.push({ text:`Clima esperado: ${ce(qe.clima_esperado)}`, fontSize:9, color:CARBON, margin:[0,0,0,6] });
+      if (qe.ropa?.length) {
+        content.push({ text:'Ropa a empacar:', fontSize:9, bold:true, color:CARBON, margin:[0,4,0,4] });
+        qe.ropa.forEach(item => content.push({ text:`\u2022 ${ce(item)}`, fontSize:9, color:CARBON, margin:[8,1,0,1] }));
+      } else {
+        if (qe.esencial?.length) content.push({ text:`Esencial: ${qe.esencial.join(', ')}`, fontSize:9, color:CARBON, margin:[8,2,8,2] });
+        if (qe.recomendado?.length) content.push({ text:`Recomendado: ${qe.recomendado.join(', ')}`, fontSize:9, color:CARBON, margin:[8,2,8,2] });
+      }
+      if (qe.adaptador_enchufe) content.push({ text:`\u2022 Adaptador de enchufe: ${ce(qe.adaptador_enchufe)}`, fontSize:9, color:CARBON, margin:[8,2,0,2] });
+      if (qe.botiquin?.length) {
+        content.push({ text:'Botiquin:', fontSize:9, bold:true, color:CARBON, margin:[0,6,0,4] });
+        qe.botiquin.forEach(item => content.push({ text:`\u2022 ${ce(item)}`, fontSize:9, color:CARBON, margin:[8,1,0,1] }));
+      }
+      if (qe.power_bank) content.push({ text:`\u2022 Power bank: ${ce(qe.power_bank)}`, fontSize:9, color:CARBON, margin:[8,2,0,2] });
+      content.push({ text:'', margin:[0,0,0,8] });
+    }
+
+    // ── BACK COVER ────────────────────────────────────────────────────────────
     content.push({ text:'', pageBreak:'before' });
     content.push({ text:'', margin:[0,100,0,0] });
     if (logoSvgBack) {
@@ -562,6 +786,7 @@ async function generateItinerarioPdf(itinerario, formData, planLabel) {
     content.push({ text:`\u00a1Que tengas el viaje de tu vida${formData.nombre?', '+formData.nombre:''}!`, fontSize:13, italics:true, color:'#555', alignment:'center', margin:[0,0,0,20] });
     content.push({ text:'vivevivante.com  \u00b7  @vive.vivante', fontSize:10, color:'#aaa', alignment:'center', margin:[0,0,0,0] });
 
+    // ── DOCUMENT DEFINITION ───────────────────────────────────────────────────
     const docDefinition = {
       content,
       defaultStyle: { font: 'Roboto', fontSize: 9, color: CARBON, lineHeight: 1.45 },
@@ -580,7 +805,7 @@ async function generateItinerarioPdf(itinerario, formData, planLabel) {
                 { text: 'VIVANTE', bold: true, fontSize: 11, color: CORAL, margin: [36, 13, 0, 0] },
                 { text: (itinerario.titulo || formData.destino || '').split(',')[0].trim().substring(0, 35),
                   fontSize: 8, color: '#999', margin: [8, 16, 0, 0] },
-                { text: planLabel, bold: true, fontSize: 8, color: CORAL, alignment: 'right', margin: [0, 13, 36, 0] },
+                { text: ce(planLabel), bold: true, fontSize: 8, color: CORAL, alignment: 'right', margin: [0, 13, 36, 0] },
               ]
             },
             { canvas: [{ type: 'line', x1: 36, y1: 0, x2: 559, y2: 0, lineWidth: 0.6, lineColor: CORAL }] }
@@ -615,445 +840,12 @@ async function generateItinerarioPdf(itinerario, formData, planLabel) {
       }
     });
   } catch (e) {
-    console.error('PDF generation error:', e.message);
+    console.error('[generate-pdf] PDF generation error:', e.message);
     return null;
   }
 }
 
-// --- A: Tabla de contexto de viaje por origen?destino ------------------------
-// Devuelve texto con info de visa/pasaporte y adaptador para inyectar en el checklist
-function getCountryTravelContext(origenStr, destinoStr) {
-  const o = (origenStr || '').toLowerCase();
-  const d = (destinoStr || '').toLowerCase();
-
-  const isChile     = o.includes('chile') || o.includes('santiago') || o.includes('scl') || o.includes('valpara�so') || o.includes('valparaiso') || o.includes('concepci�n') || o.includes('concepcion');
-  const isArgentina = o.includes('argentin') || o.includes('buenos aires') || o.includes('c�rdoba') || o.includes('cordoba') || o.includes('rosario') || o.includes('mendoza') || o.includes('bariloche') || o.includes('salta') || o.includes('tucum�n') || o.includes('tucuman');
-  const isBrasil    = o.includes('brasil') || o.includes('brazil') || o.includes('s�o paulo') || o.includes('sao paulo') || o.includes('rio de janeiro') || o.includes('bras�lia') || o.includes('brasilia') || o.includes('porto alegre') || o.includes('florian�polis') || o.includes('florianopolis') || o.includes('belo horizonte') || o.includes('salvador') || o.includes('fortaleza') || o.includes('recife');
-  const isColombia  = o.includes('colombia') || o.includes('bogot�') || o.includes('bogota') || o.includes('medell�n') || o.includes('medellin') || o.includes('cali') || o.includes('cartagena de indias') || o.includes('barranquilla') || o.includes('bucaramanga');
-  const isMexico    = (o.includes('m�xico') || o.includes('mexico')) && !o.includes('nuevo mexico') || o.includes('ciudad de m�xico') || o.includes('cdmx') || o.includes('guadalajara') || o.includes('monterrey') || o.includes('canc�n') || o.includes('cancun') || o.includes('puebla') || o.includes('tijuana');
-  const isPeru      = o.includes('per�') || o.includes('peru') || o.includes('lima') || o.includes('arequipa') || o.includes('cusco') || o.includes('trujillo') || o.includes('piura') || o.includes('iquitos');
-  const isUruguay   = o.includes('uruguay') || o.includes('montevideo') || o.includes('punta del este') || o.includes('salto') || o.includes('colonia del sacramento');
-  const isEcuador   = o.includes('ecuador') || o.includes('quito') || o.includes('guayaquil') || o.includes('cuenca') || o.includes('manta') || o.includes('loja');
-
-  // -- Adaptador de enchufe seg�n destino ----------------------------------
-  let adapterInfo = '';
-  if (d.includes('eeuu') || d.includes('estados unidos') || d.includes('usa') || d.includes('nueva york') || d.includes('new york') || d.includes('miami') || d.includes('los angeles') || d.includes('chicago') || d.includes('houston') || d.includes('boston') || d.includes('san francisco') || d.includes('washington') || d.includes('orlando') || d.includes('canad�') || d.includes('canada') || d.includes('toronto') || d.includes('vancouver') || d.includes('montreal') || d.includes('m�xico') || d.includes('mexico') || d.includes('colombia') || d.includes('bogot�') || d.includes('bogota') || d.includes('medell�n') || d.includes('medellin') || d.includes('cartagena') || d.includes('per�') || d.includes('peru') || d.includes('lima') || d.includes('cusco') || d.includes('ecuador') || d.includes('quito') || d.includes('venezuela') || d.includes('cuba') || d.includes('habana'))
-    adapterInfo = 'Tipo A/B (2 patas planas) � est�ndar de EE.UU., Canad�, M�xico y varios pa�ses latinoamericanos';
-  else if (d.includes('europa') || d.includes('espa�a') || d.includes('france') || d.includes('paris') || d.includes('italia') || d.includes('roma') || d.includes('alemania') || d.includes('berlin') || d.includes('berl�n') || d.includes('grecia') || d.includes('atenas') || d.includes('portugal') || d.includes('lisboa') || d.includes('holanda') || d.includes('amsterdam') || d.includes('b�lgica') || d.includes('belgica') || d.includes('bruselas') || d.includes('suecia') || d.includes('estocolmo') || d.includes('noruega') || d.includes('oslo') || d.includes('dinamarca') || d.includes('copenhague') || d.includes('suiza') || d.includes('zurich') || d.includes('austria') || d.includes('viena') || d.includes('turqu�a') || d.includes('turquia') || d.includes('estambul') || d.includes('istanbul') || d.includes('rusia') || d.includes('mosc�') || d.includes('croacia') || d.includes('zagreb') || d.includes('hungr�a') || d.includes('hungria') || d.includes('budapest') || d.includes('polonia') || d.includes('varsovia') || d.includes('rep�blica checa') || d.includes('republica checa') || d.includes('praga') || d.includes('madrid') || d.includes('barcelona') || d.includes('sevilla') || d.includes('florencia') || d.includes('venecia') || d.includes('milan') || d.includes('mil�n') || d.includes('n�poles') || d.includes('napoles') || d.includes('amsterdam') || d.includes('frankfurt'))
-    adapterInfo = 'Adaptador Tipo C/E/F (2 patas redondas) � necesario en casi toda Europa continental';
-  else if (d.includes('reino unido') || d.includes('uk') || d.includes('inglaterra') || d.includes('londres') || d.includes('london') || d.includes('irlanda') || d.includes('dublin') || d.includes('hong kong') || d.includes('singapur') || d.includes('singapore') || d.includes('malasia') || d.includes('malaysia') || d.includes('kuala lumpur'))
-    adapterInfo = 'Adaptador Tipo G (3 patas rectangulares) � Reino Unido, Hong Kong, Singapur y Malasia';
-  else if (d.includes('australia') || d.includes('s�dney') || d.includes('sydney') || d.includes('melbourne') || d.includes('brisbane') || d.includes('nueva zelanda') || d.includes('new zealand') || d.includes('auckland'))
-    adapterInfo = 'Tipo I (2 patas en V) � Australia y Nueva Zelanda. Tambi�n usado en Chile y Argentina';
-  else if (d.includes('brasil') || d.includes('brazil') || d.includes('r�o de janeiro') || d.includes('rio de janeiro') || d.includes('s�o paulo') || d.includes('sao paulo') || d.includes('salvador') || d.includes('florian�polis') || d.includes('florianopolis') || d.includes('iguaz�') || d.includes('iguazu') || d.includes('foz do igua�u'))
-    adapterInfo = 'Tipo N (2 patas redondas) � est�ndar propio de Brasil, diferente del resto de Sudam�rica';
-  else if (d.includes('japon') || d.includes('jap�n') || d.includes('tokyo') || d.includes('tokio') || d.includes('osaka') || d.includes('kyoto') || d.includes('hiroshima') || d.includes('nara') || d.includes('sapporo'))
-    adapterInfo = 'Adaptador Tipo A (2 patas planas, 110V) � Jap�n usa 110V. Verifica que tus dispositivos soporten 110-240V';
-  else if (d.includes('china') || d.includes('beijing') || d.includes('shanghai') || d.includes('chengdu') || d.includes('canton') || d.includes('guangzhou'))
-    adapterInfo = 'Adaptador universal recomendado � China acepta varios tipos de enchufe (A, C, I)';
-  else if (d.includes('india') || d.includes('delhi') || d.includes('mumbai') || d.includes('goa') || d.includes('bangalore') || d.includes('jaipur'))
-    adapterInfo = 'Adaptador universal recomendado � India usa tipos C, D y M seg�n la zona';
-  else if (d.includes('tailandia') || d.includes('thailand') || d.includes('bangkok') || d.includes('phuket') || d.includes('chiang mai') || d.includes('bali') || d.includes('indonesia') || d.includes('jakarta') || d.includes('vietnam') || d.includes('hanoi') || d.includes('ho chi minh') || d.includes('camboya') || d.includes('siem reap'))
-    adapterInfo = 'Adaptador universal recomendado � el Sudeste Asi�tico tiene m�ltiples est�ndares de enchufe';
-  else if (d.includes('argentina') || d.includes('buenos aires') || d.includes('mendoza') || d.includes('bariloche') || d.includes('c�rdoba') || d.includes('cordoba') || d.includes('salta') || d.includes('uruguay') || d.includes('montevideo') || d.includes('paraguay') || d.includes('asunci�n') || d.includes('asuncion'))
-    adapterInfo = 'Tipo L (2 patas en V) � est�ndar de Chile, Argentina, Uruguay y Paraguay';
-  else if (d.includes('emiratos') || d.includes('dubai') || d.includes('abu dhabi') || d.includes('qatar') || d.includes('doha'))
-    adapterInfo = 'Adaptador Tipo G o C � Emiratos y Qatar. Mejor llevar adaptador universal';
-  else if (d.includes('sud�frica') || d.includes('sudafrica') || d.includes('cape town') || d.includes('ciudad del cabo') || d.includes('johannesburg') || d.includes('johannesburgo'))
-    adapterInfo = 'Adaptador Tipo M (3 patas gruesas) � Sud�frica tiene su propio est�ndar';
-  else if (d.includes('marruecos') || d.includes('marrakech') || d.includes('fez') || d.includes('casablanca') || d.includes('t�nger'))
-    adapterInfo = 'Adaptador Tipo C/E (2 patas redondas) � igual que Europa continental';
-  else if (d.includes('kenia') || d.includes('kenya') || d.includes('nairobi') || d.includes('mombasa'))
-    adapterInfo = 'Adaptador Tipo G (3 patas rectangulares) � Kenia usa el est�ndar brit�nico';
-  else if (d.includes('maldivas') || d.includes('maldives') || d.includes('islas maldivas'))
-    adapterInfo = 'Adaptador Tipo G (3 patas rectangulares) � Maldivas usa est�ndar brit�nico';
-  else
-    adapterInfo = 'Adaptador universal recomendado � verifica el tipo de enchufe espec�fico del pa�s de destino';
-
-  // -- Visa / Pasaporte para viajeros chilenos ------------------------------
-  let visaInfo = '';
-  if (isChile) {
-    if (d.includes('eeuu') || d.includes('estados unidos') || d.includes('nueva york') || d.includes('new york') || d.includes('miami') || d.includes('los angeles') || d.includes('chicago') || d.includes('houston') || d.includes('boston') || d.includes('san francisco') || d.includes('washington') || d.includes('orlando'))
-      visaInfo = 'PASAPORTE + ESTA: Los chilenos viajan SIN VISA a EE.UU. pero necesitan ESTA (Electronic System for Travel Authorization, ~US$21). Tram�tala en esta-online.us con al menos 72h de anticipaci�n. Pasaporte vigente obligatorio.';
-    else if (d.includes('canad�') || d.includes('canada') || d.includes('toronto') || d.includes('vancouver') || d.includes('montreal') || d.includes('ottawa') || d.includes('calgary'))
-      visaInfo = 'PASAPORTE + eTA: Los chilenos necesitan eTA para Canad� (Electronic Travel Authorization, ~CAD$7), tramitable online en canada.ca. No es visa, se aprueba en minutos. Pasaporte vigente obligatorio.';
-    else if (d.includes('europa') || d.includes('schengen') || d.includes('espa�a') || d.includes('france') || d.includes('paris') || d.includes('italia') || d.includes('roma') || d.includes('alemania') || d.includes('berlin') || d.includes('berl�n') || d.includes('grecia') || d.includes('atenas') || d.includes('portugal') || d.includes('lisboa') || d.includes('holanda') || d.includes('amsterdam') || d.includes('b�lgica') || d.includes('belgica') || d.includes('bruselas') || d.includes('suecia') || d.includes('estocolmo') || d.includes('noruega') || d.includes('oslo') || d.includes('dinamarca') || d.includes('copenhague') || d.includes('suiza') || d.includes('zurich') || d.includes('austria') || d.includes('viena') || d.includes('croacia') || d.includes('zagreb') || d.includes('hungr�a') || d.includes('budapest') || d.includes('polonia') || d.includes('varsovia') || d.includes('rep�blica checa') || d.includes('praga') || d.includes('madrid') || d.includes('barcelona') || d.includes('sevilla') || d.includes('florencia') || d.includes('venecia') || d.includes('milan') || d.includes('frankfurt'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los chilenos viajan SIN VISA a toda la Zona Schengen hasta 90 d�as. Solo pasaporte vigente con al menos 6 meses de validez desde la fecha de regreso. No es necesario el DNI.';
-    else if (d.includes('reino unido') || d.includes('uk') || d.includes('inglaterra') || d.includes('londres') || d.includes('london') || d.includes('irlanda') || d.includes('dublin'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los chilenos viajan SIN VISA al Reino Unido hasta 6 meses. Pasaporte vigente obligatorio. El UK NO forma parte de Schengen � si combinas con Europa, son permisos de entrada separados.';
-    else if (d.includes('australia') || d.includes('s�dney') || d.includes('sydney') || d.includes('melbourne') || d.includes('brisbane'))
-      visaInfo = 'PASAPORTE + eVisitor: Los chilenos necesitan eVisitor (subclass 651) para Australia. Es GRATUITO y se tramita online en immi.homeaffairs.gov.au en minutos. Pasaporte vigente obligatorio.';
-    else if (d.includes('nueva zelanda') || d.includes('new zealand') || d.includes('auckland'))
-      visaInfo = 'PASAPORTE + NZeTA: Los chilenos necesitan NZeTA (New Zealand Electronic Travel Authority, ~NZD$23) tramitable online o en la app oficial. Pasaporte vigente obligatorio.';
-    else if (d.includes('japon') || d.includes('jap�n') || d.includes('tokyo') || d.includes('tokio') || d.includes('osaka') || d.includes('kyoto'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los chilenos viajan SIN VISA a Jap�n hasta 90 d�as. Solo pasaporte vigente. Sin tr�mite previo. Una ventaja enorme frente a otros latinoamericanos.';
-    else if (d.includes('tailandia') || d.includes('thailand') || d.includes('bangkok') || d.includes('phuket') || d.includes('chiang mai'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los chilenos viajan SIN VISA a Tailandia hasta 30 d�as. Pasaporte vigente obligatorio. Pr�rroga posible a 60 d�as en oficina de inmigraci�n local.';
-    else if (d.includes('china') || d.includes('beijing') || d.includes('shanghai') || d.includes('chengdu'))
-      visaInfo = 'PASAPORTE + VISA: Los chilenos necesitan visa para China continental (tramitar en la Embajada China en Santiago). Para Hong Kong no se requiere visa (14 d�as). Pasaporte con al menos 6 meses de vigencia.';
-    else if (d.includes('hong kong'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los chilenos no necesitan visa para Hong Kong � entrada libre por 14 d�as. Pasaporte vigente obligatorio.';
-    else if (d.includes('india') || d.includes('delhi') || d.includes('mumbai') || d.includes('goa') || d.includes('jaipur'))
-      visaInfo = 'PASAPORTE + e-VISA: Los chilenos necesitan e-Visa para India (~US$25), tramitable online en indianvisaonline.gov.in. Se obtiene en 72-96h. Pasaporte con al menos 6 meses de vigencia desde el ingreso.';
-    else if (d.includes('brasil') || d.includes('brazil') || d.includes('r�o de janeiro') || d.includes('rio de janeiro') || d.includes('s�o paulo') || d.includes('sao paulo'))
-      visaInfo = 'PASAPORTE / CARNET: Los chilenos viajan SIN VISA a Brasil. Con carnet de identidad chileno vigente alcanza para 90 d�as. No es necesario el pasaporte.';
-    else if (d.includes('argentina') || d.includes('buenos aires') || d.includes('mendoza') || d.includes('bariloche') || d.includes('salta') || d.includes('c�rdoba') || d.includes('cordoba'))
-      visaInfo = 'CARNET DE IDENTIDAD: Para Argentina basta con el carnet de identidad chileno vigente. No se requiere pasaporte. Estancia hasta 90 d�as.';
-    else if (d.includes('per�') || d.includes('peru') || d.includes('lima') || d.includes('cusco') || d.includes('machu picchu') || d.includes('arequipa'))
-      visaInfo = 'CARNET DE IDENTIDAD: Para Per� basta el carnet de identidad chileno vigente. No se requiere pasaporte. Estancia hasta 183 d�as.';
-    else if (d.includes('colombia') || d.includes('bogot�') || d.includes('bogota') || d.includes('cartagena') || d.includes('medell�n') || d.includes('medellin') || d.includes('cali'))
-      visaInfo = 'PASAPORTE / CARNET (SIN VISA): Los chilenos viajan SIN VISA a Colombia hasta 90 d�as. Pasaporte o carnet de identidad vigente. Completar formulario Check-Mig online previo al viaje (gratuito).';
-    else if (d.includes('uruguay') || d.includes('montevideo') || d.includes('punta del este'))
-      visaInfo = 'CARNET DE IDENTIDAD: Para Uruguay basta el carnet de identidad chileno vigente. No se requiere pasaporte. Estancia libre hasta 90 d�as.';
-    else if (d.includes('bolivia') || d.includes('la paz') || d.includes('cochabamba') || d.includes('santa cruz de la sierra'))
-      visaInfo = 'CARNET DE IDENTIDAD: Para Bolivia basta el carnet de identidad chileno vigente. No se requiere pasaporte ni visa.';
-    else if (d.includes('emiratos') || d.includes('dubai') || d.includes('abu dhabi'))
-      visaInfo = 'PASAPORTE (VISA ON ARRIVAL): Los chilenos obtienen visa gratuita al llegar a Dubai por convenio. Pasaporte con al menos 6 meses de validez. Verificar vigencia del convenio antes del viaje.';
-    else if (d.includes('turqu�a') || d.includes('turquia') || d.includes('estambul') || d.includes('istanbul') || d.includes('capadocia') || d.includes('cappadocia') || d.includes('antalya'))
-      visaInfo = 'PASAPORTE + e-VISA: Los chilenos necesitan e-Visa para Turqu�a (~US$50), tramitable en evisa.gov.tr en minutos. Pasaporte con al menos 6 meses de validez.';
-    else if (d.includes('vietnam') || d.includes('hanoi') || d.includes('ho chi minh') || d.includes('hoi an') || d.includes('da nang'))
-      visaInfo = 'PASAPORTE + e-VISA: Los chilenos necesitan e-Visa para Vietnam (~US$25), tramitable en xuatnhapcanh.gov.vn. Aprobaci�n en 3 d�as h�biles. Pasaporte con al menos 6 meses de vigencia.';
-    else if (d.includes('bali') || d.includes('indonesia') || d.includes('jakarta') || d.includes('lombok') || d.includes('yogyakarta'))
-      visaInfo = 'PASAPORTE (VISA ON ARRIVAL): Los chilenos obtienen Visa on Arrival en Indonesia (~US$35) por 30 d�as, prorrogable 30 d�as m�s. Pasaporte con al menos 6 meses de validez.';
-    else if (d.includes('maldivas') || d.includes('maldives') || d.includes('islas maldivas'))
-      visaInfo = 'PASAPORTE (VISA GRATUITA): Los chilenos obtienen Visa on Arrival GRATUITA en Maldivas por 30 d�as. Solo pasaporte vigente y reserva de alojamiento.';
-    else if (d.includes('cuba') || d.includes('habana') || d.includes('la habana') || d.includes('varadero'))
-      visaInfo = 'PASAPORTE + TARJETA DEL TURISTA: Los chilenos necesitan Tarjeta del Turista (~US$25) para Cuba, comprable en el aeropuerto de salida o en la aerol�nea. Pasaporte vigente obligatorio.';
-    else if (d.includes('marruecos') || d.includes('marrakech') || d.includes('fez') || d.includes('casablanca') || d.includes('t�nger'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los chilenos viajan SIN VISA a Marruecos hasta 90 d�as. Pasaporte vigente obligatorio. Control migratorio estricto � lleva reservas de hotel impresas.';
-    else if (d.includes('kenia') || d.includes('kenya') || d.includes('nairobi') || d.includes('safari') || d.includes('masai mara'))
-      visaInfo = 'PASAPORTE + e-VISA: Los chilenos necesitan e-Visa para Kenia (~US$51), tramitable en evisa.go.ke. Pasaporte con al menos 6 meses de validez.';
-    else if (d.includes('sud�frica') || d.includes('sudafrica') || d.includes('cape town') || d.includes('ciudad del cabo') || d.includes('johannesburg'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los chilenos viajan SIN VISA a Sud�frica hasta 30 d�as. Pasaporte con al menos 6 meses de validez y 2 p�ginas en blanco.';
-    else if (d.includes('qatar') || d.includes('doha'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los chilenos viajan SIN VISA a Qatar hasta 30 d�as. Pasaporte vigente obligatorio.';
-    else if (d.includes('m�xico') || d.includes('mexico') || d.includes('canc�n') || d.includes('cancun') || d.includes('ciudad de m�xico') || d.includes('cdmx') || d.includes('playa del carmen') || d.includes('tulum'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los chilenos viajan SIN VISA a M�xico hasta 180 d�as. Pasaporte vigente obligatorio. Se exige llenar Forma Migratoria M�ltiple (FMM) en el avi�n o en el aeropuerto.';
-    else if (d.includes('costa rica') || d.includes('san jos�') || d.includes('san jose'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los chilenos viajan SIN VISA a Costa Rica hasta 90 d�as. Pasaporte vigente obligatorio.';
-    else if (d.includes('panam�') || d.includes('panama') || d.includes('ciudad de panam�'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los chilenos viajan SIN VISA a Panam� hasta 90 d�as. Pasaporte vigente obligatorio.';
-    else if (d.includes('singapur') || d.includes('singapore'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los chilenos viajan SIN VISA a Singapur hasta 30 d�as. Pasaporte vigente obligatorio.';
-    else if (d.includes('corea del sur') || d.includes('seoul') || d.includes('se�l') || d.includes('busan') || d.includes('jeju'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los chilenos viajan SIN VISA a Corea del Sur hasta 90 d�as. Pasaporte vigente obligatorio.';
-    else
-      visaInfo = 'PASAPORTE: Verifica los requisitos de visa en minrel.gob.cl (Ministerio de Relaciones Exteriores de Chile). Est�ndar: pasaporte vigente con al menos 6 meses de validez desde la fecha de regreso.';
-
-  // -- Visa / Pasaporte para viajeros ARGENTINOS ------------------------------
-  } else if (isArgentina) {
-    if (d.includes('eeuu') || d.includes('estados unidos') || d.includes('nueva york') || d.includes('new york') || d.includes('miami') || d.includes('los angeles') || d.includes('chicago') || d.includes('houston') || d.includes('orlando') || d.includes('washington') || d.includes('boston') || d.includes('san francisco'))
-      visaInfo = 'PASAPORTE + VISA B1/B2: Los argentinos NECESITAN visa para EE.UU. (no es visa-free). Tramitar en la Embajada de EE.UU. en Buenos Aires (usembassy.gov). El proceso puede tardar semanas o meses � �gestionarla con anticipaci�n!';
-    else if (d.includes('canad�') || d.includes('canada') || d.includes('toronto') || d.includes('vancouver') || d.includes('montreal'))
-      visaInfo = 'PASAPORTE + VISA: Los argentinos generalmente necesitan visa de turista para Canad�. Tramitar en el Consulado de Canad� en Argentina (canada.ca/es). Pasaporte vigente obligatorio.';
-    else if (d.includes('europa') || d.includes('schengen') || d.includes('espa�a') || d.includes('france') || d.includes('paris') || d.includes('italia') || d.includes('roma') || d.includes('alemania') || d.includes('berlin') || d.includes('berl�n') || d.includes('grecia') || d.includes('portugal') || d.includes('lisboa') || d.includes('holanda') || d.includes('amsterdam') || d.includes('suiza') || d.includes('austria') || d.includes('viena') || d.includes('hungr�a') || d.includes('budapest') || d.includes('rep�blica checa') || d.includes('praga') || d.includes('madrid') || d.includes('barcelona') || d.includes('florencia') || d.includes('venecia'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los argentinos viajan SIN VISA a la Zona Schengen hasta 90 d�as. Solo pasaporte vigente con al menos 6 meses de validez desde la fecha de regreso.';
-    else if (d.includes('reino unido') || d.includes('uk') || d.includes('inglaterra') || d.includes('londres') || d.includes('london'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los argentinos viajan SIN VISA al Reino Unido hasta 6 meses. Pasaporte vigente obligatorio. UK es independiente de Schengen.';
-    else if (d.includes('australia') || d.includes('sydney') || d.includes('s�dney') || d.includes('melbourne'))
-      visaInfo = 'PASAPORTE + eVisitor: Los argentinos necesitan eVisitor (651) para Australia, GRATUITO, tramitable online en immi.homeaffairs.gov.au. Pasaporte vigente obligatorio.';
-    else if (d.includes('nueva zelanda') || d.includes('new zealand') || d.includes('auckland'))
-      visaInfo = 'PASAPORTE + NZeTA: Los argentinos necesitan NZeTA (~NZD$23), tramitable online en immigation.govt.nz. Pasaporte vigente obligatorio.';
-    else if (d.includes('japon') || d.includes('jap�n') || d.includes('tokyo') || d.includes('osaka') || d.includes('kyoto'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los argentinos viajan SIN VISA a Jap�n hasta 90 d�as. Solo pasaporte vigente.';
-    else if (d.includes('tailandia') || d.includes('thailand') || d.includes('bangkok') || d.includes('phuket'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los argentinos viajan SIN VISA a Tailandia hasta 30 d�as. Pasaporte vigente obligatorio.';
-    else if (d.includes('china') || d.includes('beijing') || d.includes('shanghai'))
-      visaInfo = 'PASAPORTE + VISA: Los argentinos necesitan visa para China continental. Tramitar en la Embajada China en Buenos Aires. Pasaporte con al menos 6 meses de vigencia.';
-    else if (d.includes('india') || d.includes('delhi') || d.includes('mumbai') || d.includes('goa'))
-      visaInfo = 'PASAPORTE + e-VISA: Los argentinos necesitan e-Visa para India (~US$25), en indianvisaonline.gov.in. Aprobaci�n en 72-96h. Pasaporte con al menos 6 meses de vigencia.';
-    else if (d.includes('brasil') || d.includes('brazil') || d.includes('r�o de janeiro') || d.includes('rio de janeiro') || d.includes('s�o paulo') || d.includes('sao paulo'))
-      visaInfo = 'DNI O PASAPORTE (SIN VISA): Los argentinos viajan a Brasil sin visa. Con DNI argentino vigente alcanza para 90 d�as � no es necesario el pasaporte.';
-    else if (d.includes('chile') || d.includes('santiago') || d.includes('valpara�so') || d.includes('patagonia chilena'))
-      visaInfo = 'DNI O PASAPORTE (SIN VISA): Para Chile basta el DNI argentino vigente. Sin visa ni tr�mite previo.';
-    else if (d.includes('per�') || d.includes('peru') || d.includes('lima') || d.includes('cusco') || d.includes('machu picchu'))
-      visaInfo = 'DNI O PASAPORTE (SIN VISA): Los argentinos viajan a Per� sin visa. Con DNI argentino vigente alcanza hasta 183 d�as.';
-    else if (d.includes('colombia') || d.includes('bogot�') || d.includes('cartagena') || d.includes('medell�n'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los argentinos viajan a Colombia sin visa hasta 90 d�as. Pasaporte o DNI argentino vigente.';
-    else if (d.includes('uruguay') || d.includes('montevideo') || d.includes('punta del este'))
-      visaInfo = 'DNI O PASAPORTE (SIN VISA): Para Uruguay basta el DNI argentino vigente. Libre hasta 90 d�as.';
-    else if (d.includes('bolivia') || d.includes('la paz') || d.includes('cochabamba'))
-      visaInfo = 'DNI O PASAPORTE (SIN VISA): Para Bolivia basta el DNI argentino vigente. Sin visa.';
-    else if (d.includes('m�xico') || d.includes('mexico') || d.includes('canc�n') || d.includes('cancun'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los argentinos viajan a M�xico sin visa hasta 180 d�as. Pasaporte vigente. Completar FMM en el avi�n o aeropuerto.';
-    else if (d.includes('emiratos') || d.includes('dubai') || d.includes('abu dhabi'))
-      visaInfo = 'PASAPORTE (VISA ON ARRIVAL): Los argentinos obtienen visa gratuita al llegar a Dubai. Pasaporte con al menos 6 meses de validez. Verificar vigencia del convenio.';
-    else if (d.includes('turqu�a') || d.includes('turquia') || d.includes('estambul') || d.includes('istanbul'))
-      visaInfo = 'PASAPORTE + e-VISA: Los argentinos necesitan e-Visa para Turqu�a (~US$50), en evisa.gov.tr. Proceso de minutos online.';
-    else if (d.includes('singapur') || d.includes('singapore'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los argentinos viajan SIN VISA a Singapur hasta 30 d�as. Pasaporte vigente.';
-    else if (d.includes('corea del sur') || d.includes('seoul') || d.includes('se�l'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los argentinos viajan SIN VISA a Corea del Sur hasta 90 d�as. Pasaporte vigente.';
-    else if (d.includes('cuba') || d.includes('habana') || d.includes('varadero'))
-      visaInfo = 'PASAPORTE + TARJETA DEL TURISTA: Los argentinos necesitan Tarjeta del Turista para Cuba (~US$25), comprable en el aeropuerto o con la aerol�nea.';
-    else
-      visaInfo = 'PASAPORTE: Verifica los requisitos de visa en cancilleria.gob.ar (Canciller�a argentina). Est�ndar: pasaporte vigente con al menos 6 meses de validez desde la fecha de regreso.';
-
-  // -- Visa / Pasaporte para viajeros BRASILE�OS ------------------------------
-  } else if (isBrasil) {
-    if (d.includes('eeuu') || d.includes('estados unidos') || d.includes('nueva york') || d.includes('new york') || d.includes('miami') || d.includes('los angeles') || d.includes('chicago') || d.includes('orlando'))
-      visaInfo = 'PASAPORTE + VISA: Los brasile�os hist�ricamente han necesitado visa B1/B2 para EE.UU. Los requisitos est�n cambiando (2023-2024). Verifica el estado actual en br.usembassy.gov antes de viajar.';
-    else if (d.includes('canad�') || d.includes('canada') || d.includes('toronto') || d.includes('vancouver') || d.includes('montreal'))
-      visaInfo = 'PASAPORTE + VISA o eTA: Los brasile�os generalmente necesitan visa de turista para Canad�. Verifica si calificas para eTA en canada.ca. Tramitar con anticipaci�n.';
-    else if (d.includes('europa') || d.includes('schengen') || d.includes('espa�a') || d.includes('france') || d.includes('paris') || d.includes('italia') || d.includes('roma') || d.includes('alemania') || d.includes('berlin') || d.includes('grecia') || d.includes('portugal') || d.includes('lisboa') || d.includes('holanda') || d.includes('amsterdam') || d.includes('suiza') || d.includes('austria') || d.includes('viena') || d.includes('hungary') || d.includes('budapest') || d.includes('rep�blica checa') || d.includes('praga') || d.includes('madrid') || d.includes('barcelona') || d.includes('florencia') || d.includes('venecia'))
-      visaInfo = 'PASSAPORTE (SEM VISTO): Os brasileiros viajam SEM VISTO para a Zona Schengen por at� 90 dias. Apenas passaporte v�lido com pelo menos 6 meses de validade a partir da data de retorno.';
-    else if (d.includes('reino unido') || d.includes('uk') || d.includes('inglaterra') || d.includes('londres') || d.includes('london'))
-      visaInfo = 'PASSAPORTE (SEM VISTO): Os brasileiros viajam SEM VISTO para o Reino Unido por at� 6 meses. Passaporte v�lido obrigat�rio. O UK n�o faz parte do Schengen � s�o permiss�es separadas.';
-    else if (d.includes('australia') || d.includes('sydney') || d.includes('melbourne'))
-      visaInfo = 'PASSAPORTE + ETA: Os brasileiros precisam de Electronic Travel Authority (ETA subclass 601, gratuita) para a Austr�lia, dispon�vel em immi.homeaffairs.gov.au. Passaporte v�lido obrigat�rio.';
-    else if (d.includes('japon') || d.includes('jap�n') || d.includes('tokyo') || d.includes('osaka') || d.includes('kyoto'))
-      visaInfo = 'PASSAPORTE (SEM VISTO): Os brasileiros viajam SEM VISTO ao Jap�o por at� 90 dias. Apenas passaporte v�lido � sem burocracia pr�via.';
-    else if (d.includes('tailandia') || d.includes('thailand') || d.includes('bangkok') || d.includes('phuket'))
-      visaInfo = 'PASSAPORTE (SEM VISTO): Os brasileiros viajam SEM VISTO � Tail�ndia por at� 30 dias. Passaporte v�lido obrigat�rio.';
-    else if (d.includes('china') || d.includes('beijing') || d.includes('shanghai'))
-      visaInfo = 'PASSAPORTE + VISTO: Os brasileiros precisam de visto para a China continental. Solicitar na Embaixada/Consulado da China no Brasil. Passaporte com ao menos 6 meses de validade.';
-    else if (d.includes('india') || d.includes('delhi') || d.includes('mumbai') || d.includes('goa'))
-      visaInfo = 'PASSAPORTE + e-VISA: Os brasileiros precisam de e-Visa para a �ndia (~US$25), em indianvisaonline.gov.in. Aprova��o em 72-96h. Passaporte com ao menos 6 meses de validade.';
-    else if (d.includes('argentina') || d.includes('buenos aires') || d.includes('mendoza') || d.includes('bariloche'))
-      visaInfo = 'PASSAPORTE OU RG (SEM VISTO): Para a Argentina basta a Carteira de Identidade (RG) brasileira v�lida. N�o � necess�rio passaporte. Estadia livre por 90 dias.';
-    else if (d.includes('chile') || d.includes('santiago'))
-      visaInfo = 'PASSAPORTE OU RG (SEM VISTO): Para o Chile basta a Carteira de Identidade (RG) brasileira v�lida. Sem visto, sem burocracia.';
-    else if (d.includes('per�') || d.includes('peru') || d.includes('lima') || d.includes('cusco') || d.includes('machu picchu'))
-      visaInfo = 'PASSAPORTE OU RG (SEM VISTO): Para o Peru basta a Carteira de Identidade (RG) brasileira v�lida. Estadia at� 183 dias.';
-    else if (d.includes('colombia') || d.includes('bogot�') || d.includes('cartagena') || d.includes('medell�n'))
-      visaInfo = 'PASSAPORTE (SEM VISTO): Os brasileiros viajam � Col�mbia sem visto por at� 90 dias. Passaporte v�lido obrigat�rio.';
-    else if (d.includes('uruguay') || d.includes('montevideo') || d.includes('punta del este'))
-      visaInfo = 'PASSAPORTE OU RG (SEM VISTO): Para o Uruguai basta a Carteira de Identidade (RG) brasileira v�lida.';
-    else if (d.includes('bolivia') || d.includes('la paz'))
-      visaInfo = 'PASSAPORTE OU RG (SEM VISTO): Para a Bol�via basta a Carteira de Identidade (RG) brasileira v�lida.';
-    else if (d.includes('m�xico') || d.includes('mexico') || d.includes('canc�n') || d.includes('cancun'))
-      visaInfo = 'PASSAPORTE (SEM VISTO): Os brasileiros viajam ao M�xico sem visto. Passaporte v�lido. Preencher FMM no avi�o ou aeroporto.';
-    else if (d.includes('emiratos') || d.includes('dubai') || d.includes('abu dhabi'))
-      visaInfo = 'PASSAPORTE (VISTO NA CHEGADA): Os brasileiros obt�m visto gratuito ao chegar em Dubai por acordo bilateral. Passaporte com ao menos 6 meses de validade. Confirmar o acordo antes de viajar.';
-    else if (d.includes('turqu�a') || d.includes('turquia') || d.includes('estambul') || d.includes('istanbul'))
-      visaInfo = 'PASSAPORTE + e-VISTO: Os brasileiros precisam de e-Visa para a Turquia (~US$50), em evisa.gov.tr. Processo online em minutos.';
-    else if (d.includes('cuba') || d.includes('habana') || d.includes('varadero'))
-      visaInfo = 'PASSAPORTE + CART�O DE TURISTA: Os brasileiros precisam do Cart�o de Turista para Cuba (~US$25), comprado no aeroporto ou com a companhia a�rea. Passaporte v�lido.';
-    else if (d.includes('bali') || d.includes('indonesia') || d.includes('jakarta'))
-      visaInfo = 'PASSAPORTE (VISTO NA CHEGADA): Os brasileiros obt�m Visto na Chegada na Indon�sia (~US$35) por 30 dias, prorrog�vel por mais 30. Passaporte com ao menos 6 meses de validade.';
-    else
-      visaInfo = 'PASSAPORTE: Verifique os requisitos de visto no portal do Itamaraty (itamaraty.gov.br). Padr�o: passaporte v�lido com ao menos 6 meses de validade a partir da data de retorno.';
-
-  // -- Visa / Pasaporte para viajeros COLOMBIANOS -----------------------------
-  } else if (isColombia) {
-    if (d.includes('eeuu') || d.includes('estados unidos') || d.includes('nueva york') || d.includes('new york') || d.includes('miami') || d.includes('los angeles') || d.includes('chicago') || d.includes('orlando'))
-      visaInfo = 'PASAPORTE + VISA B1/B2: Los colombianos NECESITAN visa para EE.UU. Tramitar en la Embajada de EE.UU. en Bogot� (co.usembassy.gov). Iniciar el proceso con meses de anticipaci�n.';
-    else if (d.includes('canad�') || d.includes('canada') || d.includes('toronto') || d.includes('vancouver') || d.includes('montreal'))
-      visaInfo = 'PASAPORTE + VISA: Los colombianos necesitan visa de turista para Canad�. Tramitar en el Consulado de Canad� en Colombia (canada.ca). Pasaporte vigente obligatorio.';
-    else if (d.includes('europa') || d.includes('schengen') || d.includes('espa�a') || d.includes('france') || d.includes('paris') || d.includes('italia') || d.includes('roma') || d.includes('alemania') || d.includes('berlin') || d.includes('grecia') || d.includes('portugal') || d.includes('lisboa') || d.includes('holanda') || d.includes('amsterdam') || d.includes('suiza') || d.includes('austria') || d.includes('viena') || d.includes('hungr�a') || d.includes('budapest') || d.includes('rep�blica checa') || d.includes('praga') || d.includes('madrid') || d.includes('barcelona'))
-      visaInfo = 'PASAPORTE (SIN VISA): Desde junio 2023, los colombianos viajan SIN VISA a la Zona Schengen hasta 90 d�as. Solo pasaporte vigente con al menos 6 meses de validez. �Gran avance para los viajeros colombianos!';
-    else if (d.includes('reino unido') || d.includes('uk') || d.includes('inglaterra') || d.includes('londres') || d.includes('london'))
-      visaInfo = 'PASAPORTE + VISA: Los colombianos NECESITAN visa para el Reino Unido. Tramitar online en gov.uk. El UK no aplica el acuerdo Schengen. Pasaporte vigente obligatorio.';
-    else if (d.includes('australia') || d.includes('sydney') || d.includes('melbourne'))
-      visaInfo = 'PASAPORTE + VISA: Los colombianos necesitan visa de turista para Australia (Visitor Visa subclass 600). Tramitar online en immi.homeaffairs.gov.au. Pasaporte vigente obligatorio.';
-    else if (d.includes('japon') || d.includes('jap�n') || d.includes('tokyo') || d.includes('osaka') || d.includes('kyoto'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los colombianos viajan SIN VISA a Jap�n hasta 90 d�as. Solo pasaporte vigente � sin burocracia previa.';
-    else if (d.includes('tailandia') || d.includes('thailand') || d.includes('bangkok') || d.includes('phuket'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los colombianos viajan SIN VISA a Tailandia hasta 30 d�as. Pasaporte vigente obligatorio.';
-    else if (d.includes('china') || d.includes('beijing') || d.includes('shanghai'))
-      visaInfo = 'PASAPORTE + VISA: Los colombianos necesitan visa para China. Tramitar en la Embajada China en Bogot�. Pasaporte con al menos 6 meses de vigencia.';
-    else if (d.includes('india') || d.includes('delhi') || d.includes('mumbai') || d.includes('goa'))
-      visaInfo = 'PASAPORTE + e-VISA: Los colombianos necesitan e-Visa para India (~US$25), en indianvisaonline.gov.in. Aprobaci�n en 72-96h.';
-    else if (d.includes('argentina') || d.includes('buenos aires') || d.includes('mendoza') || d.includes('bariloche'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los colombianos viajan a Argentina sin visa hasta 90 d�as. Pasaporte vigente obligatorio.';
-    else if (d.includes('chile') || d.includes('santiago'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los colombianos viajan a Chile sin visa hasta 90 d�as. Pasaporte vigente obligatorio.';
-    else if (d.includes('per�') || d.includes('peru') || d.includes('lima') || d.includes('cusco') || d.includes('machu picchu'))
-      visaInfo = 'PASAPORTE O C�DULA (SIN VISA): Los colombianos viajan a Per� sin visa. Pasaporte o c�dula de ciudadan�a colombiana vigente hasta 183 d�as.';
-    else if (d.includes('brasil') || d.includes('brazil') || d.includes('r�o de janeiro') || d.includes('s�o paulo') || d.includes('sao paulo'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los colombianos viajan a Brasil sin visa hasta 90 d�as. Pasaporte vigente obligatorio.';
-    else if (d.includes('uruguay') || d.includes('montevideo'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los colombianos viajan a Uruguay sin visa hasta 90 d�as. Pasaporte vigente.';
-    else if (d.includes('bolivia') || d.includes('la paz'))
-      visaInfo = 'PASAPORTE O C�DULA (SIN VISA): Para Bolivia basta la c�dula de ciudadan�a colombiana vigente. Sin visa.';
-    else if (d.includes('m�xico') || d.includes('mexico') || d.includes('canc�n') || d.includes('cancun'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los colombianos viajan a M�xico sin visa. Pasaporte vigente. Completar FMM en el avi�n o aeropuerto.';
-    else if (d.includes('emiratos') || d.includes('dubai') || d.includes('abu dhabi'))
-      visaInfo = 'PASAPORTE (VISA ON ARRIVAL): Los colombianos obtienen visa gratuita al llegar a Dubai. Pasaporte con al menos 6 meses de validez. Verificar convenio vigente.';
-    else if (d.includes('turqu�a') || d.includes('turquia') || d.includes('estambul') || d.includes('istanbul'))
-      visaInfo = 'PASAPORTE + e-VISA: Los colombianos necesitan e-Visa para Turqu�a (~US$50), en evisa.gov.tr.';
-    else if (d.includes('singapur') || d.includes('singapore'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los colombianos viajan SIN VISA a Singapur hasta 30 d�as. Pasaporte vigente.';
-    else if (d.includes('cuba') || d.includes('habana') || d.includes('varadero'))
-      visaInfo = 'PASAPORTE + TARJETA DEL TURISTA: Los colombianos necesitan Tarjeta del Turista para Cuba (~US$25), comprable en el aeropuerto o aerol�nea.';
-    else
-      visaInfo = 'PASAPORTE: Verifica los requisitos de visa en cancilleria.gov.co (Canciller�a de Colombia). Est�ndar: pasaporte vigente con al menos 6 meses de validez desde la fecha de regreso.';
-
-  // -- Visa / Pasaporte para viajeros MEXICANOS -------------------------------
-  } else if (isMexico) {
-    if (d.includes('eeuu') || d.includes('estados unidos') || d.includes('nueva york') || d.includes('new york') || d.includes('miami') || d.includes('los angeles') || d.includes('chicago') || d.includes('orlando') || d.includes('washington') || d.includes('houston'))
-      visaInfo = 'PASAPORTE + VISA B1/B2: Los mexicanos generalmente NECESITAN visa para EE.UU. Si ya la tienes vigente, �perfecto! Si no, tramitar en la Embajada de EE.UU. en M�xico (mx.usembassy.gov). El proceso puede tardar meses.';
-    else if (d.includes('canad�') || d.includes('canada') || d.includes('toronto') || d.includes('vancouver') || d.includes('montreal'))
-      visaInfo = 'PASAPORTE + VISA o eTA: Los mexicanos necesitan visa de turista para Canad� (o eTA si viajaron en avi�n con visa canadiense previa). Tramitar con anticipaci�n en canada.ca.';
-    else if (d.includes('europa') || d.includes('schengen') || d.includes('espa�a') || d.includes('france') || d.includes('paris') || d.includes('italia') || d.includes('roma') || d.includes('alemania') || d.includes('berlin') || d.includes('grecia') || d.includes('portugal') || d.includes('lisboa') || d.includes('holanda') || d.includes('amsterdam') || d.includes('suiza') || d.includes('austria') || d.includes('viena') || d.includes('hungr�a') || d.includes('budapest') || d.includes('rep�blica checa') || d.includes('praga') || d.includes('madrid') || d.includes('barcelona'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los mexicanos viajan SIN VISA a la Zona Schengen hasta 90 d�as. Solo pasaporte vigente con al menos 6 meses de validez.';
-    else if (d.includes('reino unido') || d.includes('uk') || d.includes('inglaterra') || d.includes('londres') || d.includes('london'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los mexicanos viajan SIN VISA al Reino Unido hasta 6 meses. Pasaporte vigente obligatorio.';
-    else if (d.includes('australia') || d.includes('sydney') || d.includes('melbourne'))
-      visaInfo = 'PASAPORTE + eVisitor: Los mexicanos necesitan eVisitor (651) para Australia, GRATUITO, tramitable online en immi.homeaffairs.gov.au. Pasaporte vigente obligatorio.';
-    else if (d.includes('japon') || d.includes('jap�n') || d.includes('tokyo') || d.includes('osaka') || d.includes('kyoto'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los mexicanos viajan SIN VISA a Jap�n hasta 90 d�as. Solo pasaporte vigente � sin tr�mites previos.';
-    else if (d.includes('tailandia') || d.includes('thailand') || d.includes('bangkok') || d.includes('phuket'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los mexicanos viajan SIN VISA a Tailandia hasta 30 d�as. Pasaporte vigente obligatorio.';
-    else if (d.includes('china') || d.includes('beijing') || d.includes('shanghai'))
-      visaInfo = 'PASAPORTE + VISA: Los mexicanos necesitan visa para China. Tramitar en la Embajada China en M�xico. Pasaporte con al menos 6 meses de vigencia.';
-    else if (d.includes('india') || d.includes('delhi') || d.includes('mumbai') || d.includes('goa'))
-      visaInfo = 'PASAPORTE + e-VISA: Los mexicanos necesitan e-Visa para India (~US$25), en indianvisaonline.gov.in. Aprobaci�n en 72-96h.';
-    else if (d.includes('argentina') || d.includes('buenos aires') || d.includes('mendoza') || d.includes('bariloche'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los mexicanos viajan a Argentina sin visa hasta 90 d�as. Pasaporte vigente obligatorio.';
-    else if (d.includes('chile') || d.includes('santiago'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los mexicanos viajan a Chile sin visa hasta 90 d�as. Pasaporte vigente obligatorio.';
-    else if (d.includes('per�') || d.includes('peru') || d.includes('lima') || d.includes('cusco') || d.includes('machu picchu'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los mexicanos viajan a Per� sin visa hasta 183 d�as. Pasaporte vigente obligatorio.';
-    else if (d.includes('colombia') || d.includes('bogot�') || d.includes('cartagena') || d.includes('medell�n'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los mexicanos viajan a Colombia sin visa hasta 90 d�as. Pasaporte vigente.';
-    else if (d.includes('brasil') || d.includes('brazil') || d.includes('r�o de janeiro') || d.includes('s�o paulo') || d.includes('sao paulo'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los mexicanos viajan a Brasil sin visa hasta 90 d�as. Pasaporte vigente obligatorio.';
-    else if (d.includes('uruguay') || d.includes('montevideo'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los mexicanos viajan a Uruguay sin visa. Pasaporte vigente.';
-    else if (d.includes('cuba') || d.includes('habana') || d.includes('varadero'))
-      visaInfo = 'PASAPORTE + TARJETA DEL TURISTA: Los mexicanos necesitan Tarjeta del Turista para Cuba (~US$25), comprable en el aeropuerto o aerol�nea. Pasaporte vigente.';
-    else if (d.includes('emiratos') || d.includes('dubai') || d.includes('abu dhabi'))
-      visaInfo = 'PASAPORTE (VISA ON ARRIVAL): Los mexicanos obtienen visa gratuita al llegar a Dubai por acuerdo. Pasaporte con al menos 6 meses de validez.';
-    else if (d.includes('turqu�a') || d.includes('turquia') || d.includes('estambul') || d.includes('istanbul'))
-      visaInfo = 'PASAPORTE + e-VISA: Los mexicanos necesitan e-Visa para Turqu�a (~US$50), en evisa.gov.tr.';
-    else if (d.includes('singapur') || d.includes('singapore'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los mexicanos viajan SIN VISA a Singapur hasta 30 d�as. Pasaporte vigente.';
-    else if (d.includes('corea del sur') || d.includes('seoul') || d.includes('se�l'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los mexicanos viajan SIN VISA a Corea del Sur hasta 90 d�as. Pasaporte vigente.';
-    else if (d.includes('bali') || d.includes('indonesia') || d.includes('jakarta'))
-      visaInfo = 'PASAPORTE (VISA ON ARRIVAL): Los mexicanos obtienen Visa on Arrival en Indonesia (~US$35) por 30 d�as, prorrogable 30 d�as m�s. Pasaporte con 6 meses de validez.';
-    else
-      visaInfo = 'PASAPORTE: Verifica los requisitos de visa en sre.gob.mx (Secretar�a de Relaciones Exteriores de M�xico). Est�ndar: pasaporte vigente con al menos 6 meses de validez desde la fecha de regreso.';
-
-  } else if (isPeru) {
-    if (d.includes('eeuu') || d.includes('estados unidos') || d.includes('nueva york') || d.includes('new york') || d.includes('miami') || d.includes('los angeles') || d.includes('chicago') || d.includes('orlando') || d.includes('washington') || d.includes('houston'))
-      visaInfo = 'PASAPORTE + VISA B1/B2: Los peruanos NECESITAN visa para EE.UU. Tramitar con anticipaci�n en la Embajada de EE.UU. en Lima (pe.usembassy.gov). El proceso puede tardar semanas o meses.';
-    else if (d.includes('canad�') || d.includes('canada') || d.includes('toronto') || d.includes('vancouver') || d.includes('montreal'))
-      visaInfo = 'PASAPORTE + VISA: Los peruanos necesitan visa de turista para Canad�. Tramitar con anticipaci�n en ircc.canada.ca.';
-    else if (d.includes('europa') || d.includes('schengen') || d.includes('espa�a') || d.includes('france') || d.includes('paris') || d.includes('italia') || d.includes('roma') || d.includes('alemania') || d.includes('berlin') || d.includes('grecia') || d.includes('portugal') || d.includes('lisboa') || d.includes('holanda') || d.includes('amsterdam') || d.includes('suiza') || d.includes('austria') || d.includes('viena') || d.includes('hungr�a') || d.includes('budapest') || d.includes('rep�blica checa') || d.includes('praga') || d.includes('madrid') || d.includes('barcelona'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los peruanos viajan SIN VISA a la Zona Schengen hasta 90 d�as gracias al acuerdo UE-Per� vigente desde 2023. Solo pasaporte con al menos 6 meses de validez.';
-    else if (d.includes('reino unido') || d.includes('uk') || d.includes('inglaterra') || d.includes('londres') || d.includes('london'))
-      visaInfo = 'PASAPORTE + VISA UK: Los peruanos necesitan visa para el Reino Unido. Tramitar en gov.uk/uk-visa. Pasaporte vigente con al menos 6 meses de validez.';
-    else if (d.includes('australia') || d.includes('sydney') || d.includes('melbourne'))
-      visaInfo = 'PASAPORTE + VISA: Los peruanos necesitan Visitor Visa (Subclase 600) para Australia. Tramitar online en immi.homeaffairs.gov.au.';
-    else if (d.includes('japon') || d.includes('jap�n') || d.includes('tokyo') || d.includes('osaka') || d.includes('kyoto'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los peruanos viajan SIN VISA a Jap�n hasta 90 d�as por acuerdo bilateral. Solo pasaporte vigente � sin tr�mites previos.';
-    else if (d.includes('tailandia') || d.includes('thailand') || d.includes('bangkok') || d.includes('phuket'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los peruanos viajan SIN VISA a Tailandia hasta 30 d�as. Pasaporte vigente obligatorio.';
-    else if (d.includes('turqu�a') || d.includes('turquia') || d.includes('estambul') || d.includes('istanbul'))
-      visaInfo = 'PASAPORTE + e-VISA: Los peruanos necesitan e-Visa para Turqu�a (~US$50), tramitable en evisa.gov.tr.';
-    else if (d.includes('emiratos') || d.includes('dubai') || d.includes('abu dhabi'))
-      visaInfo = 'PASAPORTE (VISA ON ARRIVAL): Los peruanos pueden obtener visa gratuita al llegar a Emiratos �rabes. Pasaporte con al menos 6 meses de validez.';
-    else if (d.includes('chile') || d.includes('santiago'))
-      visaInfo = 'PASAPORTE O DNI PERUANO: Los peruanos pueden entrar a Chile con su DNI peruano vigente. Sin visa � estad�a hasta 90 d�as.';
-    else if (d.includes('argentina') || d.includes('buenos aires') || d.includes('mendoza') || d.includes('bariloche'))
-      visaInfo = 'PASAPORTE O DNI PERUANO: Los peruanos ingresan a Argentina con DNI peruano vigente. Sin visa � estad�a hasta 90 d�as.';
-    else if (d.includes('brasil') || d.includes('brazil') || d.includes('r�o de janeiro') || d.includes('rio de janeiro') || d.includes('s�o paulo') || d.includes('sao paulo') || d.includes('florian�polis') || d.includes('florianopolis'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los peruanos viajan a Brasil sin visa hasta 90 d�as. Pasaporte peruano vigente (en Brasil no se acepta DNI extranjero).';
-    else if (d.includes('colombia') || d.includes('bogot�') || d.includes('bogota') || d.includes('cartagena') || d.includes('medell�n') || d.includes('medellin'))
-      visaInfo = 'PASAPORTE O C�DULA PERUANA: Los peruanos viajan a Colombia sin visa. Como miembros de la Comunidad Andina (CAN) pueden ingresar con c�dula/DNI peruano vigente.';
-    else if (d.includes('bolivia') || d.includes('la paz') || d.includes('santa cruz') || d.includes('cochabamba'))
-      visaInfo = 'PASAPORTE O DNI PERUANO: Los peruanos viajan a Bolivia sin visa. Como miembros de la Comunidad Andina (CAN) pueden ingresar con DNI peruano vigente.';
-    else if (d.includes('ecuador') || d.includes('quito') || d.includes('guayaquil'))
-      visaInfo = 'PASAPORTE O C�DULA PERUANA: Los peruanos viajan a Ecuador sin visa. Como miembros de la Comunidad Andina (CAN) pueden ingresar con c�dula/DNI peruano vigente.';
-    else if (d.includes('uruguay') || d.includes('montevideo') || d.includes('punta del este'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los peruanos viajan a Uruguay sin visa hasta 90 d�as. Pasaporte peruano vigente.';
-    else if (d.includes('m�xico') || d.includes('mexico') || d.includes('canc�n') || d.includes('cancun') || d.includes('ciudad de m�xico') || d.includes('cdmx'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los peruanos viajan a M�xico sin visa hasta 180 d�as. Pasaporte peruano vigente obligatorio.';
-    else if (d.includes('cuba') || d.includes('habana') || d.includes('varadero'))
-      visaInfo = 'PASAPORTE + TARJETA DEL TURISTA: Los peruanos necesitan Tarjeta del Turista para Cuba (~US$25), comprable en el aeropuerto o aerol�nea. Pasaporte vigente.';
-    else
-      visaInfo = 'PASAPORTE: Verifica los requisitos de visa actualizados en rree.gob.pe (Ministerio de Relaciones Exteriores del Per�) antes de viajar. Los requisitos pueden cambiar � consulta siempre la fuente oficial m�s cercana a tu fecha de viaje.';
-
-  } else if (isUruguay) {
-    if (d.includes('eeuu') || d.includes('estados unidos') || d.includes('nueva york') || d.includes('new york') || d.includes('miami') || d.includes('los angeles') || d.includes('chicago') || d.includes('orlando') || d.includes('washington') || d.includes('houston'))
-      visaInfo = 'PASAPORTE + VISA B1/B2: Los uruguayos NECESITAN visa para EE.UU. Tramitar en la Embajada de EE.UU. en Montevideo (uy.usembassy.gov). El proceso puede tardar semanas.';
-    else if (d.includes('canad�') || d.includes('canada') || d.includes('toronto') || d.includes('vancouver') || d.includes('montreal'))
-      visaInfo = 'PASAPORTE + VISA o eTA: Los uruguayos necesitan visa de turista para Canad� (o eTA si viajaron antes en avi�n con visa canadiense). Tramitar en ircc.canada.ca.';
-    else if (d.includes('europa') || d.includes('schengen') || d.includes('espa�a') || d.includes('france') || d.includes('paris') || d.includes('italia') || d.includes('roma') || d.includes('alemania') || d.includes('berlin') || d.includes('grecia') || d.includes('portugal') || d.includes('lisboa') || d.includes('holanda') || d.includes('amsterdam') || d.includes('suiza') || d.includes('austria') || d.includes('viena') || d.includes('hungr�a') || d.includes('budapest') || d.includes('rep�blica checa') || d.includes('praga') || d.includes('madrid') || d.includes('barcelona'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los uruguayos viajan SIN VISA a la Zona Schengen hasta 90 d�as. Pasaporte con al menos 6 meses de validez desde la fecha de regreso.';
-    else if (d.includes('reino unido') || d.includes('uk') || d.includes('inglaterra') || d.includes('londres') || d.includes('london'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los uruguayos viajan SIN VISA al Reino Unido hasta 6 meses. Pasaporte vigente obligatorio.';
-    else if (d.includes('australia') || d.includes('sydney') || d.includes('melbourne'))
-      visaInfo = 'PASAPORTE + eVisitor: Los uruguayos necesitan eVisitor (651) para Australia, GRATUITO, tramitable online en immi.homeaffairs.gov.au. Pasaporte vigente obligatorio.';
-    else if (d.includes('japon') || d.includes('jap�n') || d.includes('tokyo') || d.includes('osaka') || d.includes('kyoto'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los uruguayos viajan SIN VISA a Jap�n hasta 90 d�as. Solo pasaporte vigente � sin tr�mites previos.';
-    else if (d.includes('tailandia') || d.includes('thailand') || d.includes('bangkok') || d.includes('phuket'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los uruguayos viajan SIN VISA a Tailandia hasta 30 d�as. Pasaporte vigente obligatorio.';
-    else if (d.includes('turqu�a') || d.includes('turquia') || d.includes('estambul') || d.includes('istanbul'))
-      visaInfo = 'PASAPORTE + e-VISA: Los uruguayos necesitan e-Visa para Turqu�a (~US$50), tramitable en evisa.gov.tr.';
-    else if (d.includes('emiratos') || d.includes('dubai') || d.includes('abu dhabi'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los uruguayos viajan SIN VISA a Emiratos �rabes Unidos hasta 90 d�as. Pasaporte con al menos 6 meses de validez.';
-    else if (d.includes('china') || d.includes('beijing') || d.includes('shanghai'))
-      visaInfo = 'PASAPORTE + VISA: Los uruguayos necesitan visa para China. Tramitar en la Embajada de China en Montevideo con anticipaci�n.';
-    else if (d.includes('argentina') || d.includes('buenos aires') || d.includes('mendoza') || d.includes('bariloche'))
-      visaInfo = 'DNI URUGUAYO O PASAPORTE: Los uruguayos entran a Argentina con su DNI uruguayo vigente (MERCOSUR). Sin visa � estad�a hasta 90 d�as.';
-    else if (d.includes('brasil') || d.includes('brazil') || d.includes('r�o de janeiro') || d.includes('rio de janeiro') || d.includes('s�o paulo') || d.includes('sao paulo') || d.includes('florian�polis') || d.includes('florianopolis'))
-      visaInfo = 'DNI URUGUAYO O PASAPORTE: Los uruguayos entran a Brasil con su DNI uruguayo vigente (MERCOSUR). Sin visa � estad�a hasta 90 d�as.';
-    else if (d.includes('chile') || d.includes('santiago'))
-      visaInfo = 'PASAPORTE O DNI URUGUAYO: Los uruguayos entran a Chile con DNI uruguayo vigente. Sin visa � estad�a hasta 90 d�as.';
-    else if (d.includes('colombia') || d.includes('bogot�') || d.includes('bogota') || d.includes('cartagena') || d.includes('medell�n') || d.includes('medellin'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los uruguayos viajan a Colombia sin visa hasta 90 d�as. Pasaporte uruguayo vigente.';
-    else if (d.includes('per�') || d.includes('peru') || d.includes('lima') || d.includes('cusco'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los uruguayos viajan a Per� sin visa hasta 90 d�as. Pasaporte uruguayo vigente.';
-    else if (d.includes('bolivia') || d.includes('la paz') || d.includes('santa cruz'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los uruguayos viajan a Bolivia sin visa. Pasaporte uruguayo vigente.';
-    else if (d.includes('ecuador') || d.includes('quito') || d.includes('guayaquil'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los uruguayos viajan a Ecuador sin visa hasta 90 d�as. Pasaporte uruguayo vigente.';
-    else if (d.includes('m�xico') || d.includes('mexico') || d.includes('canc�n') || d.includes('cancun') || d.includes('ciudad de m�xico') || d.includes('cdmx'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los uruguayos viajan a M�xico sin visa hasta 180 d�as. Pasaporte uruguayo vigente obligatorio.';
-    else if (d.includes('cuba') || d.includes('habana') || d.includes('varadero'))
-      visaInfo = 'PASAPORTE + TARJETA DEL TURISTA: Los uruguayos necesitan Tarjeta del Turista para Cuba, comprable en el aeropuerto o aerol�nea. Pasaporte vigente.';
-    else
-      visaInfo = 'PASAPORTE: Verifica los requisitos de visa actualizados en mrree.gub.uy (Ministerio de Relaciones Exteriores del Uruguay) antes de viajar. Los requisitos pueden cambiar � consulta siempre la fuente oficial m�s cercana a tu fecha de viaje.';
-
-  } else if (isEcuador) {
-    if (d.includes('eeuu') || d.includes('estados unidos') || d.includes('nueva york') || d.includes('new york') || d.includes('miami') || d.includes('los angeles') || d.includes('chicago') || d.includes('orlando') || d.includes('washington') || d.includes('houston'))
-      visaInfo = 'PASAPORTE + VISA B1/B2: Los ecuatorianos NECESITAN visa para EE.UU. Tramitar en la Embajada de EE.UU. en Quito (ec.usembassy.gov). El proceso puede tardar semanas o meses.';
-    else if (d.includes('canad�') || d.includes('canada') || d.includes('toronto') || d.includes('vancouver') || d.includes('montreal'))
-      visaInfo = 'PASAPORTE + VISA: Los ecuatorianos necesitan visa de turista para Canad�. Tramitar con anticipaci�n en ircc.canada.ca.';
-    else if (d.includes('europa') || d.includes('schengen') || d.includes('espa�a') || d.includes('france') || d.includes('paris') || d.includes('italia') || d.includes('roma') || d.includes('alemania') || d.includes('berlin') || d.includes('grecia') || d.includes('portugal') || d.includes('lisboa') || d.includes('holanda') || d.includes('amsterdam') || d.includes('suiza') || d.includes('austria') || d.includes('viena') || d.includes('hungr�a') || d.includes('budapest') || d.includes('rep�blica checa') || d.includes('praga') || d.includes('madrid') || d.includes('barcelona'))
-      visaInfo = 'PASAPORTE + VISA SCHENGEN: Los ecuatorianos NECESITAN visa para la Zona Schengen (Ecuador no tiene acuerdo de liberalizaci�n de visas con la UE, a diferencia de Colombia y Per�). Tramitar en la embajada del pa�s de mayor estad�a.';
-    else if (d.includes('reino unido') || d.includes('uk') || d.includes('inglaterra') || d.includes('londres') || d.includes('london'))
-      visaInfo = 'PASAPORTE + VISA UK: Los ecuatorianos necesitan visa para el Reino Unido. Tramitar en gov.uk/uk-visa con anticipaci�n.';
-    else if (d.includes('australia') || d.includes('sydney') || d.includes('melbourne'))
-      visaInfo = 'PASAPORTE + VISA: Los ecuatorianos necesitan Visitor Visa (Subclase 600) para Australia. Tramitar online en immi.homeaffairs.gov.au.';
-    else if (d.includes('japon') || d.includes('jap�n') || d.includes('tokyo') || d.includes('osaka') || d.includes('kyoto'))
-      visaInfo = 'PASAPORTE + VISA: Los ecuatorianos necesitan visa para Jap�n. Tramitar en la Embajada de Jap�n en Quito con anticipaci�n.';
-    else if (d.includes('tailandia') || d.includes('thailand') || d.includes('bangkok') || d.includes('phuket'))
-      visaInfo = 'PASAPORTE + VISA ON ARRIVAL: Los ecuatorianos pueden obtener Visa on Arrival en Tailandia (30 d�as). Pasaporte vigente y fondos suficientes.';
-    else if (d.includes('turqu�a') || d.includes('turquia') || d.includes('estambul') || d.includes('istanbul'))
-      visaInfo = 'PASAPORTE + e-VISA: Los ecuatorianos necesitan e-Visa para Turqu�a (~US$50), tramitable en evisa.gov.tr.';
-    else if (d.includes('emiratos') || d.includes('dubai') || d.includes('abu dhabi'))
-      visaInfo = 'PASAPORTE + VISA: Los ecuatorianos necesitan visa para Emiratos �rabes Unidos. Tramitar con la aerol�nea o embajada de EAU en Quito. Pasaporte con al menos 6 meses de validez.';
-    else if (d.includes('chile') || d.includes('santiago'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los ecuatorianos viajan a Chile sin visa hasta 90 d�as. Pasaporte ecuatoriano vigente obligatorio.';
-    else if (d.includes('argentina') || d.includes('buenos aires') || d.includes('mendoza') || d.includes('bariloche'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los ecuatorianos viajan a Argentina sin visa hasta 90 d�as. Pasaporte ecuatoriano vigente.';
-    else if (d.includes('brasil') || d.includes('brazil') || d.includes('r�o de janeiro') || d.includes('rio de janeiro') || d.includes('s�o paulo') || d.includes('sao paulo') || d.includes('florian�polis') || d.includes('florianopolis'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los ecuatorianos viajan a Brasil sin visa hasta 90 d�as. Pasaporte ecuatoriano vigente.';
-    else if (d.includes('colombia') || d.includes('bogot�') || d.includes('bogota') || d.includes('cartagena') || d.includes('medell�n') || d.includes('medellin'))
-      visaInfo = 'PASAPORTE O C�DULA ECUATORIANA: Los ecuatorianos viajan a Colombia sin visa. Como miembros de la Comunidad Andina (CAN) pueden ingresar con c�dula ecuatoriana vigente.';
-    else if (d.includes('per�') || d.includes('peru') || d.includes('lima') || d.includes('cusco'))
-      visaInfo = 'PASAPORTE O C�DULA ECUATORIANA: Los ecuatorianos viajan a Per� sin visa. Como miembros de la Comunidad Andina (CAN) pueden ingresar con c�dula ecuatoriana vigente.';
-    else if (d.includes('bolivia') || d.includes('la paz') || d.includes('santa cruz') || d.includes('cochabamba'))
-      visaInfo = 'PASAPORTE O C�DULA ECUATORIANA: Los ecuatorianos viajan a Bolivia sin visa. Como miembros de la Comunidad Andina (CAN) pueden ingresar con c�dula ecuatoriana vigente.';
-    else if (d.includes('uruguay') || d.includes('montevideo') || d.includes('punta del este'))
-      visaInfo = 'PASAPORTE (SIN VISA): Los ecuatorianos viajan a Uruguay sin visa hasta 90 d�as. Pasaporte ecuatoriano vigente.';
-    else if (d.includes('m�xico') || d.includes('mexico') || d.includes('canc�n') || d.includes('cancun') || d.includes('ciudad de m�xico') || d.includes('cdmx'))
-      visaInfo = 'PASAPORTE + VISA: Los ecuatorianos necesitan visa para M�xico (requerida desde 2023 por acuerdo migratorio). Tramitar en la Embajada de M�xico en Quito con anticipaci�n.';
-    else if (d.includes('cuba') || d.includes('habana') || d.includes('varadero'))
-      visaInfo = 'PASAPORTE + TARJETA DEL TURISTA: Los ecuatorianos necesitan Tarjeta del Turista para Cuba, comprable en el aeropuerto o aerol�nea. Pasaporte vigente.';
-    else
-      visaInfo = 'PASAPORTE: Verifica los requisitos de visa actualizados en cancilleria.gob.ec (Ministerio de Relaciones Exteriores del Ecuador) antes de viajar. Los requisitos pueden cambiar � consulta siempre la fuente oficial m�s cercana a tu fecha de viaje.';
-  }
-
-  const lines = [];
-  if (visaInfo) lines.push(visaInfo);
-  if (adapterInfo) lines.push(`ADAPTADOR DE ENCHUFE: ${adapterInfo}`);
-  return lines.join('\n');
-}
+// ── POST /api/generate-pdf ────────────────────────────────────────────────────
 
 export async function POST(request) {
   try {
