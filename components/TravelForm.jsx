@@ -22,7 +22,7 @@ export default function TravelForm({ onClose, initialDestino = '' }) {
     tieneDestino: initialDestino ? true : null,
     destino: initialDestino,
     origen: '',
-    presupuesto: 2250,
+    presupuesto: 2000,
     dias: 7,
     mesViaje: '',
     prioridadGasto: 'equilibrado',
@@ -93,22 +93,6 @@ export default function TravelForm({ onClose, initialDestino = '' }) {
     { id: 'hostal', label: 'Hostal / B&B', emoji: '🛏️' },
   ];
 
-  // Rangos de presupuesto — valor numérico usado en el prompt de IA
-  const presupuestoRangos = [
-    { label: 'Hasta $1,500', value: 1000 },
-    { label: '$1,500 – $3,000', value: 2250 },
-    { label: '$3,000 – $6,000', value: 4500 },
-    { label: '$6,000 – $12,000', value: 9000 },
-    { label: 'Más de $12,000', value: 15000 },
-  ];
-
-  const getPresupuestoLabel = (val) => {
-    if (val <= 1000) return 'Hasta $1,500';
-    if (val <= 2250) return '$1,500 – $3,000';
-    if (val <= 4500) return '$3,000 – $6,000';
-    if (val <= 9000) return '$6,000 – $12,000';
-    return 'Más de $12,000';
-  };
 
   // Genera los próximos 18 meses como opciones
   const getMesOptions = () => {
@@ -236,7 +220,7 @@ export default function TravelForm({ onClose, initialDestino = '' }) {
                 <p><span className="font-medium">Destino:</span> {formData.destino || 'Por definir'}</p>
                 <p><span className="font-medium">Días:</span> {formData.dias}</p>
                 <p><span className="font-medium">Viajeros:</span> {formData.numViajeros}</p>
-                <p><span className="font-medium">Presupuesto:</span> {getPresupuestoLabel(formData.presupuesto)} USD</p>
+                <p><span className="font-medium">Presupuesto:</span> {formData.presupuesto >= 15000 ? '$15.000+ USD' : `$${formData.presupuesto.toLocaleString()} USD`}</p>
               </div>
             </div>
             <div className="mb-6">
@@ -538,19 +522,20 @@ export default function TravelForm({ onClose, initialDestino = '' }) {
                   />
                 </div>
 
-                {/* Presupuesto por rangos */}
+                {/* Presupuesto slider */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">Presupuesto por persona (USD)</label>
-                  <div className="grid grid-cols-1 gap-2">
-                    {presupuestoRangos.map((rango) => (
-                      <button
-                        key={rango.value}
-                        onClick={() => setFormData({ ...formData, presupuesto: rango.value })}
-                        className={`w-full px-4 py-3 rounded-xl border-2 text-left font-medium transition-all ${formData.presupuesto === rango.value ? 'border-orange-500 bg-orange-50 text-orange-600' : 'border-gray-200 hover:border-gray-300 text-gray-700'}`}
-                      >
-                        {rango.label}
-                      </button>
-                    ))}
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Presupuesto por persona (USD)</label>
+                  <div className="bg-gradient-to-r from-orange-50 to-pink-50 p-4 rounded-xl">
+                    <div className="text-3xl font-bold text-center text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-pink-500 mb-3">
+                      {formData.presupuesto >= 15000 ? '$15.000+ USD' : `$${formData.presupuesto.toLocaleString()}`}
+                    </div>
+                    <input
+                      type="range" min="500" max="15000" step="500"
+                      value={formData.presupuesto}
+                      onChange={(e) => setFormData({ ...formData, presupuesto: parseInt(e.target.value) })}
+                      className="w-full"
+                    />
+                    <div className="flex justify-between text-xs text-gray-500 mt-1"><span>$500</span><span>$15.000+</span></div>
                   </div>
                 </div>
 
@@ -929,7 +914,7 @@ export default function TravelForm({ onClose, initialDestino = '' }) {
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-500">💰 Presupuesto</span>
-                  <span className="font-medium text-gray-800">{`${getPresupuestoLabel(formData.presupuesto)} · ${formData.dias} días`}</span>
+                  <span className="font-medium text-gray-800">{`$${formData.presupuesto.toLocaleString()} USD · ${formData.dias} días`}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-500">👥 Viajeros</span>
