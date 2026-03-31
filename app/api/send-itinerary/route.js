@@ -2282,16 +2282,16 @@ IMPORTANTE sobre dias_pro: para CADA d�a del viaje (${formData.dias} d�as), 
         model: 'llama-3.3-70b-versatile',
         messages: [{ role: 'user', content: isPro ? promptPro : promptBasico }],
         temperature: 0.7,
-        max_tokens: isPro ? 12000 : 8000,
+        max_tokens: isPro ? 8000 : 6000,
       }),
     });
 
     if (!groqRes.ok) {
       const groqErrText = await groqRes.text();
       console.error('Groq error status:', groqRes.status, 'body:', groqErrText);
-      // Si es rate limit (429), intentar con modelo m�s r�pido como fallback
-      if (groqRes.status === 429) {
-        console.log('Rate limit 429 en modelo principal, intentando fallback con llama-3.1-8b-instant...');
+      // Si es rate limit (429) o request demasiado grande (413), intentar con modelo con mayor limite de TPM
+      if (groqRes.status === 429 || groqRes.status === 413) {
+        console.log(`Error ${groqRes.status} en modelo principal, intentando fallback con llama-3.1-8b-instant...`);
         const groqFallback = await fetch('https://api.groq.com/openai/v1/chat/completions', {
           method: 'POST',
           headers: {
