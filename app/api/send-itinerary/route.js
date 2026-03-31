@@ -92,19 +92,30 @@ function buildAirlineUrl(aerolinea) {
 
 function buildAlojamientoUrl(op, destino, checkin, checkout, adults, alojPref) {
   const plat = (op.plataforma || '').toLowerCase();
-  const nombre = (op.nombre || '').trim();
+  const zona  = (op.zona || op.nombre || '').trim();
+  const cat   = (op.categoria || '').toLowerCase();
+  const searchZona = zona ? `${zona}, ${destino}` : (destino || '');
+
   if (plat.includes('hostel')) {
     const fmtHW = (d) => { if (!d) return ''; const [y,m,dd]=d.split('-'); return `${dd}%2F${m}%2F${y}`; };
-    return `https://www.hostelworld.com/search?search_keywords=${encodeURIComponent(nombre+', '+(destino||''))}&dateFrom=${fmtHW(checkin)}&dateTo=${fmtHW(checkout)}&numberOfGuests=${adults||2}`;
+    // Rating minimo diferenciado por categoria: Economico 75, Confort 80, Premium 85
+    const minRating = cat.includes('premium') ? 85 : cat.includes('confort') ? 80 : 75;
+    return `https://www.hostelworld.com/search?search_keywords=${encodeURIComponent(searchZona)}&dateFrom=${fmtHW(checkin)}&dateTo=${fmtHW(checkout)}&numberOfGuests=${adults||2}&min_rating=${minRating}`;
   }
   if (plat.includes('airbnb')) {
-    const p = new URLSearchParams({ checkin: checkin||'', checkout: checkout||'', adults: adults||2, query: nombre });
+    // Tipo de habitacion por categoria: Economico = habitacion privada, Confort/Premium = apartamento entero
+    const roomType = cat.includes('econ') ? 'Private room' : 'Entire home/apt';
+    const p = new URLSearchParams({ checkin: checkin||'', checkout: checkout||'', adults: adults||2, query: zona || destino });
+    p.append('room_types[]', roomType);
     return `https://www.airbnb.com/s/${encodeURIComponent(destino||'')}/homes?${p}`;
   }
-  const searchTerm = nombre ? `${nombre}, ${destino}` : destino;
-  const p = new URLSearchParams({ ss: searchTerm, checkin: checkin||'', checkout: checkout||'', group_adults: adults||2, no_rooms:1, selected_currency:'USD' });
-  if (alojPref === 'bnb') p.append('nflt', 'pt%3D11');
-  return `https://www.booking.com/searchresults.html?${p}`;
+  // Booking.com — filtro de estrellas por categoria
+  const stars = cat.includes('premium') ? 'class=4;class=5'
+              : cat.includes('confort')  ? 'class=3;class=4'
+              :                            'class=2;class=3';
+  const nflt  = alojPref === 'bnb' ? 'pt=11' : `ht_id=204;${stars}`;
+  const p = new URLSearchParams({ ss: searchZona, checkin: checkin||'', checkout: checkout||'', group_adults: adults||2, no_rooms:1, selected_currency:'USD' });
+  return `https://www.booking.com/searchresults.html?${p}&nflt=${encodeURIComponent(nflt)}`;
 }
 
 function pdfBtn(label, url, color) {
@@ -382,7 +393,7 @@ async function generateItinerarioPdf(itinerario, formData, planLabel) {
           { text:ce(op.nombre||'')+(op.puntuacion?`\n${op.puntuacion}`:'')+(op.cancelacion?.toLowerCase().includes('gratuita')?'\nCancelacion gratuita':''), fontSize:8, color:CARBON, fillColor:i%2===0?'#F5F0FF':'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
           { text:op.precio_noche||'\u2014', fontSize:8, bold:true, color:VIOLETA, fillColor:i%2===0?'#F5F0FF':'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
           { text:ce(op.por_que)||'\u2014', fontSize:7, color:'#555', italics:true, fillColor:i%2===0?'#F5F0FF':'#fff', border:[false,false,false,false], margin:[4,5,4,5] },
-          pdfBtn('Ver >', buildAlojamientoUrl(op, zona.destino, res.fecha_salida, res.fecha_regreso, formData?.numViajeros, formData?.alojamiento), VIOLETA),
+          pdfBtn('Buscar disponibilidad >', buildAlojamientoUrl(op, zona.destino, res.fecha_salida, res.fecha_regreso, formData?.numViajeros, formData?.alojamiento), VIOLETA),
         ]);
         content.push({
           table:{ widths:[55,100,65,'*',55], body:[hHdr,...hRows] },
@@ -1695,12 +1706,12 @@ Para origen_iata y destino_iata: c�digo IATA de 3 letras del aeropuerto princi
 
     // -- Regla ALOJAMIENTO seg�n preferencia ---------------------------------
     const alojRule = alojPref === 'hostal'
-      ? `- ALOJAMIENTO: El cliente eligi� HOSTALES. Las 3 opciones (Econ�mico, Confort, Premium) DEBEN ser hostales/albergues reales con nombre verificable en Hostelworld. PROHIBIDO recomendar hoteles de cadena (Hilton, Marriott, Ibis, etc.) ni Airbnb. Las 3 plataformas son TODAS "Hostelworld". Busca hostales reales en el destino.`
+      ? `- ALOJAMIENTO: El cliente eligi\u00f3 HOSTALES. Para cada opci\u00f3n usa el campo "zona" con el barrio espec\u00edfico (ej: "El Raval", "Mitte") y el campo "nombre" con un descriptor \u00fatil (ej: "Hostal social con bar en El Raval, rating 8.5+", "Albergue boutique con cocina compartida en Mitte, rating 9.0+"). La disponibilidad var\u00eda por fechas: zona+tipo garantiza que el viajero siempre encuentre opciones equivalentes. PROHIBIDO recomendar hoteles de cadena ni Airbnb. Las 3 plataformas son TODAS "Hostelworld". SIEMPRE 3 opciones por ciudad: Econ\u00f3mico, Confort y Premium.`
       : alojPref === 'airbnb'
-        ? `- ALOJAMIENTO: El cliente eligi� AIRBNB. Las 3 opciones deben ser propiedades reales en Airbnb (apartamentos, casas, estudios). SIEMPRE incluye EXACTAMENTE 3 opciones por ciudad: Econ�mico, Confort y Premium. Nunca menos de 3.`
+        ? `- ALOJAMIENTO: El cliente eligi\u00f3 AIRBNB. Para cada opci\u00f3n usa el campo "zona" con el barrio/\u00e1rea (ej: "Palermo Soho", "Gracia") y el campo "nombre" con un descriptor de tipo+zona (ej: "Apartamento entero 1 dormitorio en Palermo Soho", "Loft con terraza para 2 en Gracia", "Casa completa con jard\u00edn en San Telmo"). Econ\u00f3mico = habitaci\u00f3n privada; Confort y Premium = apartamento o casa entera. La disponibilidad var\u00eda: zona+tipo garantiza opciones equivalentes siempre. SIEMPRE 3 opciones por ciudad.`
         : alojPref === 'bnb'
-          ? `- ALOJAMIENTO: El cliente eligi� BED & BREAKFAST. Las 3 opciones DEBEN ser Bed & Breakfast o casas de hu�spedes reales con ese formato (peque�o, familiar, desayuno incluido). B�scalas en Booking.com usando el filtro "Bed and breakfast" (tipo de propiedad). SIEMPRE incluye EXACTAMENTE 3 opciones por ciudad. La plataforma de todas las opciones es "Booking.com".`
-          : `- ALOJAMIENTO: Recomienda SOLO hoteles con nombre REAL y verificable. Prioriza cadenas conocidas (Hilton, Marriott, NH, Ibis, Radisson, Hyatt, etc.) o boutiques con alta presencia online. NUNCA inventes nombres. SIEMPRE incluye EXACTAMENTE 3 opciones por ciudad: Econ�mico, Confort y Premium. Nunca menos de 3.`;
+          ? `- ALOJAMIENTO: El cliente eligi\u00f3 BED & BREAKFAST. Para cada opci\u00f3n usa el campo "zona" con el barrio espec\u00edfico y el campo "nombre" con un descriptor (ej: "B&B familiar con desayuno incluido en el casco hist\u00f3rico", "Casa de hu\u00e9spedes boutique cerca del mercado central"). B\u00fascarlos en Booking.com con filtro "Bed and breakfast". SIEMPRE 3 opciones por ciudad. La plataforma de las 3 es "Booking.com".`
+          : `- ALOJAMIENTO: Para cada opci\u00f3n usa el campo "zona" con el barrio/\u00e1rea espec\u00edfica y el campo "nombre" con un descriptor de categor\u00eda+tipo (ej: "Hotel boutique 4\u2605 en el Eixample", "Hotel de cadena 3\u2605 cerca del centro hist\u00f3rico", "Hotel 2\u2605 bien ubicado en el barrio del puerto"). Si conoces un hotel real verificable (Hilton, Marriott, NH, Ibis, Radisson, Hyatt, etc.) puedes mencionarlo en "nombre", antecedido del barrio (ej: "NH Collection 4\u2605 en el Eixample"). La disponibilidad var\u00eda: zona+tipo garantiza que el viajero encuentre opciones equivalentes. SIEMPRE 3 opciones por ciudad: Econ\u00f3mico, Confort y Premium.`;
     const platEco  = alojPref === 'hostal'  ? 'Hostelworld'
                    : alojPref === 'airbnb'  ? 'Airbnb'
                    : alojPref === 'bnb'     ? 'Booking.com'
@@ -1713,58 +1724,67 @@ Para origen_iata y destino_iata: c�digo IATA de 3 letras del aeropuerto princi
                    : alojPref === 'airbnb'  ? 'Airbnb'
                    : alojPref === 'bnb'     ? 'Booking.com'
                    : 'Booking.com';    // hotel ? Premium en Booking.com
-    // Links de b�squeda seg�n plataforma � Booking con filtros por tipo (hotel vs B&B)
-    const bookingUrl = alojPref === 'bnb'
-      ? 'https://www.booking.com/searchresults.html?ss=CIUDAD&group_adults=VIAJEROS&nflt=pt%3D11'
-      : 'https://www.booking.com/searchresults.html?ss=CIUDAD&group_adults=VIAJEROS&nflt=ht_id%3D204';
-    const linkEco  = platEco  === 'Airbnb'       ? 'https://www.airbnb.com/s/CIUDAD/homes'
-                   : platEco  === 'Hostelworld'   ? 'https://www.hostelworld.com/search?search_keywords=CIUDAD'
-                   : bookingUrl;
-    const linkMid  = platMid  === 'Airbnb'       ? 'https://www.airbnb.com/s/CIUDAD/homes'
-                   : platMid  === 'Hostelworld'   ? 'https://www.hostelworld.com/search?search_keywords=CIUDAD'
-                   : bookingUrl;
-    const linkPrem = platPrem === 'Airbnb'       ? 'https://www.airbnb.com/s/CIUDAD/homes'
-                   : platPrem === 'Hostelworld'   ? 'https://www.hostelworld.com/search?search_keywords=CIUDAD'
-                   : bookingUrl;
+    // Links de busqueda segun plataforma -- Booking con estrellas por categoria, Hostelworld con rating minimo, Airbnb con tipo habitacion
+    const bookingEco  = alojPref === 'bnb'
+      ? 'https://www.booking.com/searchresults.html?ss=ZONA,+CIUDAD&group_adults=VIAJEROS&nflt=pt%3D11'
+      : 'https://www.booking.com/searchresults.html?ss=ZONA,+CIUDAD&group_adults=VIAJEROS&nflt=ht_id%3D204%3Bclass%3D2%3Bclass%3D3';
+    const bookingMid  = alojPref === 'bnb'
+      ? 'https://www.booking.com/searchresults.html?ss=ZONA,+CIUDAD&group_adults=VIAJEROS&nflt=pt%3D11'
+      : 'https://www.booking.com/searchresults.html?ss=ZONA,+CIUDAD&group_adults=VIAJEROS&nflt=ht_id%3D204%3Bclass%3D3%3Bclass%3D4';
+    const bookingPrem = alojPref === 'bnb'
+      ? 'https://www.booking.com/searchresults.html?ss=ZONA,+CIUDAD&group_adults=VIAJEROS&nflt=pt%3D11'
+      : 'https://www.booking.com/searchresults.html?ss=ZONA,+CIUDAD&group_adults=VIAJEROS&nflt=ht_id%3D204%3Bclass%3D4%3Bclass%3D5';
+    const linkEco  = platEco  === 'Airbnb'       ? 'https://www.airbnb.com/s/CIUDAD/homes?room_types%5B%5D=Private+room&query=ZONA'
+                   : platEco  === 'Hostelworld'   ? 'https://www.hostelworld.com/search?search_keywords=ZONA,+CIUDAD&min_rating=75'
+                   : bookingEco;
+    const linkMid  = platMid  === 'Airbnb'       ? 'https://www.airbnb.com/s/CIUDAD/homes?room_types%5B%5D=Entire+home%2Fapt&query=ZONA'
+                   : platMid  === 'Hostelworld'   ? 'https://www.hostelworld.com/search?search_keywords=ZONA,+CIUDAD&min_rating=80'
+                   : bookingMid;
+    const linkPrem = platPrem === 'Airbnb'       ? 'https://www.airbnb.com/s/CIUDAD/homes?room_types%5B%5D=Entire+home%2Fapt&query=ZONA'
+                   : platPrem === 'Hostelworld'   ? 'https://www.hostelworld.com/search?search_keywords=ZONA,+CIUDAD&min_rating=85'
+                   : bookingPrem;
 
     const alojamientoSchema = `
 "alojamiento": [
   {
     "destino": "string (ciudad/zona)",
-    "noches": n�mero,
+    "noches": numero,
     "opciones": [
       {
         "plataforma": "${platEco}",
-        "nombre": "string (nombre real del alojamiento)",
-        "categoria": "Econ�mico",
+        "zona": "string (barrio o area especifica donde buscar, ej: 'Eixample', 'Palermo Soho', 'Mitte')",
+        "nombre": "string (descriptor zona+tipo, ej: 'Hotel 2-3 estrellas en el Eixample', 'Hostal social en El Raval rating 8+', 'Habitacion privada en Palermo Soho')",
+        "categoria": "Economico",
         "precio_noche": "string en USD",
         "puntuacion": "string (ej: 8.7/10)",
         "cancelacion": "Gratuita",
         "highlights": ["string feature 1", "string feature 2"],
-        "por_que": "string en voz VIVANTE c�lida y directa",
-        "link": "URL de b�squeda: ${linkEco}"
+        "por_que": "string en voz VIVANTE calida y directa",
+        "link": "URL de busqueda: ${linkEco}"
       },
       {
         "plataforma": "${platMid}",
-        "nombre": "string",
+        "zona": "string (barrio o area especifica)",
+        "nombre": "string (descriptor zona+tipo, ej: 'Hotel boutique 3-4 estrellas en el centro historico', 'Hostal premium en Gracia rating 8.5+', 'Apartamento entero en Palermo Soho')",
         "categoria": "Confort",
         "precio_noche": "string",
         "puntuacion": "string",
         "cancelacion": "Gratuita",
         "highlights": ["string"],
         "por_que": "string",
-        "link": "URL de b�squeda: ${linkMid}"
+        "link": "URL de busqueda: ${linkMid}"
       },
       {
         "plataforma": "${platPrem}",
-        "nombre": "string",
+        "zona": "string (barrio o area especifica)",
+        "nombre": "string (descriptor zona+tipo, ej: 'Hotel boutique 4-5 estrellas en el Eixample', 'Hostal top-rated en Mitte rating 9+', 'Apartamento entero premium en Recoleta')",
         "categoria": "Premium",
         "precio_noche": "string",
         "puntuacion": "string (ej: 4.9/5)",
         "cancelacion": "string",
         "highlights": ["string"],
         "por_que": "string",
-        "link": "URL de b�squeda: ${linkPrem}"
+        "link": "URL de busqueda: ${linkPrem}"
       }
     ]
   }
