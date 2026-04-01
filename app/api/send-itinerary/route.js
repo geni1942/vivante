@@ -1422,7 +1422,6 @@ export async function POST(request) {
     const esViajeroMedio = formData.experienciaViajero === 'algunas-veces';
     const esViajeroNovato = formData.experienciaViajero === 'primera-vez';
 
-    const primeraVisitaCtx = esRegular
     // primeraVisitaCtx eliminado — experienciaViajeroCtx lo cubre de forma más compacta
     const primeraVisitaCtx = '';
 
@@ -1585,7 +1584,6 @@ Para origen_iata y destino_iata: c�digo IATA de 3 letras del aeropuerto princi
 
     // -- Reglas de personalizaci�n adicionales (nuevos campos del form) --------
     const reglasPersonalizacion = [
-    const reglasPersonalizacion = [
       `- INTERESES: ${interesesConPeso}. Principal=60% actividades, 2do=25%, 3ro=10%, 4to=ocasional. Mapeo: gastronomia→mercados/cocina/degustaciones; aventura→senderismo/kayak/extremos; playa→playas/snorkeling/surf; cultura→museos/historia/arte; naturaleza→parques/cascadas; nocturna→bares/rooftops/clubes.`,
       restriccionCtx ? `- ALIMENTACIÓN: ${restriccionDescMap[formData.restriccionDietaria]}` : '',
       horarioCtx,
@@ -1648,7 +1646,6 @@ Para origen_iata y destino_iata: c�digo IATA de 3 letras del aeropuerto princi
                    : platPrem === 'Hostelworld'   ? 'https://www.hostelworld.com/search?search_keywords=ZONA,+CIUDAD&min_rating=85'
                    : bookingPrem;
 
-    const alojamientoSchema = `
     const alojamientoSchema = `
 "alojamiento": [
   {
