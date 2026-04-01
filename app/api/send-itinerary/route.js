@@ -1502,7 +1502,7 @@ DEBES:
 
     // -- Movilidad reducida ----------------------------------------------------
     const movilidadCtx = formData.movilidadReducida
-      ? '\n- MOVILIDAD REDUCIDA: alguien en el grupo tiene movilidad reducida. TODAS las actividades deben ser accesibles (sin escaleras largas, terrenos irregulares ni distancias a pie extensas). Menciona accesibilidad en cada actividad. Prioriza transporte con opciones accesibles y alojamiento con habitaciones adaptadas.'
+      ? '\n- MOVILIDAD REDUCIDA: TODAS las actividades deben ser accesibles (sin escaleras largas ni terrenos irregulares). Prioriza transporte y alojamiento accesibles. Menciona accesibilidad en cada actividad.'
       : '';
 
 
@@ -1511,13 +1511,10 @@ DEBES:
     const _esSudAmerica = ['chile','argentina','per�','peru','colombia','brasil','brazil','bolivia','ecuador','uruguay','venezuela','paraguay'].some(p => _origenNorm.includes(p));
     const _maxVuelo = dias <= 4 ? 6 : dias <= 7 ? 10 : dias <= 11 ? 14 : 99;
     const distanciaCtx = (_esSudAmerica && _maxVuelo < 99)
-      ? `\n- EFICIENCIA DE VUELO: El viaje es de ${dias} días desde ${formData.origen || 'Chile'} (vuelo máximo razonable: ${_maxVuelo}h por tramo).${
-          dias <= 4
-            ? ' PROHIBIDO recomendar Europa, Asia, Oceanía — con 4 días o menos solo son viables Sudamérica, Caribe cercano y México.'
-            : dias <= 7
-            ? ` Con 7 días, un vuelo de 12-13h (ej: Chile→Europa) deja solo ~4 días reales en destino. PROHIBIDO Japón (14h+), Sudeste Asiático (16h+) y Oceanía (16h+) si el usuario no los eligió explícitamente. Si el destino elegido supera 10h de vuelo, OBLIGATORIO incluir en resumen.distribucion: "⚠️ Con ${dias} días y ~Xh de vuelo contarás con Y días reales en destino — optimizamos el itinerario para aprovecharlos al máximo."`
-            : ' Con 11 días, Oceanía y Asia muy lejana (16h+) son el límite máximo. OBLIGATORIO incluir en resumen.distribucion el tiempo real disponible si el vuelo supera 14h.'
-        }`
+      ? `\n- DISTANCIA VUELO (${dias}d desde ${formData.origen || 'Chile'}): máx razonable ${_maxVuelo}h/tramo.${
+          dias <= 4 ? ' PROHIBIDO Europa/Asia/Oceanía (4d o menos).' :
+          dias <= 7 ? ' Vuelo >10h deja pocos días reales; incluye aviso en resumen.distribucion.' :
+          ' Incluye aviso en resumen.distribucion si vuelo supera 14h.'}`
       : '';
 
     // -- Ritmo efectivo: ajustado por ocasión especial y composición del grupo --
@@ -1534,15 +1531,11 @@ DEBES:
 
     // -- Presupuesto por día (también necesario antes de clienteCtx) -----------
     const presupuestoDia = Math.round(presupuesto / dias);
-    const presupuestoDiaRule = `\n- PRESUPUESTO DIARIO: $${presupuestoDia} USD/persona/d\u00eda (= $${presupuesto} total / ${dias} d\u00edas). Adapta la calidad de CADA recomendaci\u00f3n a esta realidad:${
-      presupuestoDia < 80
-        ? ' Menos de $80/d\u00eda \u2192 alojamiento hostal o Airbnb econ\u00f3mico, comidas en mercados y callejero, tours gratuitos o grupales b\u00e1sicos, sin actividades premium.'
-        : presupuestoDia < 150
-        ? ' $80-150/d\u00eda \u2192 hotel 3\u2605 o Airbnb confort, mezcla callejero + restaurantes mid-range, tours grupales con alguna experiencia especial.'
-        : presupuestoDia < 250
-        ? ' $150-250/d\u00eda \u2192 hotel 4\u2605, cenas en restaurantes de calidad, tours privados opcionales, al menos 1 experiencia premium por viaje.'
-        : ' $250+/d\u00eda \u2192 hotel 4-5\u2605 o boutique, cenas selectas, experiencias premium y privadas como primera opci\u00f3n.'}
-    Aplica esta l\u00f3gica en alojamiento, restaurantes y actividades. Un presupuesto de $${presupuestoDia}/d\u00eda NO permite cenar en restaurante de $80/persona cada noche.`;
+    const presupuestoDiaRule = `\n- PRESUPUESTO DIARIO: $${presupuestoDia}/persona/día. ${
+      presupuestoDia < 80 ? 'Hostal/Airbnb económico, comidas callejeras, tours gratuitos.' :
+      presupuestoDia < 150 ? 'Hotel 3★ o Airbnb confort, mezcla callejero + mid-range.' :
+      presupuestoDia < 250 ? 'Hotel 4★, restaurantes de calidad, 1 experiencia premium.' :
+      'Hotel 4-5★ o boutique, experiencias premium como primera opción.'} Aplica en alojamiento, restaurantes y actividades.`;
 
     // -- clienteCtx completo ---------------------------------------------------
     const clienteCtx = `
@@ -1580,14 +1573,14 @@ Para origen_iata y destino_iata: c�digo IATA de 3 letras del aeropuerto princi
       : '';
 
     // -- Regla OPTIMIZACI�N GEOGR�FICA ----------------------------------------
-    const geoRule = `- OPTIMIZACI�N GEOGR�FICA DE RUTA: (1) Para viajes MULTI-DESTINO: ordena las ciudades/pa�ses de forma geogr�ficamente l�gica para minimizar distancias y tiempos de traslado. Nunca plantees rutas que obliguen a retroceder innecesariamente (ej: si visitas Madrid, Barcelona y Lisboa, no vayas Madrid?Lisboa?Barcelona). (2) Para el d�a a d�a de CADA CIUDAD: agrupa las actividades por zona geogr�fica. Ma�ana: zona norte o centro. Tarde: zona sur o cercana. Nunca propongas en el mismo d�a visitar atracciones en extremos opuestos de la ciudad sin l�gica de desplazamiento. Siempre incluye en "ruta_optimizada" el orden sugerido para minimizar traslados. (3) Para vuelos: prioriza conexiones l�gicas (no escalas en direcci�n contraria al destino).`;
+    const geoRule = `- RUTA GEOGRÁFICA: Multi-destino: ordena ciudades sin retrocesos innecesarios. Día a día: agrupa actividades por zona, sin extremos opuestos en el mismo día; incluye "ruta_optimizada" con el orden sugerido. Vuelos: conexiones lógicas.`;
 
     // -- Regla D�AS: siempre generar los N d�as completos ---------------------
-    const diasRule = `- D�AS COMPLETOS: El array "dias" del JSON DEBE contener EXACTAMENTE ${dias} objetos (uno por cada d�a del viaje). NUNCA generes menos d�as aunque el presupuesto sea ajustado. Si el presupuesto es bajo, adapta con actividades gratuitas (parques, iglesias, miradores, mercados), comida callejera y alojamiento econ�mico � pero SIEMPRE genera los ${dias} d�as completos. Un presupuesto ajustado NO es excusa para recortar el itinerario.`;
+    const diasRule = `- DÍAS: "dias" debe tener EXACTAMENTE ${dias} objetos. Con presupuesto bajo usa actividades gratuitas/económicas pero NUNCA generes menos días.`;
 
     // -- Regla viaje dom�stico ------------------------------------------------
     const domesticRule = isDomestic
-      ? `- VIAJE DOM�STICO: Origen (${formData.origen}) y destino (${formData.destino}) est�n en el MISMO PA�S. Reglas ESTRICTAS: (1) "checklist": EST� ABSOLUTAMENTE PROHIBIDO incluir la palabra "pasaporte" en cualquier �tem del checklist. El viajero solo necesita su c�dula de identidad / DNI nacional. NO incluyas visa de turismo, adaptador de enchufe extranjero ni seguro de viaje internacional. Nunca menciones pasaporte en el checklist de un viaje dom�stico. (2) "dinero.tipo_cambio": pon "No aplica � misma moneda"; "dinero.donde_cambiar": pon "No aplica � no se necesita cambiar divisas". (3) "seguro": solo asistencia m�dica nacional, sin menci�n a cobertura internacional. (4) "que_empacar.adaptador_enchufe": pon "No necesario � mismo pa�s, mismo voltaje y tipo de enchufes". (5) "emergencias.embajada": pon "No aplica � viaje dom�stico". (6) tips_culturales: NO menciones tipo de cambio, casas de cambio, conversi�n de divisas, adaptador de corriente ni seguro de viaje internacional.`
+      ? `- DOMÉSTICO: (1) checklist: solo cédula/DNI, sin pasaporte ni visa. (2) dinero.tipo_cambio="No aplica – misma moneda"; donde_cambiar="No aplica". (3) seguro: solo asistencia nacional. (4) adaptador_enchufe="No necesario". (5) emergencias.embajada="No aplica". (6) tips_culturales: sin menciones de cambio de moneda ni adaptadores.`
       : '';
 
     // Plataformas seg�n preferencia del cliente
@@ -1598,68 +1591,48 @@ Para origen_iata y destino_iata: c�digo IATA de 3 letras del aeropuerto princi
     const tipoViaje  = (formData.tipoViaje || 'pareja').toLowerCase();
     const ocasion = (formData.ocasionEspecial || '').toLowerCase();
     const tipoViajeRule = tipoViaje === 'familia'
-      ? (() => {
-          const numNinos = formData.numNinos || 0;
-          const ninosCtxStr = numNinos > 0
-            ? `Hay ${numNinos} ni�o${numNinos > 1 ? 's' : ''} en el grupo � actividades aptas para su edad, restaurantes con men� infantil, ritmo con descansos obligatorios.`
-            : 'Grupo familiar adulto � actividades tranquilas aptas para todas las edades.';
-          const movilStr = formData.movilidadReducida ? ' Verifica accesibilidad en cada actividad (sin escaleras largas, terrenos llanos).' : '';
-          return `- TIPO DE VIAJE: FAMILIA. ${ninosCtxStr}${movilStr} Reglas: (1) Actividades aptas para ni�os (zool�gicos, playas seguras, museos interactivos, parques naturales). (2) Restaurantes con men� infantil y mesas amplias. (3) Alojamiento con habitaciones familiares o conectadas. (4) Evita actividades de riesgo o exclusivas para adultos. Tono: c�lido, considerado con todas las edades.`;
-        })()
+      ? `- TIPO FAMILIA: ${(formData.numNinos || 0) > 0 ? (formData.numNinos) + ' niño' + ((formData.numNinos) > 1 ? 's' : '') : 'todas las edades'}.${formData.movilidadReducida ? ' Accesibilidad en todo.' : ''} Actividades aptas para niños, restaurantes con menú infantil, alojamiento familiar, sin riesgo. Tono: cálido.`
       : tipoViaje === 'pareja'
         ? ocasion === 'luna-de-miel'
-          ? `- TIPO DE VIAJE: LUNA DE MIEL ??. Es el viaje m�s importante de su vida. TODO debe ser �ntimo, privado y memorable: (1) Actividades privadas para dos (tours privados, spa de pareja, clases de cocina juntos). (2) Cenas con vista excepcional y ambiente rom�ntico � no restaurantes bulliciosos. (3) Alojamiento: suite o habitaci�n superior � menciona expl�citamente que avisen al hotel para posibles upgrades y detalles de bienvenida. (4) Planifica al menos un momento sorpresa o especial por d�a. Tono del texto: po�tico, �ntimo, emocionante � cada descripci�n debe sentirse �nica.`
+          ? `- TIPO LUNA DE MIEL: Todo íntimo y memorable. Actividades privadas para dos, cenas con vista romántica, suite o superior (avisen al hotel), 1 sorpresa/día. Tono: poético.`
           : ocasion === 'aniversario'
-          ? `- TIPO DE VIAJE: ANIVERSARIO ??. Celebraci�n rom�ntica: (1) Al menos una cena o experiencia excepcionalmente memorable. (2) Mix de actividades �ntimas con algo �nico para la fecha. (3) Alojamiento con habitaci�n doble especial o suite. Tono: c�lido, evocador y celebratorio.`
-          : `- TIPO DE VIAJE: PAREJA. Adapta TODO para viaje rom�ntico: (1) Experiencias �ntimas (cenas con vista, paseos al atardecer, spas, tours privados). (2) Restaurantes con ambiente rom�ntico (no bulliciosos). (3) Alojamiento con habitaci�n doble especial o suite. (4) Actividades en pareja (clases de cocina para dos, paseos en bote, miradores). Tono: c�lido, evocador y rom�ntico.`
+          ? `- TIPO ANIVERSARIO: 1 cena o experiencia muy memorable, alojamiento doble especial. Tono: celebratorio.`
+          : `- TIPO PAREJA: Experiencias íntimas, restaurantes románticos, alojamiento doble especial. Tono: evocador.`
         : tipoViaje === 'solo'
-          ? `- TIPO DE VIAJE: VIAJERO SOLO. Adapta TODO para viaje individual: (1) Tours grupales (ideales para conocer gente). (2) Caf�s con ambiente tranquilo. (3) Experiencias sociales y hostales con zonas comunes. (4) �nfasis en seguridad: zonas seguras, apps de transporte, contactos de emergencia. (5) Consejos sobre c�mo moverse solo. Tono: empoderador y pr�ctico.`
+          ? `- TIPO SOLO: Tours grupales para socializar, énfasis en seguridad y apps de transporte. Tono: empoderador.`
           : tipoViaje === 'amigos'
             ? ocasion === 'despedida'
-              ? `- TIPO DE VIAJE: DESPEDIDA DE SOLTERO/A ??. Grupo en modo celebraci�n: (1) Actividades grupales con adrenalina y diversi�n (aventura, deportes, experiencias �nicas). (2) Al menos 2 noches de vida nocturna destacadas. (3) Restaurantes con mesas grandes y ambiente festivo. (4) Alguna actividad memorable para el/la protagonista. (5) Alojamiento tipo Airbnb casa completa. Tono: en�rgico, divertido, con humor.`
+              ? `- TIPO DESPEDIDA: Actividades grupales con adrenalina, 2+ noches de vida nocturna, algo especial para el/la protagonista, Airbnb casa completa. Tono: enérgico.`
               : ocasion === 'cumpleanos'
-              ? `- TIPO DE VIAJE: CUMPLEA�OS EN GRUPO ??. Al menos una actividad o cena especial para el festejo. Sugerencias para hacer el d�a memorable. Restaurantes con ambiente festivo. Tono: jovial y celebratorio.`
-              : `- TIPO DE VIAJE: GRUPO DE AMIGOS. Adapta TODO para grupo: (1) Actividades grupales (aventura, tours, vida nocturna). (2) Restaurantes con mesas grandes y ambiente animado. (3) Alojamiento tipo Airbnb casa completa o habitaciones m�ltiples. (4) Actividades de adrenalina y diversi�n colectiva. Tono: energ�tico, jovial y con humor.`
+              ? `- TIPO CUMPLEAÑOS: 1 actividad o cena especial para el festejo. Restaurantes festivos. Tono: jovial.`
+              : `- TIPO AMIGOS: Actividades grupales (aventura, nocturna), mesas grandes, Airbnb casa completa. Tono: enérgico.`
             : tipoViaje.includes('empresa') || tipoViaje.includes('corporat') || tipoViaje.includes('negocio')
-              ? `- TIPO DE VIAJE: GRUPO EMPRESARIAL. (1) Hoteles de negocios con sala de reuniones y WiFi r�pido. (2) Restaurantes apropiados para cenas de trabajo. (3) Opciones de team building. (4) Transporte eficiente y servicio ejecutivo. Tono: profesional pero cercano.`
-              : `- TIPO DE VIAJE: ${tipoViaje}. Adapta el itinerario para este perfil de viajero.`;
+              ? `- TIPO EMPRESARIAL: Hotel de negocios con WiFi, restaurantes formales, team building. Tono: profesional.`
+              : `- TIPO: ${tipoViaje}. Adapta el itinerario.`;
 
     // -- Reglas de personalizaci�n adicionales (nuevos campos del form) --------
     const reglasPersonalizacion = [
-      // Intereses con pesos
-      `- INTERESES CON PRIORIDAD: ${interesesConPeso}. El primer inter�s es el PRINCIPAL � el 60% de las actividades del d�a a d�a deben girar en torno a �l. El segundo es secundario (25%). El tercero es complementario (10%). El cuarto es ocasional cuando encaje. Mapeo obligatorio ? gastronomia: mercados, clases de cocina, tours gastron�micos, degustaciones; aventura: senderismo, deportes extremos, kayak, rafting, zipline; playa: playas, snorkeling, surf, buceo; cultura: museos, sitios hist�ricos, arte local, barrios hist�ricos; naturaleza: parques nacionales, cascadas, reservas naturales; nocturna: bares de moda, rooftops, tours nocturnos, clubes. Las actividades NO pueden contradecir los intereses elegidos.`,
-      // Restricci�n dietaria
-      restriccionCtx ? `- ALIMENTACI�N: ${restriccionDescMap[formData.restriccionDietaria]}` : '',
-      // Horario preferido
+    const reglasPersonalizacion = [
+      `- INTERESES: ${interesesConPeso}. Principal=60% actividades, 2do=25%, 3ro=10%, 4to=ocasional. Mapeo: gastronomia→mercados/cocina/degustaciones; aventura→senderismo/kayak/extremos; playa→playas/snorkeling/surf; cultura→museos/historia/arte; naturaleza→parques/cascadas; nocturna→bares/rooftops/clubes.`,
+      restriccionCtx ? `- ALIMENTACIÓN: ${restriccionDescMap[formData.restriccionDietaria]}` : '',
       horarioCtx,
-      // Aerol�nea preferida
-      aerolineaCtx ? `- AEROL�NEA PREFERIDA: ${aerolineaDescMap[formData.aerolineaPreferida]} � si opera la ruta a precio competitivo (m�x 20% m�s cara que la opci�n m�s econ�mica), ponla como PRIMERA opci�n en el array de vuelos.` : '',
-      // Prioridad de gasto
-      prioridadCtx ? `- PRIORIDAD DE GASTO: ${prioridadDescMap[formData.prioridadGasto]}` : '',
-      // Primera visita
+      aerolineaCtx ? `- AEROLÍNEA: ${aerolineaDescMap[formData.aerolineaPreferida]} — primera si opera la ruta a máx 20% sobre la más barata.` : '',
+      prioridadCtx ? `- PRIORIDAD GASTO: ${prioridadDescMap[formData.prioridadGasto]}` : '',
       primeraVisitaCtx ? primeraVisitaCtx.replace('\n- ', '- ') : '',
-      // Nombre del viajero � usado 1 vez por d�a en un momento clave
-      formData.nombre ? `- PERSONALIZACI�N NOMBRE: El viajero se llama ${formData.nombre}. Usa su nombre de forma natural exactamente 1 vez por d�a dentro de la descripci�n de una actividad en el campo "descripcion", en un momento emotivo o clave del itinerario. No lo uses en cada p�rrafo ni de forma repetitiva. Debe sonar humano y c�lido. Ejemplos v�lidos: "Esta tarde, ${formData.nombre}, es el momento perfecto para perderte en el barrio hist�rico..." o "Esta noche es especial, ${formData.nombre} � reserva mesa con vista al mar en..."` : '',
-      // Presupuesto por día
+      formData.nombre ? `- NOMBRE: Usa "${formData.nombre}" 1 vez/día en una actividad en momento emotivo. Natural, no repetitivo.` : '',
       presupuestoDiaRule,
-      // Temporada y clima
       formData.mesViaje
-        ? `- TEMPORADA Y CLIMA: El viajero va en ${formData.mesViaje.replace('-', ' ')}. OBLIGATORIO adaptar las actividades del día a día al clima real de ese mes en ${formData.destino || 'el destino'}: (1) Calor extremo → actividades de exterior en mañana temprana o al atardecer, mediodía en espacios cubiertos o acuosos. (2) Lluvia frecuente → incluir alternativas cubiertas para cada día, no solo plan_b. (3) Temporada alta → mencionar en cada atracción si necesita reserva anticipada y con cuánta antelación. (4) Festividades o eventos relevantes en esas fechas → priorizarlos como actividades. (5) Actividades estacionales → incluirlas si aplica (playa en verano, esqui en invierno, vendimia en otoño, cerezos en abril en Japón, etc.).`
+        ? `- CLIMA (${formData.mesViaje.replace('-', ' ')}): Adapta actividades al clima real ese mes en ${formData.destino || 'el destino'}: calor→exterior mañana/mediodía cubierto; lluvia→alternativas cubiertas diarias; temp.alta→avisar sobre reservas anticipadas; incluir actividades estacionales.`
         : '',
-      // Distribución de ciudades según intereses (multi-destino)
       interesesArray.length > 0
-        ? `- DISTRIBUCIÓN DE CIUDADES: En viajes multi-destino, selecciona ciudades que MAXIMICEN el interés principal (${interesesArray[0]}). Ejemplos: interés 'playa' → prioriza ciudades costeras sobre capitales interiores; 'cultura' → ciudades con patrimonio y museos; 'gastronomía' → ciudades con identidad culinaria reconocida; 'aventura' → destinos con naturaleza y deportes; 'naturaleza' → parques nacionales y reservas sobre ciudades. No distribuyas días equitativamente si una ciudad encaja mucho mejor con los intereses.`
+        ? `- CIUDADES MULTI-DESTINO: Prioriza ciudades que maximicen "${interesesArray[0]}": playa→costeras; cultura→patrimonio; gastronomía→identidad culinaria; aventura→naturaleza. Sin distribución equitativa si una encaja mejor.`
         : '',
-      // Restricción dietaria fuerte en restaurantes Y en selección de zona
       formData.restriccionDietaria && formData.restriccionDietaria !== 'sin-restriccion'
-        ? `- RESTRICCIÓN DIETARIA ESTRICTA (${formData.restriccionDietaria.toUpperCase()}): NO es solo un filtro de restaurantes — afecta también la selección de barrios y mercados. Prioriza zonas con oferta diversa. Para veganos: barrios con cultura plant-based; para halal: zonas con comunidad musulmana o restaurantes certificados; para sin-gluten: menciona en tips_culturales cómo comunicarlo en el idioma local. TODOS los restaurantes recomendados deben tener opciones claras para esta restricción — sin excepciones.`
+        ? `- DIETA ESTRICTA (${formData.restriccionDietaria.toUpperCase()}): Afecta barrios y restaurantes. Veganos→plant-based; halal→comunidad musulmana; sin-gluten→cómo pedirlo en tips_culturales. Todos los restaurantes con opciones.`
         : '',
-      // Experiencia del viajero cruzada con conocimiento del destino
       experienciaViajeroCtx ? experienciaViajeroCtx.replace(/^\n/, '') : '',
-      // Cruces de señales: reglas que emergen de combinar múltiples preferencias
       crucesSenales || '',
-      // Titulo y subtitulo: personalizados con nombre + destino + ocasión
-      `- TÍTULO Y SUBTÍTULO: El "titulo" debe ser creativo, incluir el destino y reflejar la esencia del viaje (ej: "Tokio desde adentro: 8 días sin guías turísticas" o "Roma para dos: historia, vino y amor"). Si hay ocasión especial, incorpórala poéticamente. El "subtitulo" debe usar el nombre del viajero (${formData.nombre}) y sonar como si se lo dijera un amigo de confianza — cálido, directo, emocionante. Ejemplos válidos: "${formData.nombre}, esto es exactamente lo que necesitabas." o "Hecho a medida para ti, ${formData.nombre}: cada día un descubrimiento nuevo." Nunca uses frases genéricas como "¡Bienvenido a tu aventura!".`,
+      `- TÍTULO: creativo, incluye destino y esencia; si hay ocasión especial incorpórala. SUBTÍTULO: usa "${formData.nombre}", tono de amigo de confianza. Sin frases genéricas.`,
     ].filter(Boolean).join('\n');
 
     // -- Regla ALOJAMIENTO seg�n preferencia ---------------------------------
