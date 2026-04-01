@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { ChevronRight, ChevronLeft, Plane, MapPin, Users, Sparkles, Loader2, RefreshCw, Check, CreditCard } from 'lucide-react';
@@ -40,6 +40,9 @@ export default function TravelForm({ onClose, initialDestino = '' }) {
     primeraVisita: null,
     nombre: '',
     email: '',
+    climaPreferido: '',
+    toleranciaVuelo: '',
+    idiomasHablados: [],
   });
 
   const planes = [
@@ -597,6 +600,53 @@ export default function TravelForm({ onClose, initialDestino = '' }) {
                   </select>
                 </div>
 
+                {/* Clima preferido */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    ¿Qué clima preferís? <span className="text-gray-400 font-normal">(opcional)</span>
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { id: 'calido', label: 'Cálido', emoji: '☀️' },
+                      { id: 'templado', label: 'Templado', emoji: '🌤️' },
+                      { id: 'frio', label: 'Frío / Nieve', emoji: '❄️' },
+                    ].map((cl) => (
+                      <button
+                        key={cl.id}
+                        onClick={() => setFormData({ ...formData, climaPreferido: formData.climaPreferido === cl.id ? '' : cl.id })}
+                        className={`p-3 rounded-xl border-2 flex flex-col items-center gap-1 transition-all ${formData.climaPreferido === cl.id ? 'border-orange-500 bg-orange-50' : 'border-gray-200 hover:border-gray-300'}`}
+                      >
+                        <span className="text-xl">{cl.emoji}</span>
+                        <span className="text-xs font-medium text-gray-700">{cl.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Tolerancia al vuelo */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    ¿Cuánto tiempo de vuelo tolerás? <span className="text-gray-400 font-normal">(opcional)</span>
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { id: 'corto', label: 'Vuelos cortos', emoji: '🕐', desc: 'Máx. 5-6h' },
+                      { id: 'medio', label: 'Vuelos medios', emoji: '🕓', desc: 'Hasta 10h' },
+                      { id: 'largo', label: 'Sin límite', emoji: '🌍', desc: 'Acepto vuelos largos' },
+                    ].map((tv) => (
+                      <button
+                        key={tv.id}
+                        onClick={() => setFormData({ ...formData, toleranciaVuelo: formData.toleranciaVuelo === tv.id ? '' : tv.id })}
+                        className={`p-3 rounded-xl border-2 flex flex-col items-center gap-1 transition-all ${formData.toleranciaVuelo === tv.id ? 'border-orange-500 bg-orange-50' : 'border-gray-200 hover:border-gray-300'}`}
+                      >
+                        <span className="text-xl">{tv.emoji}</span>
+                        <span className="text-xs font-semibold text-gray-700">{tv.label}</span>
+                        <span className="text-xs text-gray-400 text-center leading-tight">{tv.desc}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Primera visita (solo si tiene destino escrito) */}
                 {formData.tieneDestino === true && formData.destino.trim().length > 2 && (
                   <div className="fade-in">
@@ -887,6 +937,33 @@ export default function TravelForm({ onClose, initialDestino = '' }) {
                             className={`px-3 py-2 rounded-xl border-2 text-xs font-medium transition-all ${formData.aerolineaPreferida === al.id ? 'border-orange-500 bg-orange-50 text-orange-600' : 'border-gray-200 hover:border-gray-300 text-gray-600'}`}
                           >
                             {al.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    {/* Idiomas hablados */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">¿Qué idiomas hablás?</label>
+                      <div className="flex flex-wrap gap-2">
+                        {[
+                          { id: 'espa\u00f1ol', label: 'Español', emoji: '🇪🇸' },
+                          { id: 'ingles', label: 'Inglés', emoji: '🇬🇧' },
+                          { id: 'frances', label: 'Francés', emoji: '🇫🇷' },
+                          { id: 'portugues', label: 'Portugués', emoji: '🇧🇷' },
+                          { id: 'italiano', label: 'Italiano', emoji: '🇮🇹' },
+                          { id: 'aleman', label: 'Alemán', emoji: '🇩🇪' },
+                        ].map((lang) => (
+                          <button
+                            key={lang.id}
+                            onClick={() => {
+                              const updated = formData.idiomasHablados.includes(lang.id)
+                                ? formData.idiomasHablados.filter(l => l !== lang.id)
+                                : [...formData.idiomasHablados, lang.id];
+                              setFormData({ ...formData, idiomasHablados: updated });
+                            }}
+                            className={`px-3 py-2 rounded-xl border-2 flex items-center gap-1 text-xs font-medium transition-all ${formData.idiomasHablados.includes(lang.id) ? 'border-orange-500 bg-orange-50 text-orange-600' : 'border-gray-200 hover:border-gray-300 text-gray-600'}`}
+                          >
+                            <span>{lang.emoji}</span> {lang.label}
                           </button>
                         ))}
                       </div>
