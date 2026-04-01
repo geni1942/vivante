@@ -1339,13 +1339,9 @@ export async function POST(request) {
     })();
 
     const budgetWarning = presupuesto < umbralMin ? `
-?? ALERTA DE PRESUPUESTO: El cliente tiene $${presupuesto} USD/persona pero el viaje a ${formData.destino || 'este destino'} t�picamente cuesta $${umbralMin}+ USD/persona.
-DEBES:
-1. Mencionarlo con empat�a en el campo "resumen.ritmo" o a�adir una nota en "resumen.distribucion": "?? Tu presupuesto es ajustado para este destino � considera fechas flexibles y hostels."
-2. Adaptar TODAS las recomendaciones al presupuesto real: hostels/Airbnb econ�mico, comida callejera, actividades gratuitas.
-3. En presupuesto_desglose.total NO superar $${presupuesto * 1.1} USD.
-4. Si el presupuesto solo alcanza para el pasaje (menos de $${Math.round(umbralMin * 0.4)} USD), indicarlo claramente y sugerir destinos alternativos m�s econ�micos.` : '';
-
+    const budgetWarning = presupuesto < umbralMin
+      ? `ALERTA: Presupuesto $${presupuesto} USD es bajo para ${formData.destino || 'este destino'} (mín estimado $${umbralMin}). Adáptalo con hostels/Airbnb económico, comida callejera, actividades gratuitas. presupuesto_desglose.total no puede superar $${Math.round(presupuesto * 1.1)} USD.`
+      : '';
     // -- Intereses con orden de prioridad -------------------------------------
     const interesesArray = Array.isArray(formData.intereses) ? formData.intereses : [];
     const interesNombres = {
@@ -1361,28 +1357,20 @@ DEBES:
       : 'cultura, gastronom�a';
 
     // -- Ocasi�n especial ------------------------------------------------------
-    const ocasionDescMap = {
-      'luna-de-miel':  'LUNA DE MIEL ?? � es el viaje m�s importante de su vida juntos. Cada detalle importa: actividades privadas e �ntimas, cenas con vista excepcional, suite o habitaci�n superior (avisa al hotel para posibles upgrades y detalles de bienvenida), momentos sorpresa planificados. Tono del texto: po�tico, �ntimo, emocionante.',
-      'aniversario':   'ANIVERSARIO ?? � celebraci�n rom�ntica de pareja. Al menos una cena o experiencia especialmente memorable. Mix de actividades �ntimas con algo �nico para festejar la fecha. Tono: c�lido y celebratorio.',
-      'cumpleanos':    'CUMPLEA�OS ?? � viaje de celebraci�n. Incluye al menos una experiencia o cena especial para el festejo. Tono festivo y energ�tico.',
-      'despedida':     'DESPEDIDA DE SOLTERO/A ?? � grupo en modo celebraci�n. Prioriza actividades grupales con adrenalina y diversi�n, al menos 2 noches de vida nocturna destacadas, restaurantes con mesas grandes y ambiente animado. Tono: en�rgico, divertido, con humor.',
-      'graduacion':    'GRADUACI�N ?? � celebraci�n de logro importante. Al menos una experiencia premium memorable. Tono orgulloso y celebratorio.',
-    };
-    const ocasionCtx = formData.ocasionEspecial && ocasionDescMap[formData.ocasionEspecial]
-      ? `\n- OCASI�N ESPECIAL: ${ocasionDescMap[formData.ocasionEspecial]}`
-      : '';
+    // ocasionCtx eliminado — cubierto por tipoViajeRule
+    const ocasionCtx = '';
 
     // -- Restricci�n alimentaria -----------------------------------------------
+    // restriccionDescMap sigue siendo necesario para reglasPersonalizacion
     const restriccionDescMap = {
-      'vegetariano': 'VEGETARIANO � TODOS los restaurantes recomendados DEBEN tener opciones vegetarianas claras. Menciona los platos vegetarianos espec�ficos. Evita restaurantes cuya especialidad sea exclusivamente carne o mariscos.',
-      'vegano':      'VEGANO � TODOS los restaurantes DEBEN tener opciones veganas verificadas. Prioriza locales con men� plant-based dedicado. Menciona platos veganos espec�ficos disponibles.',
-      'sin-gluten':  'SIN GLUTEN � TODOS los restaurantes deben tener opciones sin gluten claramente identificadas. Agrega en tips_culturales c�mo comunicar la restricci�n en el idioma local.',
-      'halal':       'HALAL � prioriza restaurantes con certificaci�n halal o sin alcohol/cerdo. Incluye en tips_culturales c�mo identificar opciones halal en el destino.',
-      'pescetariano': 'PESCETARIANO � come pescado y mariscos pero NO carne roja ni pollo. TODOS los restaurantes DEBEN tener opciones con pescado/mariscos o vegetarianas. Especifica qu� platos con mariscos o pescado est�n disponibles.',
+      'vegetariano':  'VEGETARIANO: todos los restaurantes con opciones vegetarianas claras.',
+      'vegano':       'VEGANO: todos los restaurantes con opciones veganas verificadas.',
+      'sin-gluten':   'SIN GLUTEN: todos los restaurantes con opciones sin gluten.',
+      'halal':        'HALAL: prioriza restaurantes halal o sin alcohol/cerdo.',
+      'pescetariano': 'PESCETARIANO: come pescado/mariscos, no carne roja ni pollo.',
     };
-    const restriccionCtx = formData.restriccionDietaria && formData.restriccionDietaria !== 'sin-restriccion' && restriccionDescMap[formData.restriccionDietaria]
-      ? `\n- RESTRICCI�N ALIMENTARIA: ${restriccionDescMap[formData.restriccionDietaria]}`
-      : '';
+    // restriccionCtx eliminado de clienteCtx — cubierto por reglasPersonalizacion
+    const restriccionCtx = '';
 
     // -- Horario inferido desde otros campos (no hay pregunta directa) --------
     const horarioInferido = (() => {
@@ -1400,16 +1388,14 @@ DEBES:
 
     // -- Aerol�nea preferida / programa de millas ------------------------------
     const aerolineaDescMap = {
-      latam:     'LATAM (LATAM Pass)',
-      avianca:   'Avianca (LifeMiles)',
-      copa:      'Copa Airlines (ConnectMiles)',
-      american:  'American Airlines (AAdvantage)',
-      iberia:    'Iberia / Air Europa (Iberia Plus)',
+      latam:    'LATAM (LATAM Pass)',
+      avianca:  'Avianca (LifeMiles)',
+      copa:     'Copa Airlines (ConnectMiles)',
+      american: 'American Airlines (AAdvantage)',
+      iberia:   'Iberia / Air Europa (Iberia Plus)',
     };
-    const aerolineaCtx = formData.aerolineaPreferida && aerolineaDescMap[formData.aerolineaPreferida]
-      ? `\n- AEROL�NEA PREFERIDA/MILLAS: ${aerolineaDescMap[formData.aerolineaPreferida]} � si opera la ruta y tiene precio competitivo (m�x 20% m�s caro que la opci�n m�s barata), ponla como PRIMERA opci�n en el array de vuelos.`
-      : '';
-
+    // aerolineaCtx eliminado de clienteCtx — cubierto por reglasPersonalizacion
+    const aerolineaCtx = '';
     // -- Prioridad de gasto ----------------------------------------------------
     const prioridadDescMap = {
       'vuelo-directo': 'PRIORIDAD VUELO DIRECTO � el viajero prefiere pagar m�s por vuelo directo. Pon SIEMPRE el vuelo directo como primera opci�n si existe, aunque sea m�s caro. Asigna mayor proporci�n del presupuesto_desglose a vuelos.',
@@ -1438,20 +1424,8 @@ DEBES:
     const esViajeroNovato = formData.experienciaViajero === 'primera-vez';
 
     const primeraVisitaCtx = esRegular
-      ? `
-- PERFIL LOCAL — CONOCE ESTE DESTINO MUY BIEN (visita regular/5+ veces): Esta es la regla más prioritaria del itinerario y PREVALECE sobre cualquier otra.
-  ABSOLUTAMENTE PROHIBIDO mencionar cualquier atracción turística, aunque sea "de forma diferente": nada de Colosseum, Eiffel, Sagrada Família, Big Ben ni equivalentes en cualquier destino.
-  OBLIGATORIO: (1) Actividades que solo hacen los residentes: mercados de barrio sin turistas, asociaciones culturales locales, eventos de temporada que no aparecen en TripAdvisor, rutas de running o ciclismo locales, parques donde va la gente del barrio. (2) Restaurantes sin presencia masiva en Google Maps, donde el menú está solo en el idioma local y los precios son para locales — no para turistas. (3) Horarios y lugares que solo conocen quienes viven ahí: el bar que abre solo los jueves, el mercado que es el primer domingo del mes, la playa sin nombre que los locales guardan. (4) Barrios o suburbs que los turistas jamás visitan pero que tienen vida real y carácter. Tono: de par a par, como si le hablaras a alguien que conoce bien el destino y quiere redescubrirlo desde dentro.`
-      : esVeterano
-      ? `
-- PERFIL EXPLORADOR EXPERTO — HA IDO VARIAS VECES (3-5 visitas): Esta regla prevalece sobre cualquier otra.
-  PROHIBIDOS como actividades principales los top-10 turísticos masivos del destino. Solo como contexto ocasional si es inevitable.
-  OBLIGATORIO: (1) Barrios locales auténticos que los turistas no descubren — con nombres reales y específicos. (2) Restaurantes donde comen los locales: sin menú en inglés, sin fotos en el menú. (3) Mercados populares, talleres de artesanos, galerías underground, proyectos culturales independientes. (4) Experiencias de nicho que requieren conocimiento previo: rutas ciclistas locales, clubes de jazz pequeños, mercados de pulgas, bares sin señalética exterior. (5) Horarios anti-turista: entrar a un sitio a las 7am antes de las hordas. Tono: viajero experimentado hablándole a otro igual — sin explicaciones básicas.`
-      : esReincidente
-      ? `
-- PERFIL VIAJERO REINCIDENTE — HA IDO 1-2 VECES: Máximo 20% íconos clásicos vividos de forma no turística (acceso especial, horario temprano, perspectiva local) + 80% experiencias auténticas. Evita tours masivos y restaurantes en zonas 100% turísticas. Incluye al menos 1 barrio fuera del circuito habitual y al menos 2 experiencias que el viajero no habría hecho en su primera visita. Tono: compañero de viaje con experiencia, no guía turístico.`
-      : `
-- PERFIL EXPLORADOR CURIOSO — PRIMERA VEZ: Incluye los imperdibles clásicos — son clásicos por razones válidas y este viajero no los conoce. Equilibra íconos turísticos con al menos 1-2 experiencias auténticas locales por ciudad. Explica el contexto cultural básico de cada lugar. Tips prácticos imprescindibles: cómo llegar del aeropuerto, propinas locales, costumbres que sorprenden, apps útiles. Tono: guía amigable, orientador y empático con quien viaja por primera vez.`;
+    // primeraVisitaCtx eliminado — experienciaViajeroCtx lo cubre de forma más compacta
+    const primeraVisitaCtx = '';
 
 
     // -- Experiencia del viajero cruzada con conocimiento del destino ----------
@@ -1676,51 +1650,18 @@ Para origen_iata y destino_iata: c�digo IATA de 3 letras del aeropuerto princi
                    : bookingPrem;
 
     const alojamientoSchema = `
+    const alojamientoSchema = `
 "alojamiento": [
   {
-    "destino": "string (ciudad/zona)",
+    "destino": "string (ciudad)",
     "noches": numero,
     "opciones": [
-      {
-        "plataforma": "${platEco}",
-        "zona": "string (barrio o area especifica donde buscar, ej: 'Eixample', 'Palermo Soho', 'Mitte')",
-        "nombre": "string (descriptor zona+tipo, ej: 'Hotel 2-3 estrellas en el Eixample', 'Hostal social en El Raval rating 8+', 'Habitacion privada en Palermo Soho')",
-        "categoria": "Economico",
-        "precio_noche": "string en USD",
-        "puntuacion": "string (ej: 8.7/10)",
-        "cancelacion": "Gratuita",
-        "highlights": ["string feature 1", "string feature 2"],
-        "por_que": "string en voz VIVANTE calida y directa",
-        "link": "URL de busqueda: ${linkEco}"
-      },
-      {
-        "plataforma": "${platMid}",
-        "zona": "string (barrio o area especifica)",
-        "nombre": "string (descriptor zona+tipo, ej: 'Hotel boutique 3-4 estrellas en el centro historico', 'Hostal premium en Gracia rating 8.5+', 'Apartamento entero en Palermo Soho')",
-        "categoria": "Confort",
-        "precio_noche": "string",
-        "puntuacion": "string",
-        "cancelacion": "Gratuita",
-        "highlights": ["string"],
-        "por_que": "string",
-        "link": "URL de busqueda: ${linkMid}"
-      },
-      {
-        "plataforma": "${platPrem}",
-        "zona": "string (barrio o area especifica)",
-        "nombre": "string (descriptor zona+tipo, ej: 'Hotel boutique 4-5 estrellas en el Eixample', 'Hostal top-rated en Mitte rating 9+', 'Apartamento entero premium en Recoleta')",
-        "categoria": "Premium",
-        "precio_noche": "string",
-        "puntuacion": "string (ej: 4.9/5)",
-        "cancelacion": "string",
-        "highlights": ["string"],
-        "por_que": "string",
-        "link": "URL de busqueda: ${linkPrem}"
-      }
+      { "plataforma": "${platEco}",  "zona": "string (barrio)", "nombre": "string (descriptor tipo+zona)", "categoria": "Economico", "precio_noche": "string USD", "puntuacion": "string", "cancelacion": "Gratuita", "highlights": ["string"], "por_que": "string VIVANTE", "link": "${linkEco}" },
+      { "plataforma": "${platMid}",  "zona": "string (barrio)", "nombre": "string (descriptor tipo+zona)", "categoria": "Confort",   "precio_noche": "string USD", "puntuacion": "string", "cancelacion": "Gratuita", "highlights": ["string"], "por_que": "string VIVANTE", "link": "${linkMid}" },
+      { "plataforma": "${platPrem}", "zona": "string (barrio)", "nombre": "string (descriptor tipo+zona)", "categoria": "Premium",   "precio_noche": "string USD", "puntuacion": "string", "cancelacion": "string",   "highlights": ["string"], "por_que": "string VIVANTE", "link": "${linkPrem}" }
     ]
   }
 ]`;
-
     const restaurantesSchema = `
 "restaurantes": {
   "NOMBRE_REAL_CIUDAD_1": [
